@@ -117,18 +117,18 @@ function updateHtmlFile(phrases) {
 }
 
 function gitCommitAndPush() {
-  try {
-    execSync('git add index.html', { cwd: __dirname, stdio: 'inherit' });
-    execSync('git commit -m "sync phrases from Airtable"', { cwd: __dirname, stdio: 'inherit' });
-    execSync('git push', { cwd: __dirname, stdio: 'inherit' });
-    console.log('Pushed to GitHub — Netlify will redeploy automatically');
-  } catch (err) {
-    if (err.message && err.message.includes('nothing to commit')) {
-      console.log('No changes to commit');
-    } else {
-      throw err;
-    }
+  execSync('git add index.html', { cwd: __dirname, stdio: 'inherit' });
+
+  // Check if index.html is actually staged with changes
+  const staged = execSync('git diff --cached --name-only', { cwd: __dirname }).toString().trim();
+  if (!staged) {
+    console.log('No changes to commit — phrases already up to date');
+    return;
   }
+
+  execSync('git commit -m "sync phrases from Airtable"', { cwd: __dirname, stdio: 'inherit' });
+  execSync('git push', { cwd: __dirname, stdio: 'inherit' });
+  console.log('Pushed to GitHub — Netlify will redeploy automatically');
 }
 
 (async () => {
