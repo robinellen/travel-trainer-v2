@@ -2253,13 +2253,12 @@ function renderSituationPanel(phrase, useSpeak) {
     document.getElementById('situationMC').classList.remove('hidden');
     document.getElementById('situationSpeak').classList.add('hidden');
 
-    // Build MC options — correct answer + 3 distractors
+    // Build MC options — correct answer + 3 distractors from seen phrases
     const correctAnswers = phrase.responses || [phrase.native];
-    const distractors = PHRASES
-      .filter(p => p.lang === phrase.lang && !correctAnswers.includes(p.native) && p.id !== phrase.id)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 3)
-      .map(p => p.native);
+    const notCorrect = p => !correctAnswers.includes(p.native) && p.id !== phrase.id;
+    const seenPool = shuffle(PHRASES.filter(p => getScore(p.id) > 0 && notCorrect(p)));
+    const fallbackPool = shuffle(PHRASES.filter(p => getScore(p.id) === 0 && notCorrect(p)));
+    const distractors = [...seenPool, ...fallbackPool].slice(0, 3).map(p => p.native);
 
     const options = [...correctAnswers.slice(0,1), ...distractors].sort(() => Math.random() - 0.5);
     const container = document.getElementById('mcOptions');
