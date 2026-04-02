@@ -589,6 +589,11 @@ body::after {
         <div class="session-card-full-desc" id="stageSub">Start with French — the foundation for your August trip.</div>
       </div>
     </div>
+    <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+      <button id="lenShortBtn" onclick="setSessionLength('short')" style="flex:1; padding:0.5rem; border-radius:0.5rem; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:'Lexend',sans-serif; font-size:0.72rem; cursor:pointer; transition:all 0.15s;">5 min</button>
+      <button id="lenLongBtn" onclick="setSessionLength('long')" style="flex:1; padding:0.5rem; border-radius:0.5rem; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:'Lexend',sans-serif; font-size:0.72rem; cursor:pointer; transition:all 0.15s;">15 min</button>
+    </div>
+    <div id="reviewCount" style="font-size:0.72rem; color:var(--text-dim); text-align:center; margin-bottom:0.75rem;"></div>
     <button class="btn-primary" id="startSessionBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Begin French →</button>
 
     <div class="session-options">
@@ -1322,6 +1327,10 @@ let state = {
   sessions: { fr: 0, nl: 0, de: 0 },
   // Track which phrases have seen the buildup intro
   seenBuildupIntro: {},
+  // Leitner spaced repetition: { [phraseId]: { interval, nextReviewDate } }
+  leitner: {},
+  // Session length preference: 'short' (3 phrases) or 'long' (8 phrases)
+  sessionLength: 'short',
   // Current session
   session: {
     mode: 'lesson',       // 'lesson' | 'listen' | 'speak' | 'match' | 'situation'
@@ -1343,6 +1352,8 @@ function loadState() {
       state.unlockedLangs = parsed.unlockedLangs || ['fr'];
       state.sessions = parsed.sessions || { fr: 0, nl: 0, de: 0 };
       state.seenBuildupIntro = parsed.seenBuildupIntro || {};
+      state.leitner = parsed.leitner || {};
+      state.sessionLength = parsed.sessionLength || 'short';
     }
   } catch(e) {}
 }
@@ -1354,6 +1365,8 @@ function saveState() {
       unlockedLangs: state.unlockedLangs,
       sessions: state.sessions,
       seenBuildupIntro: state.seenBuildupIntro,
+      leitner: state.leitner,
+      sessionLength: state.sessionLength,
     }));
   } catch(e) {}
 }
@@ -1372,6 +1385,39 @@ function bumpScore(phraseId, to) {
     state.scores[phraseId] = to;
     saveState();
   }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// LEITNER SPACED REPETITION
+// ═══════════════════════════════════════════════════════════════════
+
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isPhrasedue(phraseId) {
+  const entry = state.leitner[phraseId];
+  if (!entry || !entry.nextReviewDate) return true;
+  return entry.nextReviewDate <= todayISO();
+}
+
+function getDueCount(phrases) {
+  return phrases.filter(p => isPhrasedue(p.id)).length;
+}
+
+function recordLeitner(phraseId, correct) {
+  const entry = state.leitner[phraseId] || { interval: 1 };
+  const interval = correct
+    ? Math.round((entry.interval || 1) * 2.5)
+    : 1;
+  const next = new Date();
+  next.setDate(next.getDate() + interval);
+  state.leitner[phraseId] = {
+    interval,
+    nextReviewDate: next.toISOString().slice(0, 10),
+  };
+  saveState();
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1680,6 +1726,23 @@ function buildSessionQueue(mode) {
   return activePhrases.map(p => ({ phraseId: p.id, type: mode }));
 }
 
+function setSessionLength(len) {
+  state.sessionLength = len;
+  saveState();
+  updateSessionLengthButtons();
+  updateWelcomeProgress();
+}
+
+function updateSessionLengthButtons() {
+  const short = document.getElementById('lenShortBtn');
+  const long = document.getElementById('lenLongBtn');
+  if (!short || !long) return;
+  const activeStyle = 'flex:1; padding:0.5rem; border-radius:0.5rem; border:1px solid var(--text); background:var(--text); color:var(--bg); font-family:\'Lexend\',sans-serif; font-size:0.72rem; cursor:pointer; transition:all 0.15s;';
+  const inactiveStyle = 'flex:1; padding:0.5rem; border-radius:0.5rem; border:1px solid var(--border); background:var(--surface); color:var(--text); font-family:\'Lexend\',sans-serif; font-size:0.72rem; cursor:pointer; transition:all 0.15s;';
+  short.style.cssText = state.sessionLength === 'short' ? activeStyle : inactiveStyle;
+  long.style.cssText = state.sessionLength === 'long' ? activeStyle : inactiveStyle;
+}
+
 function startLesson() {
   startSessionWithMode('lesson');
 }
@@ -1721,21 +1784,15 @@ function startSessionWithMode(mode) {
     }
     state.session.queue = rounds;
   } else if (mode === 'lesson') {
-    // Session design: 6 phrases, each worked through a progressive arc
-    // (e.g. listen -> speak -> situation). Arcs are respected per phrase
-    // (listen always before speak for the same phrase) but exercise types
-    // are interleaved across phrases using a round-robin pull so the
-    // session never feels like "all listens then all speaks then all situations".
+    // Session size: 3 phrases for short (5 min), 8 for long (15 min)
+    const SESSION_SIZE = state.sessionLength === 'long' ? 8 : 3;
 
-    const SESSION_SIZE = 4;
+    // Split into due (overdue/new) and not-due (reviewed recently)
+    const due = shuffle(activePhrases.filter(p => isPhrasedue(p.id)));
+    const notDue = shuffle(activePhrases.filter(p => !isPhrasedue(p.id)));
 
-    // Pick a mix: 60% weakest phrases + 40% stronger for review
-    const sorted = [...activePhrases].sort((a, b) => getScore(a.id) - getScore(b.id));
-    const splitAt = Math.ceil(SESSION_SIZE * 0.6);
-    const selected = [
-      ...shuffle(sorted.slice(0, splitAt)).slice(0, splitAt),
-      ...shuffle(sorted.slice(splitAt)).slice(0, SESSION_SIZE - splitAt),
-    ].slice(0, SESSION_SIZE);
+    // Fill session: due phrases first, pad with not-due if needed
+    const selected = [...due, ...notDue].slice(0, SESSION_SIZE);
 
     // Build per-wave pools (wave 0 = each phrase's first exercise, etc.)
     const arcs = selected.map(p => ({ id: p.id, arc: getPhraseArc(p) }));
@@ -1750,8 +1807,6 @@ function startSessionWithMode(mode) {
     }
 
     // Round-robin pull: take 1-2 items from each wave pool in rotation
-    // This ensures listen comes before speak for the same phrase,
-    // while mixing types freely across different phrases.
     const stepPattern = [2, 1, 2, 1, 1, 2];
     let stepIdx = 0;
     const wavePos = new Array(maxWaves).fill(0);
@@ -1772,8 +1827,9 @@ function startSessionWithMode(mode) {
       if (!anyLeft) break;
     }
 
-    // Cap to ~10 exercises before inserting match rounds
-    rawQueue.splice(10);
+    // Cap exercises based on session size
+    const exerciseCap = SESSION_SIZE <= 3 ? 6 : 18;
+    rawQueue.splice(exerciseCap);
 
     // Insert match rounds every 5 cards
     const queue = [];
@@ -1970,7 +2026,7 @@ function renderListenPanel(phrase, type) {
     const emoji = document.getElementById('listenEmoji');
     emoji.textContent = phrase.emoji;
     emoji.classList.remove('hidden');
-    bumpScore(phrase.id, 1);
+    bumpScore(phrase.id, 1); recordLeitner(phrase.id, true);
 
     if (type === 'learn') {
       // Learn = full reveal, no task
@@ -2011,7 +2067,7 @@ function showListenRevealAfterTask(isCorrect, phrase) {
   result.className = 'result-bar ' + (isCorrect ? 'correct visible' : 'wrong visible');
   document.getElementById('listenTaskResultTitle').textContent = isCorrect ? '✓ Correct' : '✗ Not quite';
   document.getElementById('listenTaskResultBody').textContent = phrase.native + ' — ' + phrase.meaning;
-  if (isCorrect) bumpScore(phrase.id, 2);
+  if (isCorrect) { bumpScore(phrase.id, 2); recordLeitner(phrase.id, true); } else { recordLeitner(phrase.id, false); }
   // Show full phrase card and continue button
   setTimeout(() => {
     document.getElementById('listenPhraseCard').style.display = 'block';
@@ -2244,14 +2300,14 @@ function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, 
     document.getElementById(resultId).className = 'result-bar correct visible';
     document.getElementById(titleId).textContent = '✓ Got it';
     document.getElementById(bodyId).textContent = phrase.native;
-    bumpScore(phrase.id, 3);
+    bumpScore(phrase.id, 3); recordLeitner(phrase.id, true);
   } else {
     btn.className = 'mic-btn';
     document.getElementById(hintId).textContent = 'Try again or skip';
     document.getElementById(resultId).className = 'result-bar wrong visible';
     document.getElementById(titleId).textContent = '✗ Not quite';
     document.getElementById(bodyId).textContent = 'Target: ' + phrase.native;
-    bumpScore(phrase.id, 2);
+    bumpScore(phrase.id, 2); recordLeitner(phrase.id, false);
   }
   document.getElementById(nextId).classList.remove('hidden');
 }
@@ -2318,7 +2374,7 @@ function handleMatchClick(div, pool) {
     div.classList.add('matched-correct');
     matchState.matched.add(prev.dataset.phraseId);
     matchState.correct++;
-    bumpScore(prev.dataset.phraseId, 2);
+    bumpScore(prev.dataset.phraseId, 2); recordLeitner(prev.dataset.phraseId, true);
     // Check if all matched
     if (matchState.matched.size === matchState.total) {
       setTimeout(() => {
@@ -2402,13 +2458,13 @@ function handleMCClick(btn, selected, correctAnswers, phrase, container) {
     document.getElementById('situResult').className = 'result-bar correct visible';
     document.getElementById('situResultTitle').textContent = '✓ Exactly right';
     document.getElementById('situResultBody').textContent = phrase.note.split('.')[0] + '.';
-    bumpScore(phrase.id, 3);
+    bumpScore(phrase.id, 3); recordLeitner(phrase.id, true);
   } else {
     btn.className = 'mc-option wrong';
     document.getElementById('situResult').className = 'result-bar wrong visible';
     document.getElementById('situResultTitle').textContent = '✗ Not quite';
     document.getElementById('situResultBody').textContent = 'The right response: ' + correctAnswers[0];
-    bumpScore(phrase.id, 2);
+    bumpScore(phrase.id, 2); recordLeitner(phrase.id, false);
   }
   document.getElementById('situNextBtn').classList.remove('hidden');
 }
@@ -2570,6 +2626,19 @@ function getStageInfo() {
 // ═══════════════════════════════════════════════════════════════════
 
 function updateWelcomeProgress() {
+  // Update session length buttons
+  updateSessionLengthButtons();
+
+  // Update review count line
+  const activePhrases = PHRASES.filter(p => state.unlockedLangs.includes(p.lang));
+  const dueCount = getDueCount(activePhrases);
+  const reviewEl = document.getElementById('reviewCount');
+  if (reviewEl) {
+    reviewEl.textContent = dueCount > 0
+      ? `${dueCount} phrase${dueCount === 1 ? '' : 's'} ready for review`
+      : 'All caught up — reviewing ahead';
+  }
+
   // Update stage framing
   const stage = getStageInfo();
   const stageEl = document.getElementById('stageLabel');
