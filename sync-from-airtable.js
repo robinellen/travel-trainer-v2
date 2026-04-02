@@ -58,8 +58,9 @@ function parseArray(value) {
 function recordToPhrase(record) {
   const f = record.fields;
 
-  // Language is a singleSelect object: { name: "French", ... }
-  const langName = f['Language'] ? f['Language'].name : 'French';
+  // Language may be a plain string or a singleSelect object { name: "French" }
+  const langRaw = f['Language'];
+  const langName = langRaw ? (typeof langRaw === 'object' ? langRaw.name : langRaw) : 'French';
   const lang = LANG_CODE[langName] || 'fr';
 
   return {
