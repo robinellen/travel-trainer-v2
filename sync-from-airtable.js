@@ -73,6 +73,8 @@ function recordToPhrase(record) {
     romanization: f['Romanization'] || null,
     note: f['Note'] || '',
     situations: parseArray(f['Situations']),
+    situationEarly: parseArray(f['Situation (Early)']),
+    situationLate: parseArray(f['Situation (Late)']),
     responses: parseArray(f['Responses']),
   };
 }
