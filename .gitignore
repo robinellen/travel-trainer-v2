@@ -14,3 +14,9 @@
 
 # Logs
 *.log
+
+# Environment / secrets
+.env
+
+# Node
+node_modules/

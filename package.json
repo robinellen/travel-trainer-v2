@@ -1,0 +1,11 @@
+{
+  "name": "travel-trainer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "sync": "node sync-from-airtable.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  }
+}
