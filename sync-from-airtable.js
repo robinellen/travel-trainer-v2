@@ -63,14 +63,22 @@ function recordToPhrase(record) {
   const langName = langRaw ? (typeof langRaw === 'object' ? langRaw.name : langRaw) : 'French';
   const lang = LANG_CODE[langName] || 'fr';
 
+  // Tier may be a plain string or a singleSelect object { name: "1" }
+  const tierRaw = f['Tier'];
+  const tier = tierRaw ? (typeof tierRaw === 'object' ? tierRaw.name : tierRaw) : '1';
+
+  // Emoji field name changed — try both
+  const emoji = f['Emoji'] || f['emoji'] || '';
+
   return {
     id: record.id,
     lang,
     flag: LANG_FLAG[lang] || '',
     langLabel: langName,
-    emoji: f['Emoji'] || '',
+    tier,
+    emoji,
     meaning: f['English Meaning'] || '',
-    native: f['Phrase (Native)'] || '',
+    native: f['Phrase (Native)'] || '', // raw value — do not transform case
     romanization: f['Romanization'] || null,
     note: f['Note'] || '',
     situations: parseArray(f['Situations']),
