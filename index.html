@@ -932,6 +932,16 @@ body::after {
   </div>
 </div>
 
+
+<div class="screen" id="screenTierUnlock">
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:0;">
+    <div style="font-size:3rem; margin-bottom:1.5rem;">🗝️</div>
+    <h2 class="serif" style="font-size:2.2rem; margin-bottom:0.75rem;" id="tierUnlockHeading"></h2>
+    <p style="font-size:0.85rem; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:280px;" id="tierUnlockSub"></p>
+    <button class="btn-primary" onclick="onTierUnlockContinue()">Continue →</button>
+  </div>
+</div>
+
 </div><!-- .app -->
 
 <script>
@@ -1741,6 +1751,7 @@ let state = {
   leitner: {},
   // Speed drill mastery flags
   speedMastered: {},
+  seenTierUnlock: {}, // { vocabulary: true, tier2: true }
   // Session length preference: 'short' (3 phrases) or 'long' (8 phrases)
   sessionLength: 'long',
   // Current session
@@ -1767,6 +1778,7 @@ function loadState() {
       state.seenBuildupIntro = parsed.seenBuildupIntro || {};
       state.leitner = parsed.leitner || {};
       state.speedMastered = parsed.speedMastered || {};
+      state.seenTierUnlock = parsed.seenTierUnlock || {};
       state.sessionLength = parsed.sessionLength || 'long';
     }
   } catch(e) {}
@@ -1782,6 +1794,7 @@ function saveState() {
       seenBuildupIntro: state.seenBuildupIntro,
       leitner: state.leitner,
       speedMastered: state.speedMastered,
+      seenTierUnlock: state.seenTierUnlock,
       sessionLength: state.sessionLength,
     }));
   } catch(e) {}
@@ -2067,6 +2080,31 @@ function goHome() {
 function checkUnlocks() {
   const frPhrases = PHRASES.filter(p => p.lang === 'fr');
   const nlPhrases = PHRASES.filter(p => p.lang === 'nl');
+
+  // Vocabulary unlocks when all Tier 1 phrases are score 2+
+  if (!state.unlockedTiers.includes('Vocabulary')) {
+    const tier1 = PHRASES.filter(p => (p.tier || '1') === '1');
+    if (tier1.length && tier1.every(p => getScore(p.id) >= 2)) {
+      state.unlockedTiers.push('Vocabulary');
+      saveState();
+      return 'vocabulary';
+    }
+  }
+
+  // Tier 2 unlocks when all Vocabulary score 2+ AND all Tier 1 score 3+
+  if (!state.unlockedTiers.includes('2') && state.unlockedTiers.includes('Vocabulary')) {
+    const tier1 = PHRASES.filter(p => (p.tier || '1') === '1');
+    const vocab = PHRASES.filter(p => p.tier === 'Vocabulary');
+    if (
+      tier1.length && tier1.every(p => getScore(p.id) >= 3) &&
+      vocab.length && vocab.every(p => getScore(p.id) >= 2)
+    ) {
+      state.unlockedTiers.push('2');
+      saveState();
+      return 'tier2';
+    }
+  }
+
 
   if (!state.unlockedLangs.includes('nl')) {
     const score2 = frPhrases.filter(p => getScore(p.id) >= 2).length;
@@ -3125,7 +3163,44 @@ function skipExercise() {
 // COMPLETION
 // ═══════════════════════════════════════════════════════════════════
 
+
+function showTierUnlockScreen(type) {
+  const config = {
+    vocabulary: {
+      heading: 'New words unlocked',
+      sub: "You've earned some French to order with",
+    },
+    tier2: {
+      heading: 'New phrases unlocked',
+      sub: 'Your French is getting real',
+    },
+  };
+  const c = config[type];
+  document.getElementById('tierUnlockHeading').textContent = c.heading;
+  document.getElementById('tierUnlockSub').textContent = c.sub;
+  showScreen('screenTierUnlock');
+}
+
+function onTierUnlockContinue() {
+  showCompletion();
+}
+
 function showCompletion() {
+  // Check for tier unlocks before showing completion screen
+  const tierUnlock = checkUnlocks();
+  if (tierUnlock === 'vocabulary' && !state.seenTierUnlock.vocabulary) {
+    state.seenTierUnlock.vocabulary = true;
+    saveState();
+    showTierUnlockScreen('vocabulary');
+    return;
+  }
+  if (tierUnlock === 'tier2' && !state.seenTierUnlock.tier2) {
+    state.seenTierUnlock.tier2 = true;
+    saveState();
+    showTierUnlockScreen('tier2');
+    return;
+  }
+
   // Increment session count
   state.unlockedLangs.forEach(lang => state.sessions[lang]++);
   saveState();
