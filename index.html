@@ -1935,14 +1935,14 @@ let _buildupPhrase = null;
 
 function checkAndStartBuildup(phrase) {
   // Only trigger if this phrase has a buildup defined and score is 0 (first encounter)
-  if (!PHRASE_BUILDUPS[phrase.id]) return false;
+  if (!PHRASE_BUILDUPS[phrase.native]) return false;
   if (getScore(phrase.id) > 0) return false; // already seen, skip buildup
 
   _buildupPhrase = phrase;
   state.session.buildupStep = 0;
   state.session.inBuildup = true;
 
-  if (!state.seenBuildupIntro[phrase.id]) {
+  if (!state.seenBuildupIntro[phrase.native]) {
     // Show intro screen first
     document.getElementById('buildupTargetPhrase').textContent = displayNative(phrase, 'card');
     showScreen('screenBuildupIntro');
@@ -1954,7 +1954,7 @@ function checkAndStartBuildup(phrase) {
 }
 
 function startBuildup() {
-  state.seenBuildupIntro[_buildupPhrase.id] = true;
+  state.seenBuildupIntro[_buildupPhrase.native] = true;
   saveState();
   showScreen('screenBuildupChunk');
   renderBuildupStep();
@@ -1962,7 +1962,7 @@ function startBuildup() {
 
 function renderBuildupStep() {
   const phrase = _buildupPhrase;
-  const buildup = PHRASE_BUILDUPS[phrase.id];
+  const buildup = PHRASE_BUILDUPS[phrase.native];
   const step = state.session.buildupStep;
   const total = buildup.length;
   const chunk = buildup[step];
@@ -1997,7 +1997,7 @@ function renderBuildupStep() {
 }
 
 function playBuildupChunk() {
-  const chunk = PHRASE_BUILDUPS[_buildupPhrase.id][state.session.buildupStep];
+  const chunk = PHRASE_BUILDUPS[_buildupPhrase.native][state.session.buildupStep];
   playBuildupChunkAudio(chunk.text);
 }
 
@@ -2042,7 +2042,7 @@ function buildupTTS(text, setPlay, setStop) {
 }
 
 function nextBuildupStep() {
-  const buildup = PHRASE_BUILDUPS[_buildupPhrase.id];
+  const buildup = PHRASE_BUILDUPS[_buildupPhrase.native];
   state.session.buildupStep++;
 
   if (state.session.buildupStep >= buildup.length) {
@@ -2458,7 +2458,7 @@ function pickListenSubType(phrase) {
 // ═══════════════════════════════════════════════════════════════════
 
 const PHRASE_BUILDUPS = {
-  'fr_01': [
+  'Désolé, mon français est très limité — parlez-vous anglais?': [
     {
       text: 'anglais?',
       highlight: 'anglais?',
@@ -2629,13 +2629,13 @@ function renderListenIdentify(phrase) {
     btn.className = 'mc-option';
     btn.style.fontFamily = "'Cormorant Garamond', serif";
     btn.style.fontStyle = 'italic';
-    btn.textContent = displayNative(opt, 'response');
+    btn.textContent = displayNative(opt, 'card');
     btn.onclick = () => {
       container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
       const correct = opt.id === phrase.id;
       btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
       if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
-        if (b.textContent === displayNative(phrase, 'response')) b.className = 'mc-option reveal';
+        if (b.textContent === displayNative(phrase, 'card')) b.className = 'mc-option reveal';
       });
       showListenRevealAfterTask(correct, phrase);
     };
