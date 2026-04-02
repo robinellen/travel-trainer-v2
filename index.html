@@ -1820,6 +1820,14 @@ let currentPlayingId = null;
 
 const LANG_CODES = { fr: 'fr-FR', nl: 'nl-NL', de: 'de-DE' };
 
+// Case-tolerant AUDIO lookup — tries exact, then first-letter-capitalized
+function getAudio(key) {
+  if (!key) return null;
+  if (AUDIO[key]) return AUDIO[key];
+  const cap = key.charAt(0).toUpperCase() + key.slice(1);
+  return AUDIO[cap] || null;
+}
+
 function playPhrase(phrase, circleId) {
   // Stop anything playing
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
@@ -1829,8 +1837,9 @@ function playPhrase(phrase, circleId) {
   const setPlay = () => circle?.classList.add('playing');
   const setStop = () => circle?.classList.remove('playing');
 
-  if (AUDIO[phrase.native]) {
-    const audio = new Audio('data:audio/mp3;base64,' + AUDIO[phrase.native]);
+  const _a0 = getAudio(phrase.native);
+  if (_a0) {
+    const audio = new Audio('data:audio/mp3;base64,' + _a0);
     audio.playbackRate = Math.min(speechRate / 0.75, 1.5);
     currentAudio = audio;
     setPlay();
@@ -1948,8 +1957,9 @@ function playBuildupChunkAudio(text) {
     document.getElementById('buildupNextBtn').classList.remove('hidden');
   };
 
-  if (AUDIO[text]) {
-    const audio = new Audio('data:audio/mp3;base64,' + AUDIO[text]);
+  const _a1 = getAudio(text);
+  if (_a1) {
+    const audio = new Audio('data:audio/mp3;base64,' + _a1);
     audio.playbackRate = Math.min(speechRate / 0.75, 1.5);
     currentAudio = audio;
     setPlay();
@@ -2895,8 +2905,9 @@ function sdPlay(phrase, onEnded) {
     if (onEnded) onEnded();
   };
 
-  if (AUDIO[phrase.native]) {
-    const audio = new Audio('data:audio/mp3;base64,' + AUDIO[phrase.native]);
+  const _a0 = getAudio(phrase.native);
+  if (_a0) {
+    const audio = new Audio('data:audio/mp3;base64,' + _a0);
     audio.playbackRate = rate;
     currentAudio = audio;
     audio.onended = () => { currentAudio = null; done(); };
