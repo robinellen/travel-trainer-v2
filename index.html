@@ -2714,7 +2714,16 @@ function toggleListenMic() {
     document.getElementById('listenMicBtn').className = 'mic-btn';
     document.getElementById('listenMicHint').textContent = 'Try again';
   };
-  recognition.onend = () => { isListening = false; };
+  recognition.onend = () => {
+    isListening = false;
+    const btn = document.getElementById('listenMicBtn');
+    if (!btn.classList.contains('correct')) {
+      btn.classList.remove('listening');
+      if (document.getElementById('listenMicHint').textContent === 'Listening...') {
+        document.getElementById('listenMicHint').textContent = 'Tap to speak';
+      }
+    }
+  };
   recognition.start();
 }
 
