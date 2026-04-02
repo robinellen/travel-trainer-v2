@@ -82,6 +82,7 @@ function recordToPhrase(record) {
     native: f['Phrase (Native)'] || '', // raw value — do not transform case
     romanization: f['Romanization'] || null,
     note: f['Note'] || '',
+    hasBuildup: f['Has Buildup'] === true,
     situations: parseArray(f['Situations']),
     situationEarly: parseArray(f['Situation (Early)']),
     situationLate: parseArray(f['Situation (Late)']),
