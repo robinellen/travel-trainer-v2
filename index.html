@@ -1615,7 +1615,7 @@ function startSessionWithMode(mode) {
     // are interleaved across phrases using a round-robin pull so the
     // session never feels like "all listens then all speaks then all situations".
 
-    const SESSION_SIZE = 6;
+    const SESSION_SIZE = 4;
 
     // Pick a mix: 60% weakest phrases + 40% stronger for review
     const sorted = [...activePhrases].sort((a, b) => getScore(a.id) - getScore(b.id));
@@ -1659,6 +1659,9 @@ function startSessionWithMode(mode) {
       }
       if (!anyLeft) break;
     }
+
+    // Cap to ~10 exercises before inserting match rounds
+    rawQueue.splice(10);
 
     // Insert match rounds every 5 cards
     const queue = [];
