@@ -76,6 +76,7 @@ function recordToPhrase(record) {
     flag: LANG_FLAG[lang] || '',
     langLabel: langName,
     tier,
+    alwaysCapitalize: f['Always Capitalize'] === true,
     emoji,
     meaning: f['English Meaning'] || '',
     native: f['Phrase (Native)'] || '', // raw value — do not transform case
