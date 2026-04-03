@@ -642,6 +642,14 @@ body::after {
           <div class="lang-progress-track"><div class="lang-progress-fill fr" id="progressTier1" style="width:0%"></div></div>
           <div class="lang-progress-pct" id="progressTier1pct">0%</div>
         </div>
+        <div class="lang-progress-row" id="recoveryRow">
+          <div class="lang-progress-label" style="min-width:80px;">
+            <span id="recoveryLock" class="locked-badge">🔒 Recovery</span>
+            <span id="recoveryUnlocked" class="hidden" style="font-size:0.7rem; color:var(--text-dim);">Recovery</span>
+          </div>
+          <div class="lang-progress-track"><div class="lang-progress-fill fr" id="progressRecovery" style="width:0%"></div></div>
+          <div class="lang-progress-pct" id="progressRecoverypct"></div>
+        </div>
         <div class="lang-progress-row" id="vocabRow">
           <div class="lang-progress-label" style="min-width:80px;">
             <span id="vocabLock" class="locked-badge">🔒 Drinks</span>
@@ -1023,8 +1031,8 @@ body::after {
     <button onclick="closeDevPanel()" style="background:none;border:none;color:var(--text-dim);font-size:1rem;cursor:pointer;padding:0.25rem;line-height:1;">✕</button>
   </div>
   <div style="overflow-y:auto; padding:0 1.25rem 2rem; display:flex; flex-direction:column; gap:0.5rem;">
-    <button onclick="devSetTier1Score2()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all Tier 1 → score 2 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock Vocabulary)</span></button>
-    <button onclick="devSetTier2Unlock()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set Tier 1 → 3, Vocab → 2 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock Tier 2)</span></button>
+    <button onclick="devSetTier1Score2()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all Tier 1 → score 2 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock Recovery)</span></button>
+    <button onclick="devSetTier2Unlock()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Unlock everything <span style="color:var(--text-dim); font-size:0.68rem;">(all tiers, all scores)</span></button>
     <button onclick="devResetAll()" style="background:var(--card);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--red);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Reset all progress to zero</button>
     <button onclick="devShowScores()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Show current scores</button>
     <pre id="devScoreOutput" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem; font-size:0.65rem; color:var(--text-dim); overflow-x:auto; max-height:40vh; overflow-y:auto; white-space:pre-wrap;"></pre>
@@ -1103,6 +1111,27 @@ const PHRASES = [
       "Ordering at a café",
       "Waiter's ready for you"
     ],
+    "responses": []
+  },
+  {
+    "id": "rec4voEKsmtBRfmLs",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "1",
+    "alwaysCapitalize": false,
+    "emoji": "🇫🇷",
+    "meaning": "French",
+    "meanings": [],
+    "native": "français",
+    "romanization": "frahn-<strong>SAY</strong>",
+    "note": "Both the language and the nationality. Mon français means my French — as in my ability to speak it.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "audioRecorded": false,
+    "situations": [],
+    "situationEarly": [],
+    "situationLate": [],
     "responses": []
   },
   {
@@ -1209,6 +1238,27 @@ const PHRASES = [
     "hasBuildup": false,
     "isBuildupChunk": true,
     "audioRecorded": true,
+    "situations": [],
+    "situationEarly": [],
+    "situationLate": [],
+    "responses": []
+  },
+  {
+    "id": "recG8TeJbKgIzdJJE",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "1",
+    "alwaysCapitalize": false,
+    "emoji": "😔",
+    "meaning": "sorry",
+    "meanings": [],
+    "native": "désolé",
+    "romanization": "day-zoh-<strong>LAY</strong>",
+    "note": "The first word of your escape hatch. You'll learn what it's part of soon.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "audioRecorded": false,
     "situations": [],
     "situationEarly": [],
     "situationLate": [],
@@ -1740,6 +1790,27 @@ const PHRASES = [
     "responses": []
   },
   {
+    "id": "recgNv7du7bHC9Uc3",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "1",
+    "alwaysCapitalize": false,
+    "emoji": "🇬🇧",
+    "meaning": "English",
+    "meanings": [],
+    "native": "anglais",
+    "romanization": "ahn-<strong>GLAY</strong>",
+    "note": "The language, not the nationality. Parlez-vous anglais? means do you speak English? — the most useful question you can ask.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "audioRecorded": false,
+    "situations": [],
+    "situationEarly": [],
+    "situationLate": [],
+    "responses": []
+  },
+  {
     "id": "rechg5VciKBKr2pyf",
     "lang": "fr",
     "flag": "🇫🇷",
@@ -1896,11 +1967,13 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "1",
+    "tier": "Recovery",
     "alwaysCapitalize": true,
     "emoji": "🤷",
-    "meaning": "I don't speak much French",
-    "meanings": [],
+    "meaning": "Sorry, my French is very limited — do you speak English?",
+    "meanings": [
+      "Sorry, my French is very limited — do you speak English?"
+    ],
     "native": "Désolé, mon français est très limité — parlez-vous anglais?",
     "romanization": "day-zoh-LAY, mon frahn-SAY ay treh lee-mee-TAY — par-lay-VOO ahn-GLAY",
     "note": "Lead with désolé (sorry), acknowledge your limitation, then ask for English. In France the gesture of trying matters before asking for accommodation.",
@@ -2256,7 +2329,7 @@ let state = {
   scores: {},
   // Which languages are unlocked
   unlockedLangs: ['fr'],
-  unlockedTiers: ['1'], // '1', 'Vocabulary', '2'
+  unlockedTiers: ['1'], // '1', 'Recovery', 'Vocabulary', '2'
   // Session history (session count per lang)
   sessions: { fr: 0, nl: 0, de: 0 },
   // Track which phrases have seen the buildup intro
@@ -2614,14 +2687,24 @@ function goHome() {
 // ═══════════════════════════════════════════════════════════════════
 
 function checkUnlocks() {
-  // Only check phrases that are actually playable (have meaning + audio)
-  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  // Only check phrases that are actually playable (have meaning + audio, not chunks)
+  const playable = PHRASES.filter(p => p.meaning && !p.isBuildupChunk && getAudio(p.native));
   const tier1 = playable.filter(p => (p.tier || '1') === '1');
+  const recovery = playable.filter(p => p.tier === 'Recovery');
   const vocab = playable.filter(p => p.tier === 'Vocabulary');
 
-  // Vocabulary unlocks when all Tier 1 phrases are score 2+
-  if (!state.unlockedTiers.includes('Vocabulary')) {
+  // Recovery unlocks when all Tier 1 phrases are score 2+
+  if (!state.unlockedTiers.includes('Recovery')) {
     if (tier1.length && tier1.every(p => getScore(p.id) >= 2)) {
+      state.unlockedTiers.push('Recovery');
+      saveState();
+      return 'recovery';
+    }
+  }
+
+  // Vocabulary unlocks after Recovery phrase is completed (score 1+)
+  if (!state.unlockedTiers.includes('Vocabulary') && state.unlockedTiers.includes('Recovery')) {
+    if (recovery.length && recovery.every(p => getScore(p.id) >= 1)) {
       state.unlockedTiers.push('Vocabulary');
       saveState();
       return 'vocabulary';
@@ -2873,35 +2956,42 @@ function renderCurrentExercise() {
 // Score 2+: identify only (written form recognition).
 // ═══════════════════════════════════════════════════════════════════
 
-// Returns plausible distractors for a phrase, matched by type/length.
-// Never includes buildup phrases. Vocabulary only gets vocab distractors.
-// Short phrases get short distractors, long get long.
+// Returns plausible distractor phrase objects, matched by type/length.
+// Prioritizes seen phrases (score 1+). Never includes buildup phrases/chunks.
 function getDistractors(phrase, count) {
   const all = getActivePhrases().filter(p =>
-    p.id !== phrase.id && !PHRASE_BUILDUPS[p.native]
+    p.id !== phrase.id && !p.isBuildupChunk && !PHRASE_BUILDUPS[p.native]
   );
   const tier = phrase.tier || '1';
-
-  if (tier === 'Vocabulary') {
-    // Vocab words only get other vocab words
-    const pool = shuffle(all.filter(p => p.tier === 'Vocabulary'));
-    return pool.slice(0, count);
-  }
-
-  // For phrases: group by word count — short (1-2 words) vs long (3+)
   const wordCount = phrase.native.split(/\s+/).length;
   const isShort = wordCount <= 2;
-  const sameTier = all.filter(p => (p.tier || '1') === tier);
-  const sameLength = sameTier.filter(p => {
-    const wc = p.native.split(/\s+/).length;
-    return isShort ? wc <= 2 : wc >= 3;
-  });
 
-  // Prefer same-length same-tier, fall back to same-tier, then any
-  const preferred = shuffle(sameLength);
-  const fallback = shuffle(sameTier.filter(p => !sameLength.includes(p)));
-  const rest = shuffle(all.filter(p => (p.tier || '1') !== tier));
-  return [...preferred, ...fallback, ...rest].slice(0, count);
+  // Filter by type match
+  let typeMatched;
+  if (tier === 'Vocabulary') {
+    typeMatched = all.filter(p => p.tier === 'Vocabulary');
+  } else {
+    typeMatched = all.filter(p => {
+      const wc = p.native.split(/\s+/).length;
+      return isShort ? wc <= 2 : wc >= 3;
+    });
+  }
+
+  // Prioritize seen phrases (score 1+), then unseen as fallback
+  const seen = shuffle(typeMatched.filter(p => getScore(p.id) >= 1));
+  const unseen = shuffle(typeMatched.filter(p => getScore(p.id) === 0));
+  const result = [...seen, ...unseen].slice(0, count);
+
+  // If not enough type-matched, fill from broader pool (still seen-first)
+  if (result.length < count) {
+    const used = new Set(result.map(p => p.id));
+    const remaining = all.filter(p => !used.has(p.id) && !typeMatched.includes(p));
+    const seenR = shuffle(remaining.filter(p => getScore(p.id) >= 1));
+    const unseenR = shuffle(remaining.filter(p => getScore(p.id) === 0));
+    result.push(...[...seenR, ...unseenR].slice(0, count - result.length));
+  }
+
+  return result;
 }
 
 function pickListenSubType(phrase) {
@@ -3402,12 +3492,19 @@ function renderSituationPanel(phrase, useSpeak) {
 
     // Build MC options — correct answer + 3 distractors from seen phrases
     const correctAnswers = phrase.responses || [phrase.native];
-    const notCorrect = p => !correctAnswers.includes(p.native) && p.id !== phrase.id && !PHRASE_BUILDUPS[p.native];
-    const seenPool = shuffle(getActivePhrases().filter(p => getScore(p.id) > 0 && notCorrect(p) && p.tier !== 'Vocabulary'));
-    const fallbackPool = shuffle(getActivePhrases().filter(p => getScore(p.id) === 0 && notCorrect(p) && p.tier !== 'Vocabulary'));
-    const distractors = [...seenPool, ...fallbackPool].slice(0, 3).map(p => displayNative(p, 'response'));
+    const dynDistractors = getDistractors(phrase, 3)
+      .filter(p => !correctAnswers.includes(p.native))
+      .map(p => displayNative(p, 'response'));
 
-    const options = [...correctAnswers.slice(0,1), ...distractors].sort(() => Math.random() - 0.5);
+    // If not enough dynamic distractors, fill from static responses
+    let distractors = dynDistractors.slice(0, 3);
+    if (distractors.length < 3 && phrase.responses) {
+      const staticFallback = phrase.responses
+        .filter(r => r !== correctAnswers[0] && !distractors.includes(r));
+      distractors = [...distractors, ...staticFallback].slice(0, 3);
+    }
+
+    const options = shuffle([correctAnswers[0], ...distractors]);
     const container = document.getElementById('mcOptions');
     container.innerHTML = '';
     options.forEach(opt => {
@@ -3614,12 +3711,16 @@ function skipExercise() {
 
 function showTierUnlockScreen(type) {
   const config = {
+    recovery: {
+      heading: 'Time to put it together',
+      sub: 'You already know all the pieces. Now build your recovery phrase.',
+    },
     vocabulary: {
-      heading: 'New words unlocked',
+      heading: 'Drink words unlocked',
       sub: "You've earned some French to order with",
     },
     tier2: {
-      heading: 'New phrases unlocked',
+      heading: 'Ordering phrases unlocked',
       sub: 'Your French is getting real',
     },
   };
@@ -3636,16 +3737,10 @@ function onTierUnlockContinue() {
 function showCompletion() {
   // Check for tier unlocks before showing completion screen
   const tierUnlock = checkUnlocks();
-  if (tierUnlock === 'vocabulary' && !state.seenTierUnlock.vocabulary) {
-    state.seenTierUnlock.vocabulary = true;
+  if (tierUnlock && !state.seenTierUnlock[tierUnlock]) {
+    state.seenTierUnlock[tierUnlock] = true;
     saveState();
-    showTierUnlockScreen('vocabulary');
-    return;
-  }
-  if (tierUnlock === 'tier2' && !state.seenTierUnlock.tier2) {
-    state.seenTierUnlock.tier2 = true;
-    saveState();
-    showTierUnlockScreen('tier2');
+    showTierUnlockScreen(tierUnlock);
     return;
   }
 
@@ -3676,15 +3771,16 @@ function showCompletion() {
 // ═══════════════════════════════════════════════════════════════════
 
 function getStageInfo() {
-  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const playable = PHRASES.filter(p => p.meaning && !p.isBuildupChunk && getAudio(p.native));
   const tier1 = playable.filter(p => (p.tier || '1') === '1');
+  const recovery = playable.filter(p => p.tier === 'Recovery');
   const vocab = playable.filter(p => p.tier === 'Vocabulary');
-  const tier2 = playable.filter(p => p.tier === '2');
 
   const tier1Score2 = tier1.filter(p => getScore(p.id) >= 2).length;
   const tier1Score3 = tier1.filter(p => getScore(p.id) >= 3).length;
   const vocabScore2 = vocab.filter(p => getScore(p.id) >= 2).length;
 
+  const recoveryUnlocked = state.unlockedTiers.includes('Recovery');
   const vocabUnlocked = state.unlockedTiers.includes('Vocabulary');
   const tier2Unlocked = state.unlockedTiers.includes('2');
   const totalSessions = Object.values(state.sessions).reduce((a, b) => a + b, 0);
@@ -3708,10 +3804,16 @@ function getStageInfo() {
         : 'Almost there — keep practicing to unlock Tier 2';
     return { stage: 'Learning to Order', sub, btn: 'Continue session', emoji: '☕' };
   }
-  // Vocabulary not yet unlocked
+  if (recoveryUnlocked) {
+    const recoveryDone = recovery.every(p => getScore(p.id) >= 1);
+    return recoveryDone
+      ? { stage: 'Recovery Complete', sub: 'Drink words unlock next.', btn: 'Continue session', emoji: '🧩' }
+      : { stage: 'Recovery Phrase', sub: 'Build your safety net — piece by piece.', btn: 'Start buildup', emoji: '🧩' };
+  }
+  // Recovery not yet unlocked
   const needed = tier1.length - tier1Score2;
   if (needed > 0 && totalSessions >= 1) {
-    return { stage: 'Building French', sub: `${needed} more phrase${needed === 1 ? '' : 's'} to unlock drink words`, btn: 'Keep going', emoji: '🇫🇷' };
+    return { stage: 'Building French', sub: `${needed} more phrase${needed === 1 ? '' : 's'} to unlock the recovery phrase`, btn: 'Keep going', emoji: '🇫🇷' };
   }
   if (totalSessions >= 1) {
     return { stage: 'Discovering French', sub: 'Building your first foundation. Every session counts.', btn: 'Continue session', emoji: '✦' };
@@ -3771,11 +3873,13 @@ function updateWelcomeProgress() {
   }
 
   // Update tier-based progress bars
-  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const playable = PHRASES.filter(p => p.meaning && !p.isBuildupChunk && getAudio(p.native));
   const tier1All = playable.filter(p => (p.tier || '1') === '1');
+  const recoveryAll = playable.filter(p => p.tier === 'Recovery');
   const vocabAll = playable.filter(p => p.tier === 'Vocabulary');
   const tier2All = playable.filter(p => p.tier === '2');
 
+  const recoveryUnlocked = state.unlockedTiers.includes('Recovery');
   const vocabUnlocked = state.unlockedTiers.includes('Vocabulary');
   const tier2Unlocked = state.unlockedTiers.includes('2');
 
@@ -3784,6 +3888,21 @@ function updateWelcomeProgress() {
     const pct = Math.round((tier1All.filter(p => getScore(p.id) >= 3).length / tier1All.length) * 100);
     const fill = document.getElementById('progressTier1');
     const pctEl = document.getElementById('progressTier1pct');
+    if (fill) fill.style.width = pct + '%';
+    if (pctEl) pctEl.textContent = pct + '%';
+  }
+
+  // Recovery progress
+  const recLock = document.getElementById('recoveryLock');
+  const recLabel = document.getElementById('recoveryUnlocked');
+  if (recLock && recLabel) {
+    recLock.classList.toggle('hidden', recoveryUnlocked);
+    recLabel.classList.toggle('hidden', !recoveryUnlocked);
+  }
+  if (recoveryAll.length && recoveryUnlocked) {
+    const pct = Math.round((recoveryAll.filter(p => getScore(p.id) >= 1).length / recoveryAll.length) * 100);
+    const fill = document.getElementById('progressRecovery');
+    const pctEl = document.getElementById('progressRecoverypct');
     if (fill) fill.style.width = pct + '%';
     if (pctEl) pctEl.textContent = pct + '%';
   }
@@ -3938,40 +4057,35 @@ function closeDevPanel() {
 }
 
 function devSetTier1Score2() {
-  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const playable = PHRASES.filter(p => p.meaning && !p.isBuildupChunk && getAudio(p.native));
   const tier1 = playable.filter(p => (p.tier || '1') === '1');
   tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 2); });
-  if (!state.unlockedTiers.includes('Vocabulary')) state.unlockedTiers.push('Vocabulary');
-  state.seenTierUnlock.vocabulary = true;
+  if (!state.unlockedTiers.includes('Recovery')) state.unlockedTiers.push('Recovery');
+  state.seenTierUnlock.recovery = true;
   saveState();
   updateWelcomeProgress();
-  // Log what's now available
-  const active = getActivePhrases();
-  const vocabActive = active.filter(p => p.tier === 'Vocabulary');
-  console.log(`[dev] Tier 1 set to score 2. Vocabulary unlocked. ${vocabActive.length} vocab phrases have audio.`);
-  if (vocabActive.length === 0) console.warn('[dev] No Vocabulary phrases have audio yet — they won\'t appear in sessions until audio is added.');
+  console.log('[dev] Tier 1 set to score 2. Recovery unlocked.');
   closeDevPanel();
 }
 
 function devSetTier2Unlock() {
-  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const playable = PHRASES.filter(p => p.meaning && !p.isBuildupChunk && getAudio(p.native));
   const tier1 = playable.filter(p => (p.tier || '1') === '1');
-  const vocab = PHRASES.filter(p => p.tier === 'Vocabulary' && p.meaning);
+  const recovery = playable.filter(p => p.tier === 'Recovery');
+  const vocab = playable.filter(p => p.tier === 'Vocabulary');
   tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
+  recovery.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
   vocab.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 2); });
-  if (!state.unlockedTiers.includes('Vocabulary')) state.unlockedTiers.push('Vocabulary');
-  if (!state.unlockedTiers.includes('2')) state.unlockedTiers.push('2');
+  ['Recovery', 'Vocabulary', '2'].forEach(t => {
+    if (!state.unlockedTiers.includes(t)) state.unlockedTiers.push(t);
+  });
+  state.seenTierUnlock.recovery = true;
   state.seenTierUnlock.vocabulary = true;
   state.seenTierUnlock.tier2 = true;
   saveState();
   updateWelcomeProgress();
-  // Log what's now available
   const active = getActivePhrases();
-  const vocabActive = active.filter(p => p.tier === 'Vocabulary');
-  const tier2Active = active.filter(p => p.tier === '2');
-  console.log(`[dev] All tiers unlocked. Active: ${active.length} total, ${vocabActive.length} vocab, ${tier2Active.length} tier 2.`);
-  if (vocabActive.length === 0) console.warn('[dev] No Vocabulary phrases have audio yet — they won\'t appear in sessions until audio is added.');
-  if (tier2Active.length === 0) console.warn('[dev] No Tier 2 phrases have audio yet — they won\'t appear in sessions until audio is added.');
+  console.log(`[dev] All tiers unlocked. Active: ${active.length} total.`);
   closeDevPanel();
 }
 
