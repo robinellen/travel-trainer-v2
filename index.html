@@ -2594,6 +2594,9 @@ function startSessionWithMode(mode) {
     // Fill session: unseen foundation first (in order), then due, then not-due
     const selected = [...unseenFoundation, ...due, ...notDue].slice(0, SESSION_SIZE);
 
+    // Track how many unseen foundation phrases made it into this session
+    const unseenInSession = Math.min(unseenFoundation.length, SESSION_SIZE);
+
     // Build per-wave pools (wave 0 = each phrase's first exercise, etc.)
     const arcs = selected.map(p => ({ id: p.id, arc: getPhraseArc(p) }));
     const maxWaves = arcs.length ? Math.max(...arcs.map(a => a.arc.length)) : 0;
@@ -2603,7 +2606,22 @@ function startSessionWithMode(mode) {
       const pool = arcs
         .filter(a => w < a.arc.length)
         .map(a => ({ phraseId: a.id, type: a.arc[w] }));
-      pools.push(shuffle(pool));
+      pools.push(pool); // don't shuffle yet
+    }
+
+    // Build the queue preserving unseen foundation order at the front.
+    // The first unseenInSession items in pools[0] are already in sortOrder
+    // because selected[] starts with unseenFoundation in sortOrder.
+    // Shuffle only the remaining (seen/due) items in each pool.
+    for (let w = 0; w < pools.length; w++) {
+      if (w === 0 && unseenInSession > 0) {
+        // Keep the first unseenInSession items in order, shuffle the rest
+        const ordered = pools[w].slice(0, unseenInSession);
+        const rest = shuffle(pools[w].slice(unseenInSession));
+        pools[w] = [...ordered, ...rest];
+      } else {
+        pools[w] = shuffle(pools[w]);
+      }
     }
 
     // Round-robin pull: take 1-2 items from each wave pool in rotation
