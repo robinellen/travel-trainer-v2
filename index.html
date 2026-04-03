@@ -2751,8 +2751,21 @@ function renderCurrentExercise() {
 
 // Returns plausible distractor phrase objects, matched by type/length.
 // Prioritizes seen phrases (score 1+). Never includes buildup phrases/chunks.
+// Extract core meaning words for semantic comparison.
+// "Thank you very much" → ["thank"] ; "Sorry / I'm sorry" → ["sorry"]
+function coreWords(meaning) {
+  const stop = new Set(['a','an','the','is','it','i','my','me','you','your','do','very','much','im','got']);
+  return meaning.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/).filter(w => w.length > 2 && !stop.has(w));
+}
+
+function isSemanticallyClose(phraseA, phraseB) {
+  const aCores = coreWords(getAllMeanings(phraseA).join(' '));
+  const bCores = coreWords(getAllMeanings(phraseB).join(' '));
+  return aCores.some(w => bCores.includes(w));
+}
+
 function getDistractors(phrase, count) {
-  // Never use Recovery phrase or buildup-capable phrases as distractors
+  // Never use Recovery phrase as a distractor
   const all = getActivePhrases().filter(p =>
     p.id !== phrase.id && p.tier !== 'Recovery'
   );
@@ -2768,24 +2781,20 @@ function getDistractors(phrase, count) {
     pool = all.filter(p => p.tier === tier);
   }
 
-  // Distractors must come from seen phrases (score 1+)
+  // Filter out semantically similar phrases
+  pool = pool.filter(p => !isSemanticallyClose(phrase, p));
+
+  // Distractors must come from seen phrases (score 1+), fall back to unseen
   const seen = shuffle(pool.filter(p => getScore(p.id) >= 1));
-  if (seen.length >= count) return seen.slice(0, count);
+  const unseen = shuffle(pool.filter(p => getScore(p.id) === 0));
+  const result = [...seen, ...unseen].slice(0, count);
 
-  // Fall back to static Responses field for first encounters
-  const result = [...seen];
-  if (result.length < count && phrase.responses && phrase.responses.length) {
-    const usedNatives = new Set([phrase.native, ...result.map(p => p.native)]);
-    const staticFallbacks = phrase.responses
-      .filter(r => !usedNatives.has(r))
-      .map(r => ({ id: '__static_' + r, native: r, meaning: r, meanings: [], tier: phrase.tier, emoji: '', lang: phrase.lang, flag: phrase.flag, langLabel: phrase.langLabel, audioRecorded: false }));
-    result.push(...staticFallbacks.slice(0, count - result.length));
-  }
-
-  // If still not enough, broaden to any seen phrase (excluding Recovery)
+  // If still not enough, broaden to any non-similar active phrase (excluding Recovery)
   if (result.length < count) {
     const used = new Set(result.map(p => p.id));
-    const broader = shuffle(all.filter(p => !used.has(p.id) && getScore(p.id) >= 1));
+    const broader = shuffle(all.filter(p =>
+      !used.has(p.id) && !isSemanticallyClose(phrase, p)
+    ));
     result.push(...broader.slice(0, count - result.length));
   }
 
