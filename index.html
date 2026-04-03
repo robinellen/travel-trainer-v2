@@ -2235,7 +2235,12 @@ function playPhrase(phrase, circleId) {
 }
 
 function fallbackTTS(phrase, setPlay, setStop) {
-  if (!window.speechSynthesis) return;
+  if (!window.speechSynthesis) {
+    // No TTS available — fire callback immediately so user isn't stuck
+    setStop();
+    onAudioEnded();
+    return;
+  }
   const u = new SpeechSynthesisUtterance(phrase.native);
   u.lang = LANG_CODES[phrase.lang] || 'fr-FR';
   u.rate = speechRate;
@@ -2243,8 +2248,13 @@ function fallbackTTS(phrase, setPlay, setStop) {
   const v = voices.find(v => v.lang === LANG_CODES[phrase.lang]) || voices.find(v => v.lang.startsWith(phrase.lang));
   if (v) u.voice = v;
   setPlay();
-  u.onend = () => { setStop(); onAudioEnded(); };
+  let ended = false;
+  const finish = () => { if (ended) return; ended = true; setStop(); onAudioEnded(); };
+  u.onend = finish;
+  u.onerror = finish;
   speechSynthesis.speak(u);
+  // Safety net: if TTS silently fails, fire callback after 5s
+  setTimeout(() => { if (!ended) { console.warn('TTS timeout — forcing callback'); finish(); } }, 5000);
 }
 
 if (window.speechSynthesis) {
@@ -2723,7 +2733,10 @@ function renderListenPanel(phrase, type) {
   document.getElementById('listenNative').textContent = displayNative(phrase, 'card');
   document.getElementById('listenNote').textContent = phrase.note;
 
+  let listenCallbackFired = false;
   audioEndedCallback = () => {
+    if (listenCallbackFired) return;
+    listenCallbackFired = true;
     document.getElementById('listenHint').textContent = 'Tap to hear again';
     const emoji = document.getElementById('listenEmoji');
     emoji.textContent = phrase.emoji;
@@ -2741,6 +2754,13 @@ function renderListenPanel(phrase, type) {
     }
   };
   setTimeout(() => playPhrase(phrase, 'listenCircle'), 500);
+  // Safety net: if audio never fires callback (broken audio, TTS failure), show task after 8s
+  setTimeout(() => {
+    if (!listenCallbackFired && audioEndedCallback) {
+      console.warn('Listen audio timeout — forcing task display');
+      onAudioEnded();
+    }
+  }, 8000);
 }
 
 function renderListenTask(phrase, subType) {
@@ -2971,12 +2991,21 @@ function renderVocabMC(phrase) {
     recognition.interimResults = true;
   }
 
+  let vocabCallbackFired = false;
   audioEndedCallback = () => {
+    if (vocabCallbackFired) return;
+    vocabCallbackFired = true;
     document.getElementById('vocabHint').textContent = 'Tap to hear again';
     bumpScore(phrase.id, 1);
     renderVocabTask(phrase);
   };
   setTimeout(() => playPhrase(phrase, 'vocabCircle'), 500);
+  setTimeout(() => {
+    if (!vocabCallbackFired && audioEndedCallback) {
+      console.warn('Vocab audio timeout — forcing task display');
+      onAudioEnded();
+    }
+  }, 8000);
 }
 
 function playVocabAudio() {
@@ -3150,11 +3179,16 @@ function sdPlay(phrase, onEnded) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   window.speechSynthesis?.cancel();
 
+  let fired = false;
   const done = () => {
+    if (fired) return;
+    fired = true;
     circle.classList.remove('playing');
     document.getElementById('sdHint').textContent = 'Tap to hear again';
     if (onEnded) onEnded();
   };
+  // Safety net for silent audio/TTS failure
+  if (onEnded) setTimeout(() => { if (!fired) { console.warn('SD audio timeout'); done(); } }, 8000);
 
   const _a0 = getAudio(phrase.native);
   if (_a0) {
@@ -3177,8 +3211,12 @@ function sdTTS(phrase, onDone) {
   const voices = speechSynthesis.getVoices();
   const v = voices.find(v => v.lang === LANG_CODES[phrase.lang]) || voices.find(v => v.lang.startsWith(phrase.lang));
   if (v) u.voice = v;
-  u.onend = onDone;
+  let ended = false;
+  const finish = () => { if (ended) return; ended = true; if (onDone) onDone(); };
+  u.onend = finish;
+  u.onerror = finish;
   speechSynthesis.speak(u);
+  setTimeout(() => { if (!ended) finish(); }, 5000);
 }
 
 function sdPlayAgain() {
