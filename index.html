@@ -672,25 +672,25 @@ body::after {
       <div class="eyebrow" style="margin-bottom:1rem;">Your progress</div>
       <div class="lang-progress" id="welcomeProgress">
         <div class="lang-progress-row">
-          <div class="lang-progress-label"><span class="lang-pill fr">🇫🇷 French</span></div>
-          <div class="lang-progress-track"><div class="lang-progress-fill fr" id="progressFR" style="width:0%"></div></div>
-          <div class="lang-progress-pct" id="progressFRpct">0%</div>
+          <div class="lang-progress-label" style="min-width:80px;">Phrases</div>
+          <div class="lang-progress-track"><div class="lang-progress-fill fr" id="progressTier1" style="width:0%"></div></div>
+          <div class="lang-progress-pct" id="progressTier1pct">0%</div>
         </div>
-        <div class="lang-progress-row" id="nlRow">
-          <div class="lang-progress-label">
-            <span id="nlLock" class="locked-badge">🔒 Dutch</span>
-            <span id="nlPill" class="lang-pill nl hidden">🇳🇱 Dutch</span>
+        <div class="lang-progress-row" id="vocabRow">
+          <div class="lang-progress-label" style="min-width:80px;">
+            <span id="vocabLock" class="locked-badge">🔒 Drinks</span>
+            <span id="vocabUnlocked" class="hidden" style="font-size:0.7rem; color:var(--text-dim);">Drinks</span>
           </div>
-          <div class="lang-progress-track"><div class="lang-progress-fill nl" id="progressNL" style="width:0%"></div></div>
-          <div class="lang-progress-pct" id="progressNLpct"></div>
+          <div class="lang-progress-track"><div class="lang-progress-fill fr" id="progressVocab" style="width:0%"></div></div>
+          <div class="lang-progress-pct" id="progressVocabpct"></div>
         </div>
-        <div class="lang-progress-row" id="deRow">
-          <div class="lang-progress-label">
-            <span id="deLock" class="locked-badge">🔒 German</span>
-            <span id="dePill" class="lang-pill de hidden">🇩🇪 German</span>
+        <div class="lang-progress-row" id="tier2Row">
+          <div class="lang-progress-label" style="min-width:80px;">
+            <span id="tier2Lock" class="locked-badge">🔒 Ordering</span>
+            <span id="tier2Unlocked" class="hidden" style="font-size:0.7rem; color:var(--text-dim);">Ordering</span>
           </div>
-          <div class="lang-progress-track"><div class="lang-progress-fill de" id="progressDE" style="width:0%"></div></div>
-          <div class="lang-progress-pct" id="progressDEpct"></div>
+          <div class="lang-progress-track"><div class="lang-progress-fill fr" id="progressTier2" style="width:0%"></div></div>
+          <div class="lang-progress-pct" id="progressTier2pct"></div>
         </div>
       </div>
     </div>
@@ -1198,7 +1198,7 @@ const PHRASES = [
     "langLabel": "French",
     "tier": "1",
     "alwaysCapitalize": false,
-    "emoji": "🛎️",
+    "emoji": "🙏",
     "meaning": "Please",
     "native": "S'il vous plaît",
     "romanization": "seel voo PLAY",
@@ -1913,7 +1913,7 @@ const PHRASES = [
     "langLabel": "French",
     "tier": "1",
     "alwaysCapitalize": false,
-    "emoji": "🙏",
+    "emoji": "🙌",
     "meaning": "Thank you",
     "native": "Merci",
     "romanization": "mehr-SEE",
@@ -1971,7 +1971,7 @@ const PHRASES = [
     "langLabel": "French",
     "tier": "1",
     "alwaysCapitalize": false,
-    "emoji": "🚪",
+    "emoji": "👋",
     "meaning": "Hello / Good morning",
     "native": "Bonjour",
     "romanization": "bohn-ZHOOR",
@@ -3447,83 +3447,47 @@ function showCompletion() {
 // ═══════════════════════════════════════════════════════════════════
 
 function getStageInfo() {
-  const frPhrases = PHRASES.filter(p => p.lang === 'fr');
-  const nlPhrases = PHRASES.filter(p => p.lang === 'nl');
-  const dePhrases = PHRASES.filter(p => p.lang === 'de');
+  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const tier1 = playable.filter(p => (p.tier || '1') === '1');
+  const vocab = playable.filter(p => p.tier === 'Vocabulary');
+  const tier2 = playable.filter(p => p.tier === '2');
 
-  const frScore2 = frPhrases.filter(p => getScore(p.id) >= 2).length;
-  const frScore3 = frPhrases.filter(p => getScore(p.id) >= 3).length;
-  const nlScore3 = nlPhrases.filter(p => getScore(p.id) >= 3).length;
-  const deScore3 = dePhrases.filter(p => getScore(p.id) >= 3).length;
+  const tier1Score2 = tier1.filter(p => getScore(p.id) >= 2).length;
+  const tier1Score3 = tier1.filter(p => getScore(p.id) >= 3).length;
+  const vocabScore2 = vocab.filter(p => getScore(p.id) >= 2).length;
 
-  const nlUnlocked = state.unlockedLangs.includes('nl');
-  const deUnlocked = state.unlockedLangs.includes('de');
+  const vocabUnlocked = state.unlockedTiers.includes('Vocabulary');
+  const tier2Unlocked = state.unlockedTiers.includes('2');
   const totalSessions = Object.values(state.sessions).reduce((a, b) => a + b, 0);
 
-  // All phrases at score 3
   const allPhrases = getActivePhrases();
-  const allReady = allPhrases.every(p => getScore(p.id) >= 3);
+  const allReady = allPhrases.length > 0 && allPhrases.every(p => getScore(p.id) >= 3);
 
-  if (allReady && deUnlocked) {
-    return {
-      stage: 'Traveler Ready',
-      sub: "All three languages solid. You're prepared.",
-      btn: "Practice to stay sharp",
-      emoji: '⭐',
-    };
+  if (allReady && tier2Unlocked) {
+    return { stage: 'Traveler Ready', sub: "All phrases mastered. You're prepared.", btn: 'Practice to stay sharp', emoji: '⭐' };
   }
-  if (deUnlocked) {
-    return {
-      stage: 'Full Trip Mode',
-      sub: 'French, Dutch, and German all in rotation.',
-      btn: "Continue session",
-      emoji: '🌍',
-    };
+  if (tier2Unlocked) {
+    return { stage: 'Full French', sub: 'All tiers unlocked — keep strengthening.', btn: 'Continue session', emoji: '🇫🇷' };
   }
-  if (nlUnlocked) {
-    const needed = 10 - Math.min(nlScore3, 10);
-    return {
-      stage: 'Expanding',
-      sub: needed > 0
-        ? `Dutch unlocked. ${needed} more Dutch phrases to strengthen.`
-        : 'Dutch strong — German almost within reach.',
-      btn: "Continue session",
-      emoji: '🇳🇱',
-    };
+  if (vocabUnlocked) {
+    const vocabNeeded = vocab.length - vocabScore2;
+    const tier1Needed = tier1.length - tier1Score3;
+    const sub = vocabNeeded > 0
+      ? `${vocabNeeded} more drink word${vocabNeeded === 1 ? '' : 's'} to unlock ordering phrases`
+      : tier1Needed > 0
+        ? `${tier1Needed} more phrase${tier1Needed === 1 ? '' : 's'} to master for Tier 2`
+        : 'Almost there — keep practicing to unlock Tier 2';
+    return { stage: 'Learning to Order', sub, btn: 'Continue session', emoji: '☕' };
   }
-  if (frScore3 >= 8) {
-    const needed = 10 - frScore3;
-    return {
-      stage: 'Building French',
-      sub: needed > 0
-        ? `${needed} more phrases to unlock Dutch.`
-        : 'French nearly solid — Dutch unlocks soon.',
-      btn: "Keep going",
-      emoji: '🇫🇷',
-    };
-  }
-  if (frScore2 >= 7 || totalSessions >= 2) {
-    return {
-      stage: 'Finding Your Voice',
-      sub: "Starting to produce phrases, not just recognize them.",
-      btn: "Continue practicing",
-      emoji: '🎤',
-    };
+  // Vocabulary not yet unlocked
+  const needed = tier1.length - tier1Score2;
+  if (needed > 0 && totalSessions >= 1) {
+    return { stage: 'Building French', sub: `${needed} more phrase${needed === 1 ? '' : 's'} to unlock drink words`, btn: 'Keep going', emoji: '🇫🇷' };
   }
   if (totalSessions >= 1) {
-    return {
-      stage: 'Discovering French',
-      sub: "Building your first foundation. Every session counts.",
-      btn: "Continue session",
-      emoji: '✦',
-    };
+    return { stage: 'Discovering French', sub: 'Building your first foundation. Every session counts.', btn: 'Continue session', emoji: '✦' };
   }
-  return {
-    stage: 'Ready to begin',
-    sub: "Start with French — the foundation for your August trip.",
-    btn: "Begin French",
-    emoji: '✦',
-  };
+  return { stage: 'Ready to begin', sub: 'Start with French — the foundation for your trip.', btn: 'Begin French', emoji: '✦' };
 }
 // ═══════════════════════════════════════════════════════════════════
 // WELCOME PROGRESS
@@ -3569,34 +3533,61 @@ function updateWelcomeProgress() {
   const stageEmojiEl = document.getElementById('stageEmoji');
   if (stageEl) stageEl.textContent = stage.stage;
   if (stageSubEl) stageSubEl.textContent = stage.sub;
-  if (stageBtnEl) stageBtnEl.textContent = stage.btn + ' →';
   if (stageEmojiEl) stageEmojiEl.textContent = stage.emoji;
 
-  const langs = ['fr', 'nl', 'de'];
-  langs.forEach(lang => {
-    const langPhrases = PHRASES.filter(p => p.lang === lang);
-    if (langPhrases.length === 0) return;
-    const score3 = langPhrases.filter(p => getScore(p.id) >= 3).length;
-    const pct = Math.round((score3 / langPhrases.length) * 100);
+  // Adjust button text based on whether phrases are due
+  const allCaughtUp = dueCount === 0 && activePhrases.every(p => !!state.leitner[p.id]);
+  if (stageBtnEl) {
+    stageBtnEl.textContent = allCaughtUp ? 'Practice anyway →' : stage.btn + ' →';
+  }
 
-    const fill = document.getElementById('progress' + lang.toUpperCase());
-    const pctEl = document.getElementById('progress' + lang.toUpperCase() + 'pct');
+  // Update tier-based progress bars
+  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const tier1All = playable.filter(p => (p.tier || '1') === '1');
+  const vocabAll = playable.filter(p => p.tier === 'Vocabulary');
+  const tier2All = playable.filter(p => p.tier === '2');
+
+  const vocabUnlocked = state.unlockedTiers.includes('Vocabulary');
+  const tier2Unlocked = state.unlockedTiers.includes('2');
+
+  // Tier 1 progress (score 3 = mastered)
+  if (tier1All.length) {
+    const pct = Math.round((tier1All.filter(p => getScore(p.id) >= 3).length / tier1All.length) * 100);
+    const fill = document.getElementById('progressTier1');
+    const pctEl = document.getElementById('progressTier1pct');
     if (fill) fill.style.width = pct + '%';
-    if (pctEl) pctEl.textContent = state.unlockedLangs.includes(lang) ? pct + '%' : '';
+    if (pctEl) pctEl.textContent = pct + '%';
+  }
 
-    // Show lock/pill
-    const lock = document.getElementById(lang + 'Lock');
-    const pill = document.getElementById(lang + 'Pill');
-    if (lock && pill) {
-      if (state.unlockedLangs.includes(lang)) {
-        lock.classList.add('hidden');
-        pill.classList.remove('hidden');
-      } else {
-        lock.classList.remove('hidden');
-        pill.classList.add('hidden');
-      }
-    }
-  });
+  // Vocabulary progress
+  const vocabLock = document.getElementById('vocabLock');
+  const vocabLabel = document.getElementById('vocabUnlocked');
+  if (vocabLock && vocabLabel) {
+    vocabLock.classList.toggle('hidden', vocabUnlocked);
+    vocabLabel.classList.toggle('hidden', !vocabUnlocked);
+  }
+  if (vocabAll.length && vocabUnlocked) {
+    const pct = Math.round((vocabAll.filter(p => getScore(p.id) >= 3).length / vocabAll.length) * 100);
+    const fill = document.getElementById('progressVocab');
+    const pctEl = document.getElementById('progressVocabpct');
+    if (fill) fill.style.width = pct + '%';
+    if (pctEl) pctEl.textContent = pct + '%';
+  }
+
+  // Tier 2 progress
+  const t2Lock = document.getElementById('tier2Lock');
+  const t2Label = document.getElementById('tier2Unlocked');
+  if (t2Lock && t2Label) {
+    t2Lock.classList.toggle('hidden', tier2Unlocked);
+    t2Label.classList.toggle('hidden', !tier2Unlocked);
+  }
+  if (tier2All.length && tier2Unlocked) {
+    const pct = Math.round((tier2All.filter(p => getScore(p.id) >= 3).length / tier2All.length) * 100);
+    const fill = document.getElementById('progressTier2');
+    const pctEl = document.getElementById('progressTier2pct');
+    if (fill) fill.style.width = pct + '%';
+    if (pctEl) pctEl.textContent = pct + '%';
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
