@@ -565,6 +565,87 @@ body::after {
 .p-screen { padding: 1.5rem; }
 .gap-1 { gap: 0.5rem; }
 .text-center { text-align: center; }
+
+/* ── SMALL-SCREEN FIT ─────────────────────────────────────────── */
+/* Lock exercise screens to exactly the viewport height            */
+#screenExercise,
+#screenBuildupIntro,
+#screenBuildupChunk {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+/* Flex children must be able to shrink below their content size   */
+#screenExercise .p-screen,
+#screenBuildupChunk .p-screen {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tighten everything on short screens (iPhone SE = 667px)        */
+@media (max-height: 700px) {
+  .exercise-header { padding: 0.5rem 1rem 0; }
+  .speed-row { padding: 0.25rem 1rem; }
+  #screenExercise > .p-screen,
+  #screenBuildupChunk > .p-screen { padding: 0.75rem 1.25rem; }
+  #screenBuildupIntro .p-screen { padding: 1rem 1.25rem; }
+
+  /* Play / mic circles */
+  .play-circle { width: 68px; height: 68px; }
+  .play-circle svg { width: 22px; height: 22px; }
+  .mic-btn { width: 62px; height: 62px; }
+  .mic-btn svg { width: 22px; height: 22px; }
+
+  /* MC option buttons — must fit 4 on screen */
+  .mc-options { gap: 0.3rem; }
+  .mc-option { padding: 0.6rem 0.9rem; font-size: 0.92rem; }
+
+  /* Phrase reveal card */
+  .phrase-reveal { padding: 0.9rem 1rem; }
+  .phrase-meaning-label { margin-bottom: 0.5rem; font-size: 0.58rem; }
+  .phrase-romanization { margin-bottom: 0.25rem; font-size: 0.82rem; }
+  .phrase-native { font-size: 1.2rem; margin-bottom: 0.4rem; }
+  .phrase-note { font-size: 0.68rem; line-height: 1.5; padding-top: 0.5rem; }
+
+  /* Emoji */
+  .phrase-emoji { font-size: 2.8rem; }
+
+  /* Result bar */
+  .result-bar { padding: 0.55rem 0.8rem; font-size: 0.72rem; }
+
+  /* Buttons */
+  .btn-primary { padding: 0.7rem; font-size: 0.8rem; }
+  .btn-ghost { padding: 0.65rem; font-size: 0.76rem; }
+
+  /* Situation prompt */
+  .situation-prompt { padding: 0.8rem 1rem; margin-bottom: 0.75rem; }
+  .situation-text { font-size: 0.82rem; line-height: 1.5; }
+  .situation-label { margin-bottom: 0.3rem; }
+
+  /* Buildup cards */
+  .card { padding: 0.8rem 1rem; }
+
+  /* Exercise type badge row */
+  #screenExercise .p-screen > div:first-child { margin-bottom: 0.6rem; }
+
+  /* Speed drill dots */
+  .speed-drill-dots { margin-bottom: 0.75rem; }
+}
+
+/* Extra-short screens (landscape or very small devices) */
+@media (max-height: 580px) {
+  .exercise-header { padding: 0.3rem 0.75rem 0; }
+  .speed-row { padding: 0.15rem 0.75rem; }
+  #screenExercise > .p-screen,
+  #screenBuildupChunk > .p-screen { padding: 0.5rem 1rem; }
+  .play-circle { width: 56px; height: 56px; }
+  .play-circle svg { width: 18px; height: 18px; }
+  .mic-btn { width: 52px; height: 52px; }
+  .mc-option { padding: 0.45rem 0.75rem; font-size: 0.85rem; }
+  .phrase-native { font-size: 1.05rem; }
+}
 </style>
 </head>
 <body>
@@ -641,10 +722,10 @@ body::after {
         <div class="session-card-label">Speak</div>
         <div class="session-card-desc">Say it back</div>
       </div>
-      <div class="session-card" onclick="startPractice('match')">
-        <div class="session-card-icon">🔗</div>
-        <div class="session-card-label">Match</div>
-        <div class="session-card-desc">Connect pairs</div>
+      <div class="session-card" onclick="startPractice('speed_drill')">
+        <div class="session-card-icon">⚡</div>
+        <div class="session-card-label">Speed Drill</div>
+        <div class="session-card-desc">Fast recall</div>
       </div>
       <div class="session-card" onclick="startPractice('situation')">
         <div class="session-card-icon">🎭</div>
@@ -684,10 +765,10 @@ body::after {
     <!-- ── LISTEN / LEARN panel ── -->
     <div id="panelListen" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div class="play-circle" id="listenCircle" onclick="playCurrentAudio()" style="margin-bottom:1.5rem;">
+        <div class="play-circle" id="listenCircle" onclick="playCurrentAudio()" style="margin-bottom:clamp(0.75rem, 2vh, 1.5rem);">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:2rem;" id="listenHint">Tap to hear</div>
+        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:clamp(0.5rem, 2vh, 2rem);" id="listenHint">Tap to hear</div>
         <div class="phrase-emoji hidden" id="listenEmoji"></div>
       </div>
       <div id="listenRevealArea">
@@ -697,21 +778,9 @@ body::after {
             <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What did that mean?</div>
             <div class="mc-options" id="listenMeaningOptions"></div>
           </div>
-          <div id="listenTaskLang" style="display:none;">
-            <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">Which language was that?</div>
-            <div class="mc-options" id="listenLangOptions"></div>
-          </div>
           <div id="listenTaskIdentify" style="display:none;">
             <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">Which phrase did you just hear?</div>
             <div class="mc-options" id="listenIdentifyOptions"></div>
-          </div>
-          <div id="listenTaskRepeat" style="display:none; flex-direction:column; align-items:center; gap:0.5rem;">
-            <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.25rem; letter-spacing:0.05em;">Now say it back</div>
-            <button class="mic-btn" id="listenMicBtn" onclick="toggleListenMic()">
-              <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>
-            </button>
-            <div class="eyebrow" id="listenMicHint" style="letter-spacing:0.15em;">Tap to speak</div>
-            <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem;" id="listenHeardText"></div>
           </div>
           <div class="result-bar" id="listenTaskResult" style="margin-top:0.75rem;">
             <div class="result-bar-title" id="listenTaskResultTitle"></div>
@@ -737,7 +806,7 @@ body::after {
 
     <!-- ── SPEAK panel ── -->
     <div id="panelSpeak" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div class="phrase-reveal" style="margin-bottom:1.25rem;">
+      <div class="phrase-reveal" style="margin-bottom:clamp(0.5rem, 2vh, 1.25rem);">
         <div class="phrase-meaning-label" id="speakMeaning"></div>
         <div class="phrase-romanization" id="speakRoman"></div>
         <div class="phrase-native" id="speakNative"></div>
@@ -760,29 +829,14 @@ body::after {
       </div>
     </div>
 
-    <!-- ── MATCH panel ── -->
-    <div id="panelMatch" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:1.25rem; line-height:1.55;">
-        Match each phrase to its meaning. Tap a phrase, then tap its meaning.
-      </div>
-      <div class="match-grid" id="matchGrid" style="margin-bottom:1.25rem;"></div>
-      <div class="result-bar" id="matchResult">
-        <div class="result-bar-title" id="matchResultTitle"></div>
-        <div class="result-bar-body" id="matchResultBody"></div>
-      </div>
-      <div class="mt-auto">
-        <button class="btn-primary hidden" id="matchNextBtn" onclick="nextExercise()">Continue →</button>
-      </div>
-    </div>
-
     <!-- ── VOCAB panel ── -->
     <div id="panelVocab" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div style="font-size:3.5rem; margin-bottom:1.5rem; line-height:1;" id="vocabEmoji"></div>
-        <div class="play-circle" id="vocabCircle" onclick="playVocabAudio()" style="margin-bottom:1.5rem;">
+        <div style="font-size:clamp(2.5rem, 5vh, 3.5rem); margin-bottom:clamp(0.75rem, 2vh, 1.5rem); line-height:1;" id="vocabEmoji"></div>
+        <div class="play-circle" id="vocabCircle" onclick="playVocabAudio()" style="margin-bottom:clamp(0.75rem, 2vh, 1.5rem);">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:2rem;" id="vocabHint">Tap to hear</div>
+        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:clamp(0.5rem, 2vh, 2rem);" id="vocabHint">Tap to hear</div>
       </div>
       <div id="vocabRevealArea">
         <div id="vocabTask" style="display:none;">
@@ -865,10 +919,10 @@ body::after {
             <div class="speed-dot-label">1.0×</div>
           </div>
         </div>
-        <div class="play-circle" id="sdCircle" onclick="sdPlayAgain()" style="margin-bottom:1.5rem;">
+        <div class="play-circle" id="sdCircle" onclick="sdPlayAgain()" style="margin-bottom:clamp(0.75rem, 2vh, 1.5rem);">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:2rem;" id="sdHint">Tap to hear</div>
+        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:clamp(0.5rem, 2vh, 2rem);" id="sdHint">Tap to hear</div>
       </div>
       <div id="sdTask" style="display:none;">
         <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;" id="sdTaskLabel"></div>
@@ -891,17 +945,17 @@ body::after {
   ═══════════════════════════════════════════════════ -->
   <div class="screen" id="screenBuildupIntro">
     <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:0;">
-      <div style="font-size:2.5rem; margin-bottom:1.25rem;">🧩</div>
-      <h2 class="serif" style="font-size:2rem; margin-bottom:0.75rem;">This one takes a moment.</h2>
-      <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.75; max-width:300px; margin-bottom:1.5rem;">
+      <div style="font-size:2.5rem; margin-bottom:clamp(0.5rem, 2vh, 1.25rem);">🧩</div>
+      <h2 class="serif" style="font-size:clamp(1.5rem, 4vh, 2rem); margin-bottom:0.75rem;">This one takes a moment.</h2>
+      <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.65; max-width:300px; margin-bottom:clamp(0.5rem, 2vh, 1.5rem);">
         Your recovery phrase is a mouthful — but the most important one in the app.
         We're going to build it piece by piece, starting from the end and working forward.
       </p>
-      <div class="card" style="margin-bottom:2rem; text-align:left; width:100%;">
+      <div class="card" style="margin-bottom:clamp(0.75rem, 2vh, 2rem); text-align:left; width:100%;">
         <div class="eyebrow" style="margin-bottom:0.6rem;">You're building toward</div>
         <div class="phrase-native" style="font-size:1.1rem;" id="buildupTargetPhrase"></div>
       </div>
-      <p style="font-size:0.78rem; color:var(--text-dim); line-height:1.65; max-width:280px; margin-bottom:2rem;">
+      <p style="font-size:0.78rem; color:var(--text-dim); line-height:1.65; max-width:280px; margin-bottom:clamp(0.75rem, 2vh, 2rem);">
         By the time you hear the whole phrase, you'll already own every part of it.
       </p>
       <button class="btn-primary" onclick="startBuildup()">Let's build it →</button>
@@ -927,15 +981,15 @@ body::after {
         <span class="exercise-type-badge">Building up</span>
         <span class="lang-pill fr" style="margin-left:0.4rem;">🇫🇷 French</span>
       </div>
-      <div class="card" style="margin-bottom:1.25rem;">
-        <div class="eyebrow" style="margin-bottom:0.6rem;">You're building toward</div>
-        <div style="font-family:'Cormorant Garamond',serif; font-size:1.05rem; line-height:1.6;" id="buildupFullPhrase"></div>
+      <div class="card" style="margin-bottom:clamp(0.5rem, 1.5vh, 1.25rem);">
+        <div class="eyebrow" style="margin-bottom:0.4rem;">You're building toward</div>
+        <div style="font-family:'Cormorant Garamond',serif; font-size:1.05rem; line-height:1.5;" id="buildupFullPhrase"></div>
       </div>
       <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div class="play-circle" id="buildupCircle" onclick="playBuildupChunk()" style="margin-bottom:1.25rem;">
+        <div class="play-circle" id="buildupCircle" onclick="playBuildupChunk()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1.25rem);">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <div style="font-size:0.7rem; color:var(--text-dim); margin-bottom:1.5rem;" id="buildupPlayHint">Tap to hear</div>
+        <div style="font-size:0.7rem; color:var(--text-dim); margin-bottom:clamp(0.5rem, 1.5vh, 1.5rem);" id="buildupPlayHint">Tap to hear</div>
         <div class="phrase-reveal" style="width:100%; display:none;" id="buildupChunkCard">
           <div class="phrase-native" id="buildupChunkText" style="font-size:1.4rem; margin-bottom:0.5rem;"></div>
           <div style="font-size:0.78rem; color:var(--text-dim); line-height:1.6;" id="buildupChunkHint"></div>
@@ -1838,7 +1892,7 @@ let state = {
   sessionLength: 'long',
   // Current session
   session: {
-    mode: 'lesson',       // 'lesson' | 'listen' | 'speak' | 'match' | 'situation'
+    mode: 'lesson',       // 'lesson' | 'listen' | 'speak' | 'situation' | 'speed_drill'
     queue: [],            // array of {phraseId, exerciseType} objects
     index: 0,
     pendingUnlock: null,
@@ -1863,7 +1917,7 @@ function loadState() {
       state.seenTierUnlock = parsed.seenTierUnlock || {};
       state.sessionLength = parsed.sessionLength || 'long';
     }
-  } catch(e) {}
+  } catch(e) { console.warn('Failed to load state:', e); }
 }
 
 function saveState() {
@@ -1879,16 +1933,11 @@ function saveState() {
       seenTierUnlock: state.seenTierUnlock,
       sessionLength: state.sessionLength,
     }));
-  } catch(e) {}
+  } catch(e) { console.warn('Failed to save state:', e); }
 }
 
 function getScore(phraseId) {
   return state.scores[phraseId] || 0;
-}
-
-function setScore(phraseId, score) {
-  state.scores[phraseId] = Math.max(getScore(phraseId), score);
-  saveState();
 }
 
 function bumpScore(phraseId, to, correct = true) {
@@ -1938,7 +1987,6 @@ function recordLeitner(phraseId, correct) {
 
 let speechRate = 0.75;
 let currentAudio = null;
-let currentPlayingId = null;
 
 const LANG_CODES = { fr: 'fr-FR', nl: 'nl-NL', de: 'de-DE' };
 
@@ -2112,11 +2160,12 @@ function playBuildupChunkAudio(text) {
 
 function buildupTTS(text, setPlay, setStop) {
   if (!window.speechSynthesis) return;
+  const lang = _buildupPhrase ? (LANG_CODES[_buildupPhrase.lang] || 'fr-FR') : 'fr-FR';
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'fr-FR';
+  u.lang = lang;
   u.rate = speechRate;
   const voices = speechSynthesis.getVoices();
-  const v = voices.find(v => v.lang === 'fr-FR');
+  const v = voices.find(v => v.lang === lang) || voices.find(v => v.lang.startsWith(lang.slice(0, 2)));
   if (v) u.voice = v;
   setPlay();
   u.onend = setStop;
@@ -2244,52 +2293,26 @@ function continueAfterUnlock() {
 // SESSION BUILDING
 // ═══════════════════════════════════════════════════════════════════
 
-// Determine exercise type for a phrase based on its score and session mode
-function getExerciseType(phrase, mode) {
-  if (phrase.tier === 'Vocabulary') return 'vocab_mc';
-  if (mode !== 'lesson') return mode;
-  const score = getScore(phrase.id);
-  if (score === 0) return 'listen';
-  if (score === 1) return 'learn';
-  if (score === 2) return 'speak';
-  if (score === 3) return 'situation_mc';
-  return 'situation_speak';
+// Weighted random pick from [[type, weight], ...] pairs
+function weightedPick(options) {
+  const total = options.reduce((sum, [, w]) => sum + w, 0);
+  let rand = Math.random() * total;
+  for (const [type, weight] of options) {
+    rand -= weight;
+    if (rand <= 0) return type;
+  }
+  return options[0][0];
 }
 
 // Build a within-session arc for a phrase based on its current score.
 // Returns array of exercise types the phrase goes through this session.
-// Even high-score phrases start with a listen warm-up before production.
+// Score 0–1: listen only. Score 2+: weighted audio/speaking exercises.
 function getPhraseArc(phrase) {
   if (phrase.tier === 'Vocabulary') return ['vocab_mc'];
   const score = getScore(phrase.id);
-  if (score === 0) return ['listen', 'learn', 'speak'];
-  if (score === 1) return ['listen', 'learn', 'speak'];
-  if (score === 2) return ['listen', 'speak', 'situation_mc'];
-  if (score === 3) return ['listen', 'situation_mc', 'situation_speak'];
-  return ['listen', 'situation_speak'];
-}
-
-function buildSessionQueue(mode) {
-  const activePhrases = getActivePhrases();
-
-  if (mode === 'match') {
-    // Match works on groups of 4–6 phrases per round
-    return [{ type: 'match_round', phrases: activePhrases.slice(0, 6) }];
-  }
-
-  if (mode === 'lesson') {
-    // Build a varied queue: some listen/learn first, then mixed
-    const queue = [];
-    // Unseen phrases get listen first
-    activePhrases.forEach(p => {
-      const type = getExerciseType(p, 'lesson');
-      queue.push({ phraseId: p.id, type });
-    });
-    // Shuffle slightly but keep listen/learn before speak/situation
-    return queue;
-  }
-
-  return activePhrases.map(p => ({ phraseId: p.id, type: mode }));
+  if (score <= 1) return ['listen'];
+  if (score === 2) return [weightedPick([['listen', 40], ['speak', 40], ['situation_mc', 20]])];
+  return [weightedPick([['speak', 40], ['situation_speak', 40], ['speed_drill', 20]])];
 }
 
 function setSessionLength(len) {
@@ -2326,15 +2349,6 @@ function shuffle(arr) {
   return a;
 }
 
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
 function startSessionWithMode(mode) {
   state.session.mode = mode;
   state.session.index = 0;
@@ -2342,14 +2356,7 @@ function startSessionWithMode(mode) {
 
   const activePhrases = getActivePhrases();
 
-  if (mode === 'match') {
-    const shuffled = shuffle(activePhrases.filter(p => !PHRASE_BUILDUPS[p.native]));
-    const rounds = [];
-    for (let i = 0; i < shuffled.length; i += 4) {
-      rounds.push({ type: 'match_round', phrases: shuffled.slice(i, i + 4) });
-    }
-    state.session.queue = rounds;
-  } else if (mode === 'lesson') {
+  if (mode === 'lesson') {
     // Session size: 3 phrases for short (5 min), 8 for long (15 min)
     const SESSION_SIZE = state.sessionLength === 'long' ? 8 : 3;
 
@@ -2362,7 +2369,7 @@ function startSessionWithMode(mode) {
 
     // Build per-wave pools (wave 0 = each phrase's first exercise, etc.)
     const arcs = selected.map(p => ({ id: p.id, arc: getPhraseArc(p) }));
-    const maxWaves = Math.max(...arcs.map(a => a.arc.length));
+    const maxWaves = arcs.length ? Math.max(...arcs.map(a => a.arc.length)) : 0;
 
     const pools = [];
     for (let w = 0; w < maxWaves; w++) {
@@ -2393,34 +2400,21 @@ function startSessionWithMode(mode) {
       if (!anyLeft) break;
     }
 
-    // Inject one speed_drill for a random score-3+ phrase (not vocabulary words)
-    const drillCandidates = activePhrases.filter(p => getScore(p.id) >= 3 && p.tier !== 'Vocabulary');
-    if (drillCandidates.length) {
-      const drillPhrase = drillCandidates[Math.floor(Math.random() * drillCandidates.length)];
-      const drillPos = Math.floor(rawQueue.length / 2);
-      rawQueue.splice(drillPos, 0, { phraseId: drillPhrase.id, type: 'speed_drill' });
-    }
-
     // Cap exercises based on session size
     const exerciseCap = SESSION_SIZE <= 3 ? 7 : 19;
     rawQueue.splice(exerciseCap);
 
-    // Insert match rounds every 5 cards
-    const queue = [];
-    rawQueue.forEach((item, i) => {
-      queue.push(item);
-      if ((i + 1) % 5 === 0 && i < rawQueue.length - 1) {
-        const matchPhrases = shuffle(selected.filter(p => !PHRASE_BUILDUPS[p.native])).slice(0, Math.min(4, selected.length));
-        queue.push({ type: 'match_round', phrases: matchPhrases });
-      }
-    });
-
-    state.session.queue = queue;
+    state.session.queue = rawQueue;
   } else {
     const situationModes = ['situation_mc', 'situation_speak', 'situation'];
-    const pool = situationModes.includes(mode)
-      ? activePhrases.filter(p => p.tier !== 'Vocabulary')
-      : activePhrases;
+    let pool;
+    if (mode === 'speed_drill') {
+      pool = activePhrases.filter(p => getScore(p.id) >= 3 && p.tier !== 'Vocabulary');
+    } else if (situationModes.includes(mode)) {
+      pool = activePhrases.filter(p => p.tier !== 'Vocabulary');
+    } else {
+      pool = activePhrases;
+    }
     state.session.queue = shuffle(pool).map(p => ({ phraseId: p.id, type: mode }));
   }
 
@@ -2451,7 +2445,7 @@ function updateExerciseHeader() {
 }
 
 function hidePanels() {
-  ['panelListen', 'panelSpeak', 'panelMatch', 'panelVocab', 'panelSituation', 'panelSpeedDrill'].forEach(id => {
+  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelSpeedDrill'].forEach(id => {
     document.getElementById(id).classList.add('hidden');
   });
 }
@@ -2469,7 +2463,6 @@ function renderCurrentExercise() {
   // Update badges
   const typeLabels = {
     listen: 'Listen', learn: 'Learn', speak: 'Speak',
-    match: 'Match', match_round: 'Match',
     situation_mc: 'Situation', situation_speak: 'Situation',
     situation: 'Situation',
     speed_drill: 'Speed Drill',
@@ -2487,7 +2480,6 @@ function renderCurrentExercise() {
   // Route to correct panel
   if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
   else if (type === 'speak') renderSpeakPanel(phrase);
-  else if (type === 'match' || type === 'match_round') renderMatchPanel(item);
   else if (type === 'vocab_mc') renderVocabMC(phrase);
   else if (type === 'situation_mc' || type === 'situation') renderSituationPanel(phrase, false);
   else if (type === 'situation_speak') renderSituationPanel(phrase, true);
@@ -2497,48 +2489,19 @@ function renderCurrentExercise() {
 
 // ═══════════════════════════════════════════════════════════════════
 // LISTEN SUB-TYPES
-// After hearing a phrase, assign an active follow-up task.
-// Weights shift based on score; "which language" only if >1 lang unlocked.
+// After hearing a phrase, assign a follow-up task.
+// Score 0: meaning match. Score 1: meaning (60%) / identify (40%).
+// Score 2+: identify only (written form recognition).
 // ═══════════════════════════════════════════════════════════════════
 
 function pickListenSubType(phrase) {
   const score = getScore(phrase.id);
-  const multiLang = state.unlockedLangs.length > 1;
-
-  // Define weighted options
-  // [type, weight] — weights are relative, not percentages
-  let options;
-  if (score === 0) {
-    options = [
-      ['meaning',  6],
-      ['identify', 2],
-      ['lang',     multiLang ? 2 : 0],
-      ['repeat',   0],
-    ];
-  } else if (score <= 2) {
-    options = [
-      ['meaning',  3],
-      ['identify', 3],
-      ['lang',     multiLang ? 2 : 0],
-      ['repeat',   2],
-    ];
-  } else {
-    options = [
-      ['meaning',  1],
-      ['identify', 3],
-      ['lang',     multiLang ? 1 : 0],
-      ['repeat',   5],
-    ];
-  }
-
-  // Weighted random pick
-  const total = options.reduce((sum, [, w]) => sum + w, 0);
-  let rand = Math.random() * total;
-  for (const [type, weight] of options) {
-    rand -= weight;
-    if (rand <= 0) return type;
-  }
-  return 'meaning'; // fallback
+  // Score 0: meaning match only (first encounter)
+  if (score <= 0) return 'meaning';
+  // Score 1: meaning match (60%) or written form identification (40%)
+  if (score === 1) return Math.random() < 0.6 ? 'meaning' : 'identify';
+  // Score 2+: written form identification only
+  return 'identify';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -2608,15 +2571,15 @@ function renderListenPanel(phrase, type) {
     const emoji = document.getElementById('listenEmoji');
     emoji.textContent = phrase.emoji;
     emoji.classList.remove('hidden');
-    bumpScore(phrase.id, 1);
 
     if (type === 'learn') {
-      // Learn = full reveal, no task
+      bumpScore(phrase.id, 1);
       document.getElementById('listenPhraseCard').style.display = 'block';
       document.getElementById('listenNextBtn').classList.remove('hidden');
     } else {
-      // Listen = show active follow-up task
+      // Pick sub-type BEFORE bumping score so score-0 gets meaning match
       const subType = pickListenSubType(phrase);
+      bumpScore(phrase.id, 1);
       renderListenTask(phrase, subType);
     }
   };
@@ -2628,19 +2591,15 @@ function renderListenTask(phrase, subType) {
   taskEl.style.display = 'block';
 
   // Hide all sub-panels
-  ['listenTaskMeaning','listenTaskLang','listenTaskIdentify','listenTaskRepeat'].forEach(id => {
+  ['listenTaskMeaning','listenTaskIdentify'].forEach(id => {
     const el = document.getElementById(id);
     el.style.display = 'none';
   });
 
   if (subType === 'meaning') {
     renderListenMeaning(phrase);
-  } else if (subType === 'lang') {
-    renderListenLang(phrase);
   } else if (subType === 'identify') {
     renderListenIdentify(phrase);
-  } else if (subType === 'repeat') {
-    renderListenRepeat(phrase);
   }
 }
 
@@ -2682,30 +2641,6 @@ function renderListenMeaning(phrase) {
   });
 }
 
-// ── Which language task ──
-function renderListenLang(phrase) {
-  document.getElementById('listenTaskLang').style.display = 'block';
-  const langNames = { fr: 'French 🇫🇷', nl: 'Dutch 🇳🇱', de: 'German 🇩🇪' };
-  const options = shuffle(state.unlockedLangs);
-  const container = document.getElementById('listenLangOptions');
-  container.innerHTML = '';
-  options.forEach(lang => {
-    const btn = document.createElement('button');
-    btn.className = 'mc-option';
-    btn.textContent = langNames[lang];
-    btn.onclick = () => {
-      container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
-      const correct = lang === phrase.lang;
-      btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-      if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
-        if (b.textContent === langNames[phrase.lang]) b.className = 'mc-option reveal';
-      });
-      showListenRevealAfterTask(correct, phrase);
-    };
-    container.appendChild(btn);
-  });
-}
-
 // ── Identify written form task ──
 function renderListenIdentify(phrase) {
   document.getElementById('listenTaskIdentify').style.display = 'block';
@@ -2731,63 +2666,6 @@ function renderListenIdentify(phrase) {
     };
     container.appendChild(btn);
   });
-}
-
-// ── Hear and repeat task ──
-function renderListenRepeat(phrase) {
-  const panel = document.getElementById('listenTaskRepeat');
-  panel.style.display = 'flex';
-  document.getElementById('listenMicBtn').className = 'mic-btn';
-  document.getElementById('listenMicHint').textContent = 'Tap to speak';
-  document.getElementById('listenHeardText').textContent = '';
-
-  if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SR();
-    recognition.lang = LANG_CODES[phrase.lang] || 'fr-FR';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-  }
-  // Store phrase for mic handler
-  window._listenRepeatPhrase = phrase;
-}
-
-function toggleListenMic() {
-  if (isListening) { stopMic(); return; }
-  const phrase = window._listenRepeatPhrase;
-  if (!phrase || !recognition) return;
-  isListening = true;
-  document.getElementById('listenMicBtn').classList.add('listening');
-  document.getElementById('listenMicHint').textContent = 'Listening...';
-
-  recognition.onresult = (e) => {
-    const t = Array.from(e.results).map(r => r[0].transcript).join('').toLowerCase().trim();
-    document.getElementById('listenHeardText').textContent = '"' + t + '"';
-    if (e.results[0].isFinal) {
-      const keywords = phrase.native.toLowerCase().replace(/[.,!?—]/g,'').split(' ').filter(w=>w.length>2);
-      const matched = keywords.filter(kw => t.includes(kw));
-      const isGood = matched.length >= Math.max(1, Math.floor(keywords.length * 0.4));
-      document.getElementById('listenMicBtn').className = 'mic-btn ' + (isGood ? 'correct' : '');
-      document.getElementById('listenMicHint').textContent = isGood ? 'Nice!' : 'Try again or skip';
-      showListenRevealAfterTask(isGood, phrase);
-    }
-  };
-  recognition.onerror = (e) => {
-    isListening = false;
-    document.getElementById('listenMicBtn').className = 'mic-btn';
-    document.getElementById('listenMicHint').textContent = 'Try again';
-  };
-  recognition.onend = () => {
-    isListening = false;
-    const btn = document.getElementById('listenMicBtn');
-    if (!btn.classList.contains('correct')) {
-      btn.classList.remove('listening');
-      if (document.getElementById('listenMicHint').textContent === 'Listening...') {
-        document.getElementById('listenMicHint').textContent = 'Tap to speak';
-      }
-    }
-  };
-  recognition.start();
 }
 
 function playCurrentAudio() {
@@ -2849,23 +2727,28 @@ function startMic(phrase, btnId, hintId, heardId, resultId, titleId, bodyId, nex
   document.getElementById(hintId).textContent = 'Listening...';
   document.getElementById(heardId).textContent = '';
 
-  recognition.onresult = (e) => {
-    const t = Array.from(e.results).map(r => r[0].transcript).join('').toLowerCase().trim();
-    document.getElementById(heardId).textContent = '"' + t + '"';
-    if (e.results[0].isFinal) evaluateSpeak(t, phrase, btnId, hintId, resultId, titleId, bodyId, nextId);
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results).map(res => res[0].transcript).join('').toLowerCase().trim();
+    document.getElementById(heardId).textContent = '"' + transcript + '"';
+    if (event.results[0].isFinal) evaluateSpeak(transcript, phrase, btnId, hintId, resultId, titleId, bodyId, nextId);
   };
 
-  recognition.onerror = (e) => {
+  recognition.onerror = (event) => {
     isListening = false;
-    document.getElementById(btnId).className = btnId === 'micBtn' ? 'mic-btn' : 'mic-btn';
+    document.getElementById(btnId).className = 'mic-btn';
     const msgs = { 'no-speech': 'No speech detected — try again', 'not-allowed': 'Microphone access denied' };
-    document.getElementById(hintId).textContent = msgs[e.error] || 'Try again';
+    document.getElementById(hintId).textContent = msgs[event.error] || 'Try again';
   };
 
   recognition.onend = () => {
     isListening = false;
     const btn = document.getElementById(btnId);
-    if (!btn.classList.contains('correct')) btn.classList.remove('listening');
+    if (!btn.classList.contains('correct')) {
+      btn.classList.remove('listening');
+      if (document.getElementById(hintId).textContent === 'Listening...') {
+        document.getElementById(hintId).textContent = 'Tap to speak';
+      }
+    }
   };
 
   recognition.start();
@@ -2901,88 +2784,6 @@ function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, 
     bumpScore(phrase.id, 2, false);
   }
   document.getElementById(nextId).classList.remove('hidden');
-}
-
-// ── MATCH ────────────────────────────────────────────────────────
-
-let matchState = { selected: null, matched: new Set(), total: 0, correct: 0 };
-
-function renderMatchPanel(item) {
-  document.getElementById('panelMatch').classList.remove('hidden');
-  document.getElementById('matchResult').className = 'result-bar';
-  document.getElementById('matchNextBtn').classList.add('hidden');
-
-  const activePhrases = getActivePhrases();
-  // Pick 4 random phrases for this match round (exclude buildup-only phrases)
-  const pool = [...activePhrases].filter(p => !PHRASE_BUILDUPS[p.native]).sort(() => Math.random() - 0.5).slice(0, 4);
-  matchState = { selected: null, matched: new Set(), total: pool.length, correct: 0 };
-
-  const nativeItems = pool.map(p => ({ id: 'n_' + p.id, text: p.native, phraseId: p.id, side: 'native' }));
-  const meaningItems = pool.map(p => ({ id: 'm_' + p.id, text: p.meaning, phraseId: p.id, side: 'meaning' }));
-  const allItems = [...nativeItems, ...meaningItems].sort(() => Math.random() - 0.5);
-
-  const grid = document.getElementById('matchGrid');
-  grid.innerHTML = '';
-  allItems.forEach(item => {
-    const div = document.createElement('div');
-    div.className = 'match-item' + (item.side === 'native' ? ' native' : '');
-    div.textContent = item.text;
-    div.dataset.id = item.id;
-    div.dataset.phraseId = item.phraseId;
-    div.dataset.side = item.side;
-    div.onclick = () => handleMatchClick(div, pool);
-    grid.appendChild(div);
-  });
-}
-
-function handleMatchClick(div, pool) {
-  if (div.classList.contains('matched-correct') || div.classList.contains('matched-wrong')) return;
-
-  if (!matchState.selected) {
-    matchState.selected = div;
-    div.classList.add('selected');
-    return;
-  }
-
-  const prev = matchState.selected;
-  if (prev === div) { prev.classList.remove('selected'); matchState.selected = null; return; }
-
-  // Check if same side
-  if (prev.dataset.side === div.dataset.side) {
-    prev.classList.remove('selected');
-    matchState.selected = div;
-    div.classList.add('selected');
-    return;
-  }
-
-  // Evaluate match
-  const isMatch = prev.dataset.phraseId === div.dataset.phraseId;
-  prev.classList.remove('selected');
-  matchState.selected = null;
-
-  if (isMatch) {
-    prev.classList.add('matched-correct');
-    div.classList.add('matched-correct');
-    matchState.matched.add(prev.dataset.phraseId);
-    matchState.correct++;
-    bumpScore(prev.dataset.phraseId, 2);
-    // Check if all matched
-    if (matchState.matched.size === matchState.total) {
-      setTimeout(() => {
-        document.getElementById('matchResult').className = 'result-bar correct visible';
-        document.getElementById('matchResultTitle').textContent = '✓ All matched!';
-        document.getElementById('matchResultBody').textContent = 'Great work — all ' + matchState.total + ' pairs connected.';
-        document.getElementById('matchNextBtn').classList.remove('hidden');
-      }, 300);
-    }
-  } else {
-    prev.classList.add('matched-wrong');
-    div.classList.add('matched-wrong');
-    setTimeout(() => {
-      prev.classList.remove('matched-wrong');
-      div.classList.remove('matched-wrong');
-    }, 700);
-  }
 }
 
 // ── VOCAB ─────────────────────────────────────────────────────────
@@ -3029,7 +2830,8 @@ function renderVocabTask(phrase) {
   document.getElementById('vocabTask').style.display = 'block';
   const score = getScore(phrase.id);
 
-  if (score >= 3) {
+  // Score 1+: speak/repeat. Score 0: meaning match.
+  if (score >= 1) {
     document.getElementById('vocabTaskRepeat').style.display = 'flex';
     document.getElementById('vocabMicBtn').className = 'mic-btn';
     document.getElementById('vocabMicHint').textContent = 'Tap to speak';
@@ -3080,12 +2882,12 @@ function toggleVocabMic() {
   document.getElementById('vocabMicBtn').classList.add('listening');
   document.getElementById('vocabMicHint').textContent = 'Listening...';
 
-  recognition.onresult = (e) => {
-    const t = Array.from(e.results).map(r => r[0].transcript).join('').toLowerCase().trim();
-    document.getElementById('vocabHeardText').textContent = '"' + t + '"';
-    if (e.results[0].isFinal) {
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results).map(res => res[0].transcript).join('').toLowerCase().trim();
+    document.getElementById('vocabHeardText').textContent = '"' + transcript + '"';
+    if (event.results[0].isFinal) {
       const target = phrase.native.toLowerCase().replace(/[.,!?—]/g, '').trim();
-      const isGood = t.includes(target) || target.split(' ').filter(w => w.length > 1 && t.includes(w)).length >= Math.max(1, Math.floor(target.split(' ').length * 0.5));
+      const isGood = transcript.includes(target) || target.split(' ').filter(w => w.length > 1 && transcript.includes(w)).length >= Math.max(1, Math.floor(target.split(' ').length * 0.5));
       document.getElementById('vocabMicBtn').className = 'mic-btn ' + (isGood ? 'correct' : '');
       document.getElementById('vocabMicHint').textContent = isGood ? 'Nice!' : 'Try again';
       showVocabRevealAfterTask(isGood, phrase);
