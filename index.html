@@ -1183,7 +1183,7 @@ const PHRASES = [
     "tier": "1",
     "alwaysCapitalize": false,
     "emoji": "",
-    "meaning": "",
+    "meaning": "buildup chunk — please",
     "native": "s'il vous plaît",
     "romanization": null,
     "note": "",
@@ -1234,8 +1234,8 @@ const PHRASES = [
     "langLabel": "French",
     "tier": "1",
     "alwaysCapitalize": false,
-    "emoji": "",
-    "meaning": "",
+    "emoji": "☕",
+    "meaning": "buildup chunk — coffee, please",
     "native": "café, s'il vous plaît",
     "romanization": null,
     "note": "",
@@ -1311,8 +1311,8 @@ const PHRASES = [
     "langLabel": "French",
     "tier": "1",
     "alwaysCapitalize": false,
-    "emoji": "",
-    "meaning": "",
+    "emoji": "🚽",
+    "meaning": "buildup chunk — toilets?",
     "native": "toilettes?",
     "romanization": null,
     "note": "",
@@ -1330,7 +1330,7 @@ const PHRASES = [
     "langLabel": "French",
     "tier": "2",
     "alwaysCapitalize": true,
-    "emoji": "🚿",
+    "emoji": "🚽",
     "meaning": "The bathrooms?",
     "native": "Les toilettes?",
     "romanization": "lay twah-<strong>LET</strong>",
@@ -1413,8 +1413,8 @@ const PHRASES = [
     "langLabel": "French",
     "tier": "1",
     "alwaysCapitalize": false,
-    "emoji": "",
-    "meaning": "",
+    "emoji": "🚽",
+    "meaning": "buildup chunk — the toilets?",
     "native": "les toilettes?",
     "romanization": null,
     "note": "",
@@ -1531,8 +1531,8 @@ const PHRASES = [
     "langLabel": "French",
     "tier": "1",
     "alwaysCapitalize": false,
-    "emoji": "",
-    "meaning": "",
+    "emoji": "🧾",
+    "meaning": "buildup chunk — the bill, please",
     "native": "l'addition, s'il vous plaît",
     "romanization": null,
     "note": "",
@@ -1694,7 +1694,7 @@ const PHRASES = [
     "tier": "1",
     "alwaysCapitalize": false,
     "emoji": "",
-    "meaning": "",
+    "meaning": "buildup chunk — that",
     "native": "ça",
     "romanization": null,
     "note": "",
@@ -1737,8 +1737,8 @@ const PHRASES = [
     "langLabel": "French",
     "tier": "1",
     "alwaysCapitalize": false,
-    "emoji": "",
-    "meaning": "",
+    "emoji": "🧾",
+    "meaning": "buildup chunk — the bill",
     "native": "l'addition",
     "romanization": null,
     "note": "",
@@ -1898,7 +1898,7 @@ const PHRASES = [
     "tier": "1",
     "alwaysCapitalize": false,
     "emoji": "",
-    "meaning": "",
+    "meaning": "buildup chunk — I don't understand",
     "native": "je ne comprends pas",
     "romanization": null,
     "note": "",
@@ -2008,7 +2008,7 @@ const PHRASES = [
     "tier": "1",
     "alwaysCapitalize": false,
     "emoji": "",
-    "meaning": "",
+    "meaning": "buildup chunk — that, please",
     "native": "ça, s'il vous plaît",
     "romanization": null,
     "note": "",
@@ -2060,7 +2060,7 @@ const PHRASES = [
     "tier": "1",
     "alwaysCapitalize": false,
     "emoji": "",
-    "meaning": "",
+    "meaning": "buildup chunk — don't understand",
     "native": "comprends pas",
     "romanization": null,
     "note": "",
@@ -2457,12 +2457,12 @@ function nextBuildupStep() {
   state.session.buildupStep++;
 
   if (state.session.buildupStep >= buildup.length) {
-    // Buildup complete — bump score and return to main session
-    bumpScore(_buildupPhrase.id, 1);
+    // Buildup complete — show phrase reveal card before continuing
+    const phrase = _buildupPhrase;
+    bumpScore(phrase.id, 1);
     state.session.inBuildup = false;
     _buildupPhrase = null;
-    showScreen('screenExercise');
-    renderCurrentExercise();
+    showPhraseRevealScreen(phrase);
   } else {
     renderBuildupStep();
   }
@@ -2748,6 +2748,37 @@ function renderCurrentExercise() {
 // Score 2+: identify only (written form recognition).
 // ═══════════════════════════════════════════════════════════════════
 
+// Returns plausible distractors for a phrase, matched by type/length.
+// Never includes buildup phrases. Vocabulary only gets vocab distractors.
+// Short phrases get short distractors, long get long.
+function getDistractors(phrase, count) {
+  const all = getActivePhrases().filter(p =>
+    p.id !== phrase.id && !PHRASE_BUILDUPS[p.native]
+  );
+  const tier = phrase.tier || '1';
+
+  if (tier === 'Vocabulary') {
+    // Vocab words only get other vocab words
+    const pool = shuffle(all.filter(p => p.tier === 'Vocabulary'));
+    return pool.slice(0, count);
+  }
+
+  // For phrases: group by word count — short (1-2 words) vs long (3+)
+  const wordCount = phrase.native.split(/\s+/).length;
+  const isShort = wordCount <= 2;
+  const sameTier = all.filter(p => (p.tier || '1') === tier);
+  const sameLength = sameTier.filter(p => {
+    const wc = p.native.split(/\s+/).length;
+    return isShort ? wc <= 2 : wc >= 3;
+  });
+
+  // Prefer same-length same-tier, fall back to same-tier, then any
+  const preferred = shuffle(sameLength);
+  const fallback = shuffle(sameTier.filter(p => !sameLength.includes(p)));
+  const rest = shuffle(all.filter(p => (p.tier || '1') !== tier));
+  return [...preferred, ...fallback, ...rest].slice(0, count);
+}
+
 function pickListenSubType(phrase) {
   const score = getScore(phrase.id);
   // Score 0: meaning match only (first encounter)
@@ -2879,8 +2910,7 @@ function showListenRevealAfterTask(isCorrect, phrase) {
 // ── Meaning task ──
 function renderListenMeaning(phrase) {
   document.getElementById('listenTaskMeaning').style.display = 'block';
-  const activePhrases = getActivePhrases();
-  const distractors = shuffle(activePhrases.filter(p => p.id !== phrase.id)).slice(0, 3);
+  const distractors = getDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
   const container = document.getElementById('listenMeaningOptions');
   container.innerHTML = '';
@@ -2904,8 +2934,7 @@ function renderListenMeaning(phrase) {
 // ── Identify written form task ──
 function renderListenIdentify(phrase) {
   document.getElementById('listenTaskIdentify').style.display = 'block';
-  const activePhrases = getActivePhrases();
-  const distractors = shuffle(activePhrases.filter(p => p.id !== phrase.id)).slice(0, 3);
+  const distractors = getDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
   const container = document.getElementById('listenIdentifyOptions');
   container.innerHTML = '';
@@ -3117,9 +3146,7 @@ function renderVocabTask(phrase) {
   document.getElementById('vocabTaskMeaning').style.display = 'block';
   const score = getScore(phrase.id);
 
-  const vocabPool = shuffle(getActivePhrases().filter(p => p.tier === 'Vocabulary' && p.id !== phrase.id));
-  const fallbackPool = shuffle(getActivePhrases().filter(p => p.tier !== 'Vocabulary' && p.id !== phrase.id));
-  const distractors = [...vocabPool.slice(0, 3), ...fallbackPool].slice(0, 3);
+  const distractors = getDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
   const container = document.getElementById('vocabMeaningOptions');
   container.innerHTML = '';
@@ -3247,9 +3274,9 @@ function renderSituationPanel(phrase, useSpeak) {
 
     // Build MC options — correct answer + 3 distractors from seen phrases
     const correctAnswers = phrase.responses || [phrase.native];
-    const notCorrect = p => !correctAnswers.includes(p.native) && p.id !== phrase.id;
-    const seenPool = shuffle(PHRASES.filter(p => getScore(p.id) > 0 && notCorrect(p)));
-    const fallbackPool = shuffle(PHRASES.filter(p => getScore(p.id) === 0 && notCorrect(p)));
+    const notCorrect = p => !correctAnswers.includes(p.native) && p.id !== phrase.id && !PHRASE_BUILDUPS[p.native];
+    const seenPool = shuffle(getActivePhrases().filter(p => getScore(p.id) > 0 && notCorrect(p) && p.tier !== 'Vocabulary'));
+    const fallbackPool = shuffle(getActivePhrases().filter(p => getScore(p.id) === 0 && notCorrect(p) && p.tier !== 'Vocabulary'));
     const distractors = [...seenPool, ...fallbackPool].slice(0, 3).map(p => displayNative(p, 'response'));
 
     const options = [...correctAnswers.slice(0,1), ...distractors].sort(() => Math.random() - 0.5);
@@ -3342,8 +3369,7 @@ function sdShowTask(phrase) {
   document.getElementById('sdTask').style.display = 'block';
   document.getElementById('sdResult').className = 'result-bar';
 
-  const activePhrases = getActivePhrases();
-  const distractors = shuffle(activePhrases.filter(p => p.id !== phrase.id)).slice(0, 3);
+  const distractors = getDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
   const container = document.getElementById('sdOptions');
   container.innerHTML = '';
@@ -3442,6 +3468,7 @@ function advanceSession() {
     showCompletion();
     return;
   }
+  showScreen('screenExercise');
   renderCurrentExercise();
 }
 
