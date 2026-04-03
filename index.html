@@ -627,7 +627,7 @@ body::after {
       <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.65; margin-bottom:2.5rem; max-width:290px;">
         Real phrases. Real situations. Built for travelers.
       </p>
-      <div class="eyebrow" style="margin-bottom:1rem;">Where are you heading?</div>
+      <div class="eyebrow" style="margin-bottom:1rem;">Which language do you want to learn?</div>
       <div style="display:flex; flex-direction:column; gap:0.6rem;">
         <button onclick="selectLanguage('fr')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.25rem; cursor:pointer; transition:all 0.2s; width:100%; display:flex; align-items:center; gap:1rem; text-align:left;" onmouseover="this.style.borderColor='var(--border-hi)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='var(--border)';this.style.transform='none'">
           <span style="font-size:1.8rem;">🇫🇷</span>
@@ -659,9 +659,7 @@ body::after {
         <span style="font-size:1.6rem;">🇫🇷</span>
         <div class="eyebrow">Building Foundation</div>
       </div>
-      <h2 class="serif" style="font-size:clamp(2rem,7vw,2.8rem); line-height:1.1; margin-bottom:1rem;" id="foundationHeading">
-        Learning French
-      </h2>
+      <div style="font-size:0.82rem; color:var(--text-dim); margin-bottom:1.25rem;" id="foundationProgress">0 of 15 phrases</div>
       <div id="foundationCapabilities" style="margin-bottom:1.5rem;"></div>
       <button class="btn-primary" id="foundationBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.72rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.25rem 0 1rem;letter-spacing:0.04em;transition:color 0.15s;width:100%;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">View phrases</button>
@@ -671,10 +669,11 @@ body::after {
     <div id="welcomeExperiences" class="hidden">
       <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.5rem;">
         <span style="font-size:1.6rem;">🇫🇷</span>
-        <div class="eyebrow">French</div>
+        <div class="eyebrow" id="experienceStageLabel">French</div>
       </div>
       <div id="experienceCapabilities" style="margin-bottom:1.5rem;"></div>
       <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.5rem;" id="experienceTiles"></div>
+      <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Continue session →</button>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.72rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.25rem 0 1rem;letter-spacing:0.04em;transition:color 0.15s;width:100%;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">View all phrases</button>
     </div>
 
@@ -977,7 +976,7 @@ body::after {
   <div style="overflow-y:auto; padding:0 1.25rem 2rem; display:flex; flex-direction:column; gap:0.5rem;">
     <button onclick="devSetTier1Score2()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all Tier 1 → score 2 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock Recovery)</span></button>
     <button onclick="devSetAllScore3()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all → score 3 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock everything)</span></button>
-    <button onclick="devResetAll()" style="background:var(--card);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--red);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Reset everything <span style="color:var(--text-dim); font-size:0.68rem;">(clear all localStorage)</span></button>
+    <button onclick="devResetAll()" style="background:var(--card);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--red);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Reset everything <span style="color:var(--text-dim); font-size:0.68rem;">(clear all progress)</span></button>
     <button onclick="devShowScores()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Show current scores</button>
     <pre id="devScoreOutput" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem; font-size:0.65rem; color:var(--text-dim); overflow-x:auto; max-height:40vh; overflow-y:auto; white-space:pre-wrap;"></pre>
   </div>
@@ -2530,13 +2529,22 @@ function weightedPick(options) {
   return options[0][0];
 }
 
-// Build a within-session arc for a phrase based on its current score.
-// Returns array of exercise types the phrase goes through this session.
-// Score 0–1: listen only. Score 2+: weighted audio/speaking exercises.
+// Build a within-session arc for a phrase based on its current score and tier.
 function getPhraseArc(phrase) {
+  // Vocabulary: listen + meaning match only at all scores
   if (phrase.tier === 'Vocabulary') return ['vocab_mc'];
+
+  // Recovery: buildup on first encounter, then situation only
+  if (phrase.tier === 'Recovery') {
+    const score = getScore(phrase.id);
+    if (score === 0) return ['listen']; // triggers buildup via checkAndStartBuildup
+    return ['situation_mc'];
+  }
+
+  // Foundation (tier 1): strict score-based gating
   const score = getScore(phrase.id);
-  if (score <= 1) return ['listen'];
+  if (score === 0) return ['listen']; // listen + meaning match
+  if (score === 1) return ['listen']; // listen + meaning (60%) / identify (40%) handled by pickListenSubType
   if (score === 2) return [weightedPick([['listen', 40], ['speak', 40], ['situation_mc', 20]])];
   return [weightedPick([['speak', 40], ['situation_speak', 40], ['speed_drill', 20]])];
 }
@@ -3499,7 +3507,7 @@ function getHomeState() {
   if (!hasAnyProgress()) return 'new';
   const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && p.meaning && getAudio(p.native));
   const allTier1Score2 = tier1.length > 0 && tier1.every(p => getScore(p.id) >= 2);
-  if (allTier1Score2) return 'experiences';
+  if (allTier1Score2 && localStorage.getItem('tt_recoveryUnlocked')) return 'experiences';
   return 'foundation';
 }
 
@@ -3526,6 +3534,7 @@ function updateWelcomeScreen() {
     const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && p.meaning && getAudio(p.native));
     const seen = tier1.filter(p => getScore(p.id) >= 1).length;
     const total = tier1.length;
+    document.getElementById('foundationProgress').textContent = `${seen} of ${total} phrases`;
 
     // Button text: "Keep going" or "Practice anyway" if all caught up
     const activePhrases = getActivePhrases();
@@ -3546,7 +3555,7 @@ function updateWelcomeScreen() {
   tiles.innerHTML = '';
 
   const experiences = [
-    { name: 'At the Cafe', emoji: '☕', free: true },
+    { name: 'At the Café', emoji: '☕', free: true },
     { name: 'At the Restaurant', emoji: '🍽️', free: false },
     { name: 'Out and About', emoji: '🚶', free: false },
   ];
@@ -3561,7 +3570,7 @@ function updateWelcomeScreen() {
       <span style="font-size:1.8rem;">${exp.emoji}</span>
       <div style="flex:1;">
         <div style="font-size:0.82rem; color:var(--text); font-weight:400;">${exp.name}</div>
-        <div style="font-size:0.68rem; color:var(--text-dim);">${exp.free ? 'Free' : 'Coming soon'}</div>
+        <div style="font-size:0.68rem; color:var(--text-dim);">${exp.free ? 'Free' : '🔒 Coming soon'}</div>
       </div>
     `;
     if (!exp.free) {
@@ -3763,7 +3772,12 @@ function devSetAllScore3() {
 }
 
 function devResetAll() {
-  localStorage.clear();
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('tt_')) keys.push(key);
+  }
+  keys.forEach(k => localStorage.removeItem(k));
   location.reload();
 }
 
@@ -3783,6 +3797,7 @@ function devShowScores() {
   lines.push('seenTierUnlock: ' + JSON.stringify(state.seenTierUnlock));
   out.textContent = lines.join('\n');
   out.style.display = 'block';
+  console.log(lines.join('\n'));
 }
 
 loadState();

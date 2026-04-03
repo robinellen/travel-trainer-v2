@@ -144,6 +144,8 @@ function gitCommitAndPush() {
   console.log(`Recovery phrases (${recovery.length}):`, recovery.map(p => p.native));
   const foundation = phrases.filter(p => p.tier === '1').sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
   console.log(`Foundation phrases in sort order (${foundation.length}):`, foundation.map(p => `${p.sortOrder}: ${p.native}`));
+  const withCapability = phrases.filter(p => p.capabilityLabel);
+  console.log(`Phrases with capabilityLabel (${withCapability.length}):`, withCapability.map(p => `${p.native} → "${p.capabilityLabel}"`));
 
   updateHtmlFile(phrases);
   gitCommitAndPush();
