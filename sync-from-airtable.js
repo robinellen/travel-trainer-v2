@@ -83,6 +83,7 @@ function recordToPhrase(record) {
     romanization: f['Romanization'] || null,
     note: f['Note'] || '',
     hasBuildup: f['Has Buildup'] === true,
+    audioRecorded: f['Audio Recorded'] === true,
     situations: parseArray(f['Situations']),
     situationEarly: parseArray(f['Situation (Early)']),
     situationLate: parseArray(f['Situation (Late)']),
