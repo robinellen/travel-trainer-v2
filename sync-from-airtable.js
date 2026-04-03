@@ -76,13 +76,17 @@ function recordToPhrase(record) {
     flag: LANG_FLAG[lang] || '',
     langLabel: langName,
     tier,
+    sortOrder: f['Sort Order'] || null,
     alwaysCapitalize: f['Always Capitalize'] === true,
     emoji,
     meaning: f['English Meaning'] || '',
+    meanings: parseArray(f['Meanings']),
     native: f['Phrase (Native)'] || '', // raw value — do not transform case
     romanization: f['Romanization'] || null,
     note: f['Note'] || '',
     hasBuildup: f['Has Buildup'] === true,
+    isBuildupChunk: f['Is Buildup Chunk'] === true,
+    capabilityLabel: f['Capability Label'] || '',
     audioRecorded: f['Audio Recorded'] === true,
     situations: parseArray(f['Situations']),
     situationEarly: parseArray(f['Situation (Early)']),
@@ -95,12 +99,6 @@ function buildPhrasesBlock(phrases) {
   return 'const PHRASES = ' + JSON.stringify(phrases, null, 2) + ';';
 }
 
-function stripAudioKeyPeriods(html) {
-  // Matches any AUDIO key that ends with a period before the closing quote
-  // e.g. "Merci.": "SUQ... → "Merci": "SUQ...
-  return html.replace(/"([^"]+)\."(\s*:\s*"(?:SUQ|data:))/g, '"$1"$2');
-}
-
 function updateHtmlFile(phrases) {
   let html = fs.readFileSync(HTML_FILE, 'utf8');
 
@@ -111,9 +109,6 @@ function updateHtmlFile(phrases) {
     process.exit(1);
   }
   html = html.replace(phrasesPattern, buildPhrasesBlock(phrases));
-
-  // Strip trailing periods from AUDIO keys
-  html = stripAudioKeyPeriods(html);
 
   fs.writeFileSync(HTML_FILE, html, 'utf8');
   console.log(`Updated index.html with ${phrases.length} phrases`);
@@ -139,7 +134,17 @@ function gitCommitAndPush() {
   const records = await fetchAllRecords();
   console.log(`Fetched ${records.length} records`);
 
-  const phrases = records.map(recordToPhrase);
+  const allPhrases = records.map(recordToPhrase);
+  // Exclude buildup chunks — they are audio-only fragments, never user-facing
+  const phrases = allPhrases.filter(p => !p.isBuildupChunk);
+  console.log(`Excluded ${allPhrases.length - phrases.length} buildup chunks`);
+
+  // Debug: verify Recovery and Foundation ordering
+  const recovery = phrases.filter(p => p.tier === 'Recovery');
+  console.log(`Recovery phrases (${recovery.length}):`, recovery.map(p => p.native));
+  const foundation = phrases.filter(p => p.tier === '1').sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+  console.log(`Foundation phrases in sort order (${foundation.length}):`, foundation.map(p => `${p.sortOrder}: ${p.native}`));
+
   updateHtmlFile(phrases);
   gitCommitAndPush();
 })();
