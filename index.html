@@ -406,38 +406,6 @@ body::after {
 .mc-option.reveal { border-color: var(--green); background: var(--green-bg); color: var(--green); pointer-events: none; }
 
 
-/* Speed drill indicator */
-.speed-drill-dots {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1.5rem;
-}
-.speed-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--border-hi);
-  transition: background 0.3s, transform 0.3s;
-  position: relative;
-}
-.speed-dot.active {
-  background: var(--text);
-  transform: scale(1.4);
-}
-.speed-dot.done {
-  background: var(--green);
-}
-.speed-dot-label {
-  font-size: 0.6rem;
-  color: var(--text-dim);
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  white-space: nowrap;
-}
 /* Progress dots */
 .lang-progress {
   display: flex;
@@ -630,8 +598,6 @@ body::after {
   /* Exercise type badge row */
   #screenExercise .p-screen > div:first-child { margin-bottom: 0.6rem; }
 
-  /* Speed drill dots */
-  .speed-drill-dots { margin-bottom: 0.75rem; }
 }
 
 /* Extra-short screens (landscape or very small devices) */
@@ -905,27 +871,15 @@ body::after {
     <!-- ── SPEED DRILL panel ── -->
     <div id="panelSpeedDrill" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div class="speed-drill-dots" id="speedDrillDots">
-          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-            <div class="speed-dot active" id="sdDot0"></div>
-            <div class="speed-dot-label">0.75×</div>
-          </div>
-          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-            <div class="speed-dot" id="sdDot1"></div>
-            <div class="speed-dot-label">0.9×</div>
-          </div>
-          <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-            <div class="speed-dot" id="sdDot2"></div>
-            <div class="speed-dot-label">1.0×</div>
-          </div>
-        </div>
+        <div style="font-size:2.5rem; margin-bottom:clamp(0.5rem, 1.5vh, 1rem); line-height:1;" id="sdEmoji"></div>
+        <div style="font-size:0.6rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-dim); margin-bottom:clamp(0.5rem, 1vh, 0.75rem);">native speed</div>
         <div class="play-circle" id="sdCircle" onclick="sdPlayAgain()" style="margin-bottom:clamp(0.75rem, 2vh, 1.5rem);">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
         <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:clamp(0.5rem, 2vh, 2rem);" id="sdHint">Tap to hear</div>
       </div>
       <div id="sdTask" style="display:none;">
-        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;" id="sdTaskLabel"></div>
+        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What did that mean?</div>
         <div class="mc-options" id="sdOptions"></div>
         <div class="result-bar" id="sdResult" style="margin-top:0.75rem;">
           <div class="result-bar-title" id="sdResultTitle"></div>
@@ -2597,6 +2551,15 @@ function startSessionWithMode(mode) {
     rawQueue.splice(exerciseCap);
 
     state.session.queue = rawQueue;
+    // Debug: log queue and check for duplicates
+    const queueIds = rawQueue.map(q => q.phraseId);
+    const dupes = queueIds.filter((id, i) => queueIds.indexOf(id) !== i);
+    if (dupes.length) console.warn('DUPLICATE IDs in queue:', dupes);
+    console.log('Session queue (' + rawQueue.length + ' items, ' + selected.length + ' phrases):',
+      rawQueue.map((q, i) => {
+        const p = PHRASES.find(x => x.id === q.phraseId);
+        return i + ': ' + q.type + ' → ' + (p ? p.native.slice(0, 30) : '??');
+      }).join('\n  '));
   } else {
     const situationModes = ['situation_mc', 'situation_speak', 'situation'];
     let pool;
@@ -2651,6 +2614,8 @@ function renderCurrentExercise() {
 
   const phrase = item.phraseId ? PHRASES.find(p => p.id === item.phraseId) : null;
   const type = item.type;
+  console.log(`[exercise] index=${state.session.index} type=${type} phrase="${phrase?.native?.slice(0,25) || '(none)'}"`);
+
 
   // Update badges
   const typeLabels = {
@@ -3162,31 +3127,19 @@ function renderSituationPanel(phrase, useSpeak) {
 // Three speed levels: 0.75x → 0.9x → 1.0x
 // MC task at each level. Correct = advance. Wrong = show answer, play again, continue.
 
-const SD_SPEEDS = [0.75, 0.9, 1.0];
 let _sdPhrase = null;
-let _sdLevel = 0;
-let _sdTaskType = 'meaning'; // 'meaning' or 'identify'
 
 function renderSpeedDrill(phrase) {
   _sdPhrase = phrase;
-  _sdLevel = 0;
-  _sdTaskType = Math.random() < 0.5 ? 'meaning' : 'identify';
 
   document.getElementById('panelSpeedDrill').classList.remove('hidden');
   document.getElementById('sdTask').style.display = 'none';
   document.getElementById('sdResult').className = 'result-bar';
   document.getElementById('sdNextBtn').classList.add('hidden');
   document.getElementById('sdHint').textContent = 'Tap to hear';
+  document.getElementById('sdEmoji').textContent = phrase.emoji || '';
 
-  sdUpdateDots();
   sdPlay(phrase, () => sdShowTask(phrase));
-}
-
-function sdUpdateDots() {
-  SD_SPEEDS.forEach((_, i) => {
-    const dot = document.getElementById('sdDot' + i);
-    dot.className = 'speed-dot' + (i < _sdLevel ? ' done' : i === _sdLevel ? ' active' : '');
-  });
 }
 
 function sdPlay(phrase, onEnded) {
@@ -3194,7 +3147,6 @@ function sdPlay(phrase, onEnded) {
   circle.classList.add('playing');
   document.getElementById('sdHint').textContent = 'Listening…';
 
-  const rate = SD_SPEEDS[_sdLevel];
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   window.speechSynthesis?.cancel();
 
@@ -3207,21 +3159,21 @@ function sdPlay(phrase, onEnded) {
   const _a0 = getAudio(phrase.native);
   if (_a0) {
     const audio = new Audio('data:audio/mp3;base64,' + _a0);
-    audio.playbackRate = rate;
+    audio.playbackRate = 1.0;
     currentAudio = audio;
     audio.onended = () => { currentAudio = null; done(); };
-    audio.onerror = () => { currentAudio = null; sdTTS(phrase, rate, done); };
-    audio.play().catch(() => sdTTS(phrase, rate, done));
+    audio.onerror = () => { currentAudio = null; sdTTS(phrase, done); };
+    audio.play().catch(() => sdTTS(phrase, done));
   } else {
-    sdTTS(phrase, rate, done);
+    sdTTS(phrase, done);
   }
 }
 
-function sdTTS(phrase, rate, onDone) {
+function sdTTS(phrase, onDone) {
   if (!window.speechSynthesis) { if (onDone) onDone(); return; }
   const u = new SpeechSynthesisUtterance(phrase.native);
   u.lang = LANG_CODES[phrase.lang] || 'fr-FR';
-  u.rate = rate;
+  u.rate = 1.0;
   const voices = speechSynthesis.getVoices();
   const v = voices.find(v => v.lang === LANG_CODES[phrase.lang]) || voices.find(v => v.lang.startsWith(phrase.lang));
   if (v) u.voice = v;
@@ -3244,27 +3196,13 @@ function sdShowTask(phrase) {
   const container = document.getElementById('sdOptions');
   container.innerHTML = '';
 
-  if (_sdTaskType === 'meaning') {
-    document.getElementById('sdTaskLabel').textContent = 'What did that mean?';
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'mc-option';
-      btn.textContent = opt.meaning;
-      btn.onclick = () => sdHandleAnswer(btn, opt.id === phrase.id, container, phrase);
-      container.appendChild(btn);
-    });
-  } else {
-    document.getElementById('sdTaskLabel').textContent = 'Which phrase did you hear?';
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'mc-option';
-      btn.style.fontFamily = String.fromCharCode(39) + 'Cormorant Garamond' + String.fromCharCode(39) + ', serif';
-      btn.style.fontStyle = 'italic';
-      btn.textContent = displayNative(opt, 'response');
-      btn.onclick = () => sdHandleAnswer(btn, opt.id === phrase.id, container, phrase);
-      container.appendChild(btn);
-    });
-  }
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-option';
+    btn.textContent = opt.meaning;
+    btn.onclick = () => sdHandleAnswer(btn, opt.id === phrase.id, container, phrase);
+    container.appendChild(btn);
+  });
 }
 
 function sdHandleAnswer(btn, isCorrect, container, phrase) {
@@ -3274,39 +3212,19 @@ function sdHandleAnswer(btn, isCorrect, container, phrase) {
     btn.className = 'mc-option correct';
     document.getElementById('sdResult').className = 'result-bar correct visible';
     document.getElementById('sdResultTitle').textContent = '\u2713 Correct';
-
-    if (_sdLevel < SD_SPEEDS.length - 1) {
-      _sdLevel++;
-      sdUpdateDots();
-      document.getElementById('sdResultBody').textContent =
-        'Now at ' + SD_SPEEDS[_sdLevel] + '\u00d7 speed';
-      document.getElementById('sdTask').style.display = 'none';
-      setTimeout(() => {
-        document.getElementById('sdResult').className = 'result-bar';
-        sdPlay(phrase, () => sdShowTask(phrase));
-      }, 1200);
-    } else {
-      // Completed all three speeds
-      document.getElementById('sdResultBody').textContent =
-        'Native speed mastered! ' + phrase.native;
-      sdUpdateDots();
-      state.speedMastered[phrase.id] = true;
-      if (getScore(phrase.id) < 4) bumpScore(phrase.id, 4, true);
-      else saveState();
-      document.getElementById('sdNextBtn').classList.remove('hidden');
-    }
+    document.getElementById('sdResultBody').textContent = phrase.native + ' — ' + phrase.meaning;
+    bumpScore(phrase.id, 4, true);
+    document.getElementById('sdNextBtn').classList.remove('hidden');
   } else {
-    // Wrong — reveal correct, play at current speed, then let them continue
     btn.className = 'mc-option wrong';
     container.querySelectorAll('.mc-option').forEach(b => {
-      const isTarget = _sdTaskType === 'meaning'
-        ? b.textContent === phrase.meaning
-        : b.textContent === displayNative(phrase, 'response');
-      if (isTarget) b.className = 'mc-option reveal';
+      if (b.textContent === phrase.meaning) b.className = 'mc-option reveal';
     });
     document.getElementById('sdResult').className = 'result-bar wrong visible';
     document.getElementById('sdResultTitle').textContent = '\u2717 Not quite';
-    document.getElementById('sdResultBody').textContent = phrase.native + ' \u2014 ' + phrase.meaning;
+    document.getElementById('sdResultBody').textContent = phrase.native + ' — ' + phrase.meaning;
+    bumpScore(phrase.id, 4, false);
+    // Play once more at native speed, then show Continue
     setTimeout(() => sdPlay(phrase, () => {
       document.getElementById('sdNextBtn').classList.remove('hidden');
     }), 800);
@@ -3350,6 +3268,7 @@ function nextExercise() {
   stopMic();
 
   state.session.index++;
+  console.log(`[next] advancing to index=${state.session.index} of ${state.session.queue.length}`);
 
   // Check tier unlocks after scoring
   const newUnlock = checkUnlocks();
