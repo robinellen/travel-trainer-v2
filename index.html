@@ -2119,7 +2119,7 @@ const UNLOCK_DE_THRESHOLD = { minScore2: 14, minScore3: 10 };
 // Returns phrases the user currently has access to, based on lang + tier unlocks.
 function getActivePhrases() {
   return PHRASES.filter(p =>
-    p.audioRecorded !== false &&
+    getAudio(p.native) &&
     state.unlockedLangs.includes(p.lang) &&
     state.unlockedTiers.includes(p.tier || '1')
   );
