@@ -890,6 +890,11 @@ body::after {
         <button class="btn-primary hidden" id="sdNextBtn" onclick="nextExercise()">Continue →</button>
       </div>
     </div>
+
+    <!-- Universal skip fallback — appears after 5s of no interaction -->
+    <div id="universalSkip" class="hidden" style="text-align:center; padding:0.5rem 0 0;">
+      <button class="btn-skip" onclick="skipExercise()" style="font-size:0.68rem;">Skip this one →</button>
+    </div>
   </div>
 </div>
 
@@ -2662,9 +2667,18 @@ function hidePanels() {
   });
 }
 
+let _skipTimer = null;
+
 function renderCurrentExercise() {
   hidePanels();
   updateExerciseHeader();
+
+  // Reset universal skip
+  document.getElementById('universalSkip').classList.add('hidden');
+  clearTimeout(_skipTimer);
+  _skipTimer = setTimeout(() => {
+    document.getElementById('universalSkip').classList.remove('hidden');
+  }, 5000);
 
   const item = getCurrentItem();
   if (!item) { showCompletion(); return; }
@@ -3061,22 +3075,39 @@ function playVocabAudio() {
 
 function renderVocabTask(phrase) {
   document.getElementById('vocabTask').style.display = 'block';
+  document.getElementById('vocabTaskMeaning').style.display = 'block';
   const score = getScore(phrase.id);
 
-  // Score 1+: speak/repeat. Score 0: meaning match.
+  const vocabPool = shuffle(getActivePhrases().filter(p => p.tier === 'Vocabulary' && p.id !== phrase.id));
+  const fallbackPool = shuffle(getActivePhrases().filter(p => p.tier !== 'Vocabulary' && p.id !== phrase.id));
+  const distractors = [...vocabPool.slice(0, 3), ...fallbackPool].slice(0, 3);
+  const options = shuffle([phrase, ...distractors]);
+  const container = document.getElementById('vocabMeaningOptions');
+  container.innerHTML = '';
+
   if (score >= 1) {
-    document.getElementById('vocabTaskRepeat').style.display = 'flex';
-    document.getElementById('vocabMicBtn').className = 'mic-btn';
-    document.getElementById('vocabMicHint').textContent = 'Tap to speak';
-    document.getElementById('vocabHeardText').textContent = '';
+    // Identify written form
+    document.querySelector('#vocabTaskMeaning > div:first-child').textContent = 'Which word did you hear?';
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'mc-option';
+      btn.style.fontFamily = "'Cormorant Garamond', serif";
+      btn.style.fontStyle = 'italic';
+      btn.textContent = displayNative(opt, 'card');
+      btn.onclick = () => {
+        container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
+        const correct = opt.id === phrase.id;
+        btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
+        if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
+          if (b.textContent === displayNative(phrase, 'card')) b.className = 'mc-option reveal';
+        });
+        showVocabRevealAfterTask(correct, phrase);
+      };
+      container.appendChild(btn);
+    });
   } else {
-    document.getElementById('vocabTaskMeaning').style.display = 'block';
-    const vocabPool = shuffle(getActivePhrases().filter(p => p.tier === 'Vocabulary' && p.id !== phrase.id));
-    const fallbackPool = shuffle(getActivePhrases().filter(p => p.tier !== 'Vocabulary' && p.id !== phrase.id));
-    const distractors = [...vocabPool.slice(0, 3), ...fallbackPool].slice(0, 3);
-    const options = shuffle([phrase, ...distractors]);
-    const container = document.getElementById('vocabMeaningOptions');
-    container.innerHTML = '';
+    // Meaning match
+    document.querySelector('#vocabTaskMeaning > div:first-child').textContent = 'What does this mean?';
     options.forEach(opt => {
       const btn = document.createElement('button');
       btn.className = 'mc-option';
@@ -3351,6 +3382,8 @@ function nextExercise() {
   currentAudio?.pause();
   window.speechSynthesis?.cancel();
   stopMic();
+  clearTimeout(_skipTimer);
+  document.getElementById('universalSkip').classList.add('hidden');
 
   state.session.index++;
   console.log(`[next] advancing to index=${state.session.index} of ${state.session.queue.length}`);
