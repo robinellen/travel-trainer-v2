@@ -630,7 +630,7 @@ body::after {
     </h1>
 
     <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.65; margin-bottom:2.5rem; max-width:290px;">
-      Real phrases. Real situations. Three languages for your August trip.
+      Real phrases. Real situations. Built for travelers.
     </p>
 
     <!-- Language progress -->
@@ -666,7 +666,7 @@ body::after {
       <div class="session-card-full-icon" id="stageEmoji">✦</div>
       <div class="session-card-full-text">
         <div class="session-card-full-label" id="stageLabel">Ready to begin</div>
-        <div class="session-card-full-desc" id="stageSub">Start with French — the foundation for your August trip.</div>
+        <div class="session-card-full-desc" id="stageSub">Start with French — the foundation for your trip.</div>
       </div>
     </div>
     <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
@@ -3572,7 +3572,7 @@ function updateWelcomeProgress() {
     vocabLabel.classList.toggle('hidden', !vocabUnlocked);
   }
   if (vocabAll.length && vocabUnlocked) {
-    const pct = Math.round((vocabAll.filter(p => getScore(p.id) >= 3).length / vocabAll.length) * 100);
+    const pct = Math.round((vocabAll.filter(p => getScore(p.id) >= 1).length / vocabAll.length) * 100);
     const fill = document.getElementById('progressVocab');
     const pctEl = document.getElementById('progressVocabpct');
     if (fill) fill.style.width = pct + '%';
@@ -3587,7 +3587,7 @@ function updateWelcomeProgress() {
     t2Label.classList.toggle('hidden', !tier2Unlocked);
   }
   if (tier2All.length && tier2Unlocked) {
-    const pct = Math.round((tier2All.filter(p => getScore(p.id) >= 3).length / tier2All.length) * 100);
+    const pct = Math.round((tier2All.filter(p => getScore(p.id) >= 1).length / tier2All.length) * 100);
     const fill = document.getElementById('progressTier2');
     const pctEl = document.getElementById('progressTier2pct');
     if (fill) fill.style.width = pct + '%';
