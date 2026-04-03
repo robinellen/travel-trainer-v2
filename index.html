@@ -1003,19 +1003,6 @@ body::after {
   </div>
 
 <!-- ═══════════════════════════════════════════════════
-     UNLOCK SCREEN
-═══════════════════════════════════════════════════ -->
-<div class="screen" id="screenUnlock">
-  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:0;">
-    <div style="font-size:3.5rem; margin-bottom:1.25rem;" id="unlockFlag"></div>
-    <h2 class="serif" style="font-size:2.2rem; margin-bottom:0.5rem;" id="unlockTitle"></h2>
-    <p style="font-size:0.8rem; color:var(--text-dim); line-height:1.7; max-width:280px; margin-bottom:2rem;" id="unlockSubtitle"></p>
-    <div class="card" style="margin-bottom:2rem; text-align:left;" id="unlockNote"></div>
-    <button class="btn-primary" onclick="continueAfterUnlock()" style="max-width:300px;">Keep going →</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════
      COMPLETION SCREEN
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="screenComplete">
@@ -2112,8 +2099,6 @@ const AUDIO = {
 //   1 = listened at least once
 //   2 = attempted speak/situation
 //   3 = correctly produced at least twice
-const UNLOCK_NL_THRESHOLD = { minScore2: 14, minScore3: 10 };  // all heard, 10/14 correct
-const UNLOCK_DE_THRESHOLD = { minScore2: 14, minScore3: 10 };
 
 
 // Returns phrases the user currently has access to, based on lang + tier unlocks.
@@ -2466,12 +2451,13 @@ function goHome() {
 // ═══════════════════════════════════════════════════════════════════
 
 function checkUnlocks() {
-  const frPhrases = PHRASES.filter(p => p.lang === 'fr');
-  const nlPhrases = PHRASES.filter(p => p.lang === 'nl');
+  // Only check phrases that are actually playable (have meaning + audio)
+  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const tier1 = playable.filter(p => (p.tier || '1') === '1');
+  const vocab = playable.filter(p => p.tier === 'Vocabulary');
 
   // Vocabulary unlocks when all Tier 1 phrases are score 2+
   if (!state.unlockedTiers.includes('Vocabulary')) {
-    const tier1 = PHRASES.filter(p => (p.tier || '1') === '1');
     if (tier1.length && tier1.every(p => getScore(p.id) >= 2)) {
       state.unlockedTiers.push('Vocabulary');
       saveState();
@@ -2481,8 +2467,6 @@ function checkUnlocks() {
 
   // Tier 2 unlocks when all Vocabulary score 2+ AND all Tier 1 score 3+
   if (!state.unlockedTiers.includes('2') && state.unlockedTiers.includes('Vocabulary')) {
-    const tier1 = PHRASES.filter(p => (p.tier || '1') === '1');
-    const vocab = PHRASES.filter(p => p.tier === 'Vocabulary');
     if (
       tier1.length && tier1.every(p => getScore(p.id) >= 3) &&
       vocab.length && vocab.every(p => getScore(p.id) >= 2)
@@ -2493,58 +2477,9 @@ function checkUnlocks() {
     }
   }
 
-
-  if (!state.unlockedLangs.includes('nl')) {
-    const score2 = frPhrases.filter(p => getScore(p.id) >= 2).length;
-    const score3 = frPhrases.filter(p => getScore(p.id) >= 3).length;
-    if (score2 >= UNLOCK_NL_THRESHOLD.minScore2 && score3 >= UNLOCK_NL_THRESHOLD.minScore3) {
-      state.unlockedLangs.push('nl');
-      saveState();
-      return 'nl';
-    }
-  }
-
-  if (!state.unlockedLangs.includes('de') && state.unlockedLangs.includes('nl')) {
-    const nlScore2 = nlPhrases.filter(p => getScore(p.id) >= 2).length;
-    const nlScore3 = nlPhrases.filter(p => getScore(p.id) >= 3).length;
-    if (nlScore2 >= UNLOCK_DE_THRESHOLD.minScore2 && nlScore3 >= UNLOCK_DE_THRESHOLD.minScore3) {
-      state.unlockedLangs.push('de');
-      saveState();
-      return 'de';
-    }
-  }
   return null;
 }
 
-function showUnlockScreen(lang) {
-  const config = {
-    nl: {
-      flag: '🇳🇱',
-      title: 'Dutch unlocked.',
-      subtitle: "French foundation built. Now Dutch enters the mix — and French stays in rotation so it doesn't fade.",
-      note: "<strong style='color:var(--text-mid); font-weight:400;'>How this works:</strong> From here, phrases come from both French and Dutch. Your brain has to stay alert — exactly like switching countries mid-trip. The Dutch have near-universal English fluency — the attempt at Dutch is the whole gesture.",
-    },
-    de: {
-      flag: '🇩🇪',
-      title: 'German unlocked.',
-      subtitle: 'Three languages now in rotation. This is the full August trip.',
-      note: "<strong style='color:var(--text-mid); font-weight:400;'>Heads up:</strong> German has sounds that don't exist in English. The <em>ch</em> in <em>ich</em> is soft, from the back of the throat. Germans appreciate directness and the attempt — Entschuldigung alone will open doors.",
-    },
-  };
-  const c = config[lang];
-  document.getElementById('unlockFlag').textContent = c.flag;
-  document.getElementById('unlockTitle').textContent = c.title;
-  document.getElementById('unlockSubtitle').textContent = c.subtitle;
-  document.getElementById('unlockNote').innerHTML = c.note;
-  state.session.pendingUnlock = lang;
-  showScreen('screenUnlock');
-}
-
-function continueAfterUnlock() {
-  state.session.pendingUnlock = null;
-  // Resume session from where we left off
-  advanceSession();
-}
 
 // ═══════════════════════════════════════════════════════════════════
 // SESSION BUILDING
@@ -3416,11 +3351,13 @@ function nextExercise() {
 
   state.session.index++;
 
-  // Check unlocks after scoring
+  // Check tier unlocks after scoring
   const newUnlock = checkUnlocks();
-  if (newUnlock && !state.session.pendingUnlock) {
+  if (newUnlock && !state.session.pendingUnlock && !state.seenTierUnlock[newUnlock]) {
     state.session.pendingUnlock = newUnlock;
-    showUnlockScreen(newUnlock);
+    state.seenTierUnlock[newUnlock] = true;
+    saveState();
+    showTierUnlockScreen(newUnlock);
     return;
   }
 
@@ -3464,7 +3401,7 @@ function showTierUnlockScreen(type) {
 }
 
 function onTierUnlockContinue() {
-  showCompletion();
+  goHome();
 }
 
 function showCompletion() {
