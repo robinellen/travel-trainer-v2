@@ -905,7 +905,7 @@ body::after {
     <div id="panelSpeak" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
         <div class="phrase-meaning-label" id="speakMeaning" style="margin-bottom:0.6rem;"></div>
-        <div class="phrase-native" id="speakNative" style="margin-bottom:0.3rem;"></div>
+        <div class="phrase-native" id="speakNative" style="margin-bottom:0.3rem; cursor:pointer;" onclick="replayAtNaturalSpeed()"><span id="speakNativeText"></span> <span style="font-size:0.7rem; opacity:0.4; vertical-align:middle;">&#9655;</span></div>
         <div class="phrase-romanization hidden" id="speakRoman"></div>
       </div>
       <div id="speakHelpers" class="hidden" style="display:flex; justify-content:center; gap:1.25rem; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
@@ -985,29 +985,6 @@ body::after {
       </div>
     </div>
 
-
-    <!-- ── SPEED DRILL panel ── -->
-    <div id="panelSpeedDrill" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div style="font-size:2.5rem; margin-bottom:clamp(0.5rem, 1.5vh, 1rem); line-height:1;" id="sdEmoji"></div>
-        <div style="font-size:0.6rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-dim); margin-bottom:clamp(0.5rem, 1vh, 0.75rem);">native speed</div>
-        <div class="play-circle" id="sdCircle" onclick="sdPlayAgain()" style="margin-bottom:clamp(0.75rem, 2vh, 1.5rem);">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:clamp(0.5rem, 2vh, 2rem);" id="sdHint">Tap to hear</div>
-      </div>
-      <div id="sdTask" style="display:none;">
-        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What did that mean?</div>
-        <div class="mc-options" id="sdOptions"></div>
-        <div class="result-bar" id="sdResult" style="margin-top:0.75rem;">
-          <div class="result-bar-title" id="sdResultTitle"></div>
-          <div class="result-bar-body" id="sdResultBody"></div>
-        </div>
-      </div>
-      <div class="mt-auto">
-        <button class="btn-primary hidden" id="sdNextBtn" onclick="nextExercise()">Continue →</button>
-      </div>
-    </div>
 
     <!-- Universal skip fallback — appears after 5s of no interaction -->
     <div id="universalSkip" class="hidden" style="text-align:center; padding:0.5rem 0 0;">
@@ -1111,7 +1088,6 @@ body::after {
   <div class="exercise-header">
     <button class="btn-back" onclick="exitExperience()" aria-label="Back">←</button>
     <div class="progress-bar"><div class="progress-bar-fill" id="expWatchProgressFill" style="width:0%"></div></div>
-    <div style="font-size:0.68rem; color:var(--text-dim); min-width:60px; text-align:right;" id="expWatchPassLabel">Pass 1</div>
   </div>
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch;">
     <div id="expWatchBeats" style="flex:1; padding-top:1rem; padding-bottom:50vh;"></div>
@@ -3145,7 +3121,7 @@ function getPhraseArc(phrase) {
   if (score === 0) return ['listen']; // listen + meaning match
   if (score === 1) return ['listen']; // listen + meaning (60%) / identify (40%) handled by pickListenSubType
   if (score === 2) return [weightedPick([['listen', 40], ['speak', 40], ['situation_mc', 20]])];
-  return [weightedPick([['speak', 40], ['situation_speak', 40], ['speed_drill', 20]])];
+  return [weightedPick([['speak', 50], ['situation_speak', 50]])];
 }
 
 function setSessionLength(len) {
@@ -3192,11 +3168,11 @@ function startSessionWithMode(mode) {
     const notDue = shuffle(seenPhrases.filter(p => !isPhrasedue(p.id)));
 
     // New-user pacing: limit new introductions based on tt_seenPhraseCount
+    console.log('[session] seenCount:', seenCount, 'unseen:', unseenFoundation.length, 'seen:', seenPhrases.length);
     let maxNew;
-    if (seenCount === 0) maxNew = 3;       // Session 1: max 3 new
-    else if (seenCount <= 3) maxNew = 0;   // Session 2: review only
-    else if (seenCount <= 5) maxNew = 2;   // Session 3: max 2 new
-    else maxNew = SESSION_SIZE;             // Session 4+: normal
+    if (seenCount < 3) maxNew = 3 - seenCount; // First session: introduce up to 3 total
+    else if (seenCount < 6) maxNew = 1;         // Sessions 2-3: review + 1 new each
+    else maxNew = SESSION_SIZE;                  // Session 4+: normal pacing
 
     const newToIntroduce = unseenFoundation.slice(0, maxNew);
     const reviewPhrases = [...due, ...notDue];
@@ -3271,15 +3247,7 @@ function startSessionWithMode(mode) {
 
     state.session.queue = rawQueue;
   } else {
-    const situationModes = ['situation_mc', 'situation_speak', 'situation'];
-    let pool;
-    if (mode === 'speed_drill') {
-      pool = activePhrases.filter(p => getScore(p.id) >= 3);
-    } else if (situationModes.includes(mode)) {
-      pool = activePhrases;
-    } else {
-      pool = activePhrases;
-    }
+    const pool = activePhrases;
     state.session.queue = shuffle(pool).map(p => ({ phraseId: p.id, type: mode }));
   }
 
@@ -3310,7 +3278,7 @@ function updateExerciseHeader() {
 }
 
 function hidePanels() {
-  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelSpeedDrill'].forEach(id => {
+  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation'].forEach(id => {
     document.getElementById(id).classList.add('hidden');
   });
 }
@@ -3346,7 +3314,6 @@ function renderCurrentExercise() {
     listen: 'Listen', learn: 'Learn', speak: 'Speak',
     situation_mc: 'Situation', situation_speak: 'Situation',
     situation: 'Situation',
-    speed_drill: 'Speed Drill',
   };
   document.getElementById('exTypeBadge').textContent = typeLabels[type] || type;
 
@@ -3363,7 +3330,6 @@ function renderCurrentExercise() {
   else if (type === 'vocab_mc') renderVocabMC(phrase);
   else if (type === 'situation_mc' || type === 'situation') renderSituationPanel(phrase, false);
   else if (type === 'situation_speak') renderSituationPanel(phrase, true);
-  else if (type === 'speed_drill') renderSpeedDrill(phrase);
 }
 
 
@@ -3659,7 +3625,7 @@ function renderSpeakPanel(phrase) {
 
   const score = getScore(phrase.id);
   document.getElementById('speakMeaning').textContent = getMeaning(phrase).toUpperCase();
-  document.getElementById('speakNative').textContent = score < 4 ? displayNative(phrase, 'card') : '';
+  document.getElementById('speakNativeText').textContent = score < 4 ? displayNative(phrase, 'card') : '';
   document.getElementById('speakRoman').textContent = stripHtmlTags(phrase.romanization || '');
 
   // Show/hide "Hear it slower" based on whether audio exists
@@ -3690,14 +3656,27 @@ function hearSlower() {
   const url = getAudio(_currentSpeakPhrase.native);
   if (!url) return;
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  // Always create a fresh Audio instance with rate set before play
   const audio = new Audio(url);
-  audio.playbackRate = 0.75;
+  audio.playbackRate = 0.65;
   currentAudio = audio;
   audio.onended = () => { currentAudio = null; };
   audio.onerror = () => { currentAudio = null; };
   audio.play().catch(() => { currentAudio = null; });
-  // Hide the button after use
   document.getElementById('speakSlowerBtn').style.display = 'none';
+}
+
+function replayAtNaturalSpeed() {
+  if (!_currentSpeakPhrase) return;
+  const url = getAudio(_currentSpeakPhrase.native);
+  if (!url) return;
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  const audio = new Audio(url);
+  audio.playbackRate = 1.0;
+  currentAudio = audio;
+  audio.onended = () => { currentAudio = null; };
+  audio.onerror = () => { currentAudio = null; };
+  audio.play().catch(() => { currentAudio = null; });
 }
 
 function showPronunciation() {
@@ -3878,18 +3857,33 @@ function showVocabRevealAfterTask(isCorrect, phrase) {
 
 // ── SITUATION ────────────────────────────────────────────────────
 
+function isValidSituation(text) {
+  // Reject short internal notes (under 20 chars) and generic prompts
+  if (!text || text.length < 20) return false;
+  return true;
+}
+
 function renderSituationPanel(phrase, useSpeak) {
+  // Pick a situation based on score: early (0-1) vs late (2+)
+  const score = getScore(phrase.id);
+  const earlyPool = (phrase.situationEarly || []).filter(isValidSituation);
+  const latePool = (phrase.situationLate || []).filter(isValidSituation);
+  const fallbackPool = (phrase.situations || []).filter(isValidSituation);
+  const pool = score <= 1
+    ? (earlyPool.length ? earlyPool : fallbackPool)
+    : (latePool.length ? latePool : fallbackPool);
+
+  // If no valid situation text, skip this exercise entirely
+  if (!pool.length) {
+    skipExercise();
+    return;
+  }
+
   document.getElementById('panelSituation').classList.remove('hidden');
   document.getElementById('situResult').className = 'result-bar';
   document.getElementById('situNextBtn').classList.add('hidden');
 
-  // Pick a situation based on score: early (0-1) vs late (2+)
-  const score = getScore(phrase.id);
-  const pool = score <= 1
-    ? (phrase.situationEarly && phrase.situationEarly.length ? phrase.situationEarly : phrase.situations)
-    : (phrase.situationLate && phrase.situationLate.length ? phrase.situationLate : phrase.situations);
-  const situations = pool && pool.length ? pool : ['What would you say here?'];
-  const situation = situations[Math.floor(Math.random() * situations.length)];
+  const situation = pool[Math.floor(Math.random() * pool.length)];
   document.getElementById('situationText').textContent = situation;
 
   if (useSpeak) {
@@ -3910,21 +3904,31 @@ function renderSituationPanel(phrase, useSpeak) {
     document.getElementById('situationMC').classList.remove('hidden');
     document.getElementById('situationSpeak').classList.add('hidden');
 
-    // Build MC options — correct answer + 3 distractors from seen phrases
+    // Build MC options — correct answer + 3 plausible distractors
     const correctAnswers = phrase.responses || [phrase.native];
-    const dynDistractors = getDistractors(phrase, 3)
-      .filter(p => !correctAnswers.includes(p.native))
-      .map(p => displayNative(p, 'response'));
+    const correctAnswer = correctAnswers[0];
 
-    // If not enough dynamic distractors, fill from static responses
-    let distractors = dynDistractors.slice(0, 3);
-    if (distractors.length < 3 && phrase.responses) {
-      const staticFallback = phrase.responses
-        .filter(r => r !== correctAnswers[0] && !distractors.includes(r));
-      distractors = [...distractors, ...staticFallback].slice(0, 3);
+    // Primary source: static Responses field (contextually appropriate wrong answers)
+    let distractors = [];
+    if (phrase.responses && phrase.responses.length > 1) {
+      distractors = shuffle(phrase.responses.filter(r => r !== correctAnswer)).slice(0, 3);
     }
 
-    const options = shuffle([correctAnswers[0], ...distractors]);
+    // Fill remaining from seen phrases in same tier (not semantically close)
+    if (distractors.length < 3) {
+      const seen = getActivePhrases().filter(p =>
+        p.id !== phrase.id &&
+        p.tier !== 'Recovery' &&
+        getScore(p.id) >= 1 &&
+        !correctAnswers.includes(p.native) &&
+        !distractors.includes(displayNative(p, 'response')) &&
+        !isSemanticallyClose(phrase, p)
+      );
+      const extra = shuffle(seen).slice(0, 3 - distractors.length).map(p => displayNative(p, 'response'));
+      distractors = [...distractors, ...extra];
+    }
+
+    const options = shuffle([correctAnswer, ...distractors]);
     const container = document.getElementById('mcOptions');
     container.innerHTML = '';
     options.forEach(opt => {
@@ -3937,123 +3941,6 @@ function renderSituationPanel(phrase, useSpeak) {
   }
 }
 
-
-// ── SPEED DRILL ──────────────────────────────────────────────────
-// Three speed levels: 0.75x → 0.9x → 1.0x
-// MC task at each level. Correct = advance. Wrong = show answer, play again, continue.
-
-let _sdPhrase = null;
-
-function renderSpeedDrill(phrase) {
-  _sdPhrase = phrase;
-
-  document.getElementById('panelSpeedDrill').classList.remove('hidden');
-  document.getElementById('sdTask').style.display = 'none';
-  document.getElementById('sdResult').className = 'result-bar';
-  document.getElementById('sdNextBtn').classList.add('hidden');
-  document.getElementById('sdHint').textContent = 'Tap to hear';
-  document.getElementById('sdEmoji').textContent = phrase.emoji || '';
-
-  sdPlay(phrase, () => sdShowTask(phrase));
-}
-
-function sdPlay(phrase, onEnded) {
-  const circle = document.getElementById('sdCircle');
-  circle.classList.add('playing');
-  document.getElementById('sdHint').textContent = 'Listening…';
-
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  window.speechSynthesis?.cancel();
-
-  let fired = false;
-  const done = () => {
-    if (fired) return;
-    fired = true;
-    circle.classList.remove('playing');
-    document.getElementById('sdHint').textContent = 'Tap to hear again';
-    if (onEnded) onEnded();
-  };
-  // Safety net for silent audio/TTS failure
-  if (onEnded) setTimeout(() => { if (!fired) { console.warn('SD audio timeout'); done(); } }, 8000);
-
-  const _a0 = getAudio(phrase.native);
-  if (_a0) {
-    const audio = new Audio(_a0);
-    audio.playbackRate = 1.0;
-    currentAudio = audio;
-    audio.onended = () => { currentAudio = null; done(); };
-    audio.onerror = () => { currentAudio = null; sdTTS(phrase, done); };
-    audio.play().catch(() => sdTTS(phrase, done));
-  } else {
-    sdTTS(phrase, done);
-  }
-}
-
-function sdTTS(phrase, onDone) {
-  if (!window.speechSynthesis) { if (onDone) onDone(); return; }
-  const u = new SpeechSynthesisUtterance(phrase.native);
-  u.lang = LANG_CODES[phrase.lang] || 'fr-FR';
-  u.rate = 1.0;
-  const voices = speechSynthesis.getVoices();
-  const v = voices.find(v => v.lang === LANG_CODES[phrase.lang]) || voices.find(v => v.lang.startsWith(phrase.lang));
-  if (v) u.voice = v;
-  let ended = false;
-  const finish = () => { if (ended) return; ended = true; if (onDone) onDone(); };
-  u.onend = finish;
-  u.onerror = finish;
-  speechSynthesis.speak(u);
-  setTimeout(() => { if (!ended) finish(); }, 5000);
-}
-
-function sdPlayAgain() {
-  if (!_sdPhrase) return;
-  sdPlay(_sdPhrase, null);
-}
-
-function sdShowTask(phrase) {
-  document.getElementById('sdTask').style.display = 'block';
-  document.getElementById('sdResult').className = 'result-bar';
-
-  const distractors = getDistractors(phrase, 3);
-  const options = shuffle([phrase, ...distractors]);
-  const correctSdMeaning = getMeaning(phrase);
-  const container = document.getElementById('sdOptions');
-  container.innerHTML = '';
-
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'mc-option';
-    btn.textContent = opt.id === phrase.id ? correctSdMeaning : getMeaning(opt);
-    btn.onclick = () => sdHandleAnswer(btn, opt.id === phrase.id, container, phrase, correctSdMeaning);
-    container.appendChild(btn);
-  });
-}
-
-function sdHandleAnswer(btn, isCorrect, container, phrase, correctMeaning) {
-  container.querySelectorAll('.mc-option').forEach(b => { b.onclick = null; });
-
-  if (isCorrect) {
-    btn.className = 'mc-option correct';
-    document.getElementById('sdResult').className = 'result-bar correct visible';
-    document.getElementById('sdResultTitle').textContent = '\u2713 Correct';
-    document.getElementById('sdResultBody').textContent = phrase.native + ' — ' + correctMeaning;
-    bumpScore(phrase.id, 4, true);
-    document.getElementById('sdNextBtn').classList.remove('hidden');
-  } else {
-    btn.className = 'mc-option wrong';
-    container.querySelectorAll('.mc-option').forEach(b => {
-      if (b.textContent === correctMeaning) b.className = 'mc-option reveal';
-    });
-    document.getElementById('sdResult').className = 'result-bar wrong visible';
-    document.getElementById('sdResultTitle').textContent = '\u2717 Not quite';
-    document.getElementById('sdResultBody').textContent = phrase.native + ' — ' + correctMeaning;
-    bumpScore(phrase.id, 4, false);
-    // Play once more at native speed, then show Continue
-    setTimeout(() => sdPlay(phrase, () => {
-      document.getElementById('sdNextBtn').classList.remove('hidden');
-    }), 800);
-  }
-}
 
 function handleMCClick(btn, selected, correctAnswers, phrase, container) {
   const isCorrect = correctAnswers.includes(selected);
@@ -4410,7 +4297,6 @@ function startExpWatch(pass) {
   _expBeats = parseArc(exp.arc);
   _expBeatIdx = 0;
 
-  document.getElementById('expWatchPassLabel').textContent = 'Pass ' + pass;
   document.getElementById('expWatchProgressFill').style.width = '0%';
   document.getElementById('expWatchActions').style.display = 'none';
   document.getElementById('expWatchBeats').innerHTML = '';
@@ -4443,12 +4329,8 @@ function fadeOlderBeats(container) {
 
 function scrollBeatToCenter(container, el) {
   const scrollParent = container.parentElement; // the .p-screen overflow container
-  const elRect = el.getBoundingClientRect();
-  const parentRect = scrollParent.getBoundingClientRect();
-  const targetY = parentRect.height * 0.45; // 45% from top
-  const currentOffset = elRect.top - parentRect.top;
-  const scrollDelta = currentOffset - targetY;
-  scrollParent.scrollBy({ top: scrollDelta, behavior: 'smooth' });
+  const targetScroll = el.offsetTop - (window.innerHeight * 0.40);
+  scrollParent.scrollTo({ top: targetScroll, behavior: 'smooth' });
 }
 
 function playNextBeat() {
@@ -4477,8 +4359,8 @@ function playNextBeat() {
       scrollBeatToCenter(container, el);
     });
     _expBeatIdx++;
-    // Narrator pause: 3s, or 1.5s if next beat is dialogue
-    const pause = isNextDialogue ? 1500 : 3000;
+    // Cultural note: 5s pause, then 1.5s transition if next is dialogue
+    const pause = isNextDialogue ? 5000 + 1500 : 5000;
     _expPlayTimer = setTimeout(() => playNextBeat(), pause);
   } else {
     // Dialogue beat
@@ -4541,7 +4423,7 @@ function onExpWatchComplete() {
     primary.textContent = 'Continue →';
     primary.onclick = () => startExpWatch(2);
     secondary.style.display = 'block';
-    secondary.textContent = 'Play again';
+    secondary.textContent = 'Hear it again';
     secondary.onclick = () => startExpWatch(1);
   } else if (_expPass === 2) {
     localStorage.setItem('tt_cafe_l1_pass', '2');
@@ -4549,7 +4431,7 @@ function onExpWatchComplete() {
     primary.textContent = 'Done for now';
     primary.onclick = () => goHome();
     secondary.style.display = 'block';
-    secondary.textContent = 'Play again';
+    secondary.textContent = 'Hear it again';
     secondary.onclick = () => startExpWatch(2);
   } else if (_expPass === 3) {
     localStorage.setItem('tt_cafe_l1_pass', '3');
@@ -4702,9 +4584,10 @@ function practiceStateSpeak() {
   const target = _expSpeakTarget || 'Merci';
   const content = document.getElementById('expPracticeContent');
   const micSvg = '<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>';
+  const targetEsc = target.replace(/'/g, "\\'");
 
   content.innerHTML = `
-    <div style="font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-style:italic; color:var(--text); margin-bottom:1.5rem;">${target}</div>
+    <div style="font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-style:italic; color:var(--text); margin-bottom:1.5rem; cursor:pointer;" onclick="replayExpPhrase('${targetEsc}')">${target} <span style="font-size:0.7rem; opacity:0.4; vertical-align:middle;">&#9655;</span></div>
     <button class="mic-btn" id="expMicBtn">${micSvg}</button>
     <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.6rem; letter-spacing:0.1em;" id="expMicHint">Your turn</div>
     <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem; margin-top:0.4rem;" id="expHeardText"></div>
@@ -4717,6 +4600,18 @@ function practiceStateSpeak() {
   setTimeout(() => {
     if (document.getElementById('expMicBtn')) startExpMic(target);
   }, 500);
+}
+
+function replayExpPhrase(text) {
+  const url = getAudio(text);
+  if (!url) return;
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  const audio = new Audio(url);
+  audio.playbackRate = 1.0;
+  currentAudio = audio;
+  audio.onended = () => { currentAudio = null; };
+  audio.onerror = () => { currentAudio = null; };
+  audio.play().catch(() => { currentAudio = null; });
 }
 
 function startExpMic(target) {
@@ -4886,33 +4781,21 @@ function showCoachMark(storageKey) {
   const overlay = document.getElementById('coachOverlay');
   const targetEl = def.target ? document.getElementById(def.target) : null;
 
-  // Determine position: place bubble below or above the target element
-  let arrowClass = 'arrow-up';
-  let topPx = '50%';
+  // Determine position: place bubble relative to target, or centered if no target
+  let arrowClass = '';
+  const bubble = document.createElement('div');
+  bubble.className = 'coach-bubble';
   if (targetEl) {
     const rect = targetEl.getBoundingClientRect();
     const midY = rect.top + rect.height / 2;
-    const vh = window.innerHeight;
-    if (midY < vh * 0.5) {
-      // Target is in upper half — place bubble below it
-      arrowClass = 'arrow-up';
-      topPx = (rect.bottom + 12) + 'px';
+    if (midY < window.innerHeight * 0.5) {
+      bubble.classList.add('arrow-up');
+      bubble.style.top = (rect.bottom + 12) + 'px';
     } else {
-      // Target is in lower half — place bubble above it
-      arrowClass = 'arrow-down';
-      topPx = ''; // set via bottom instead
+      bubble.classList.add('arrow-down');
+      bubble.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
     }
-  }
-
-  const bubble = document.createElement('div');
-  bubble.className = 'coach-bubble ' + arrowClass;
-  if (topPx) {
-    bubble.style.top = topPx;
-  } else if (targetEl) {
-    const rect = targetEl.getBoundingClientRect();
-    bubble.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
   } else {
-    // No target — center vertically
     bubble.style.top = '50%';
     bubble.style.transform = 'translateY(-50%)';
   }
