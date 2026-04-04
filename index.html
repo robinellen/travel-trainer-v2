@@ -829,6 +829,7 @@ body::after {
 
     <!-- STATE 2: Mid-Foundation -->
     <div id="welcomeFoundation" class="hidden">
+      <div id="tripCountdownFoundation" class="hidden" style="font-size:0.78rem; color:var(--text-mid); margin-bottom:1.25rem;"></div>
       <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.5rem;">
         <span style="font-size:1.6rem;">🇫🇷</span>
         <div class="eyebrow">Building Foundation</div>
@@ -841,12 +842,26 @@ body::after {
 
     <!-- STATE 3: Experiences available -->
     <div id="welcomeExperiences" class="hidden">
+      <div id="tripCountdownExperiences" class="hidden" style="font-size:0.78rem; color:var(--text-mid); margin-bottom:1.25rem;"></div>
       <div id="experienceCapabilities" style="margin-bottom:1.25rem;"></div>
       <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1.5rem;" id="experienceTiles"></div>
       <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Continue session →</button>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">All phrases</button>
     </div>
 
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     TRIP DATE SCREEN (onboarding)
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenTripDate">
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:0;">
+    <h2 class="serif" style="font-size:clamp(2rem,7vw,2.6rem); line-height:1.1; margin-bottom:0.5rem;">When's your trip?</h2>
+    <p style="font-size:0.78rem; color:var(--text-dim); line-height:1.6; margin-bottom:2rem; max-width:280px;">Knowing this helps us pace your practice.</p>
+    <input type="date" id="tripDateInput" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; color:var(--text); font-family:'Lexend',sans-serif; font-size:0.85rem; width:100%; margin-bottom:1rem; -webkit-appearance:none;">
+    <button class="btn-primary" onclick="saveTripDate()" style="margin-bottom:0.75rem;">Set date →</button>
+    <button onclick="skipTripDate()" style="background:none;border:none;color:var(--text-dim);font-size:0.72rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.25rem 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Skip for now</button>
   </div>
 </div>
 
@@ -957,23 +972,24 @@ body::after {
 
     <!-- ── SITUATION panel ── -->
     <div id="panelSituation" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div class="situation-prompt">
-        <div class="situation-label">The situation</div>
-        <div class="situation-text" id="situationText"></div>
+      <div style="text-align:center;">
+        <div style="font-size:0.58rem; letter-spacing:0.25em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.75rem;" id="situContextLabel"></div>
+        <div style="font-size:0.88rem; color:var(--text); line-height:1.6; max-width:300px; margin:0 auto 0.5rem;" id="situScenarioText"></div>
+        <div id="situHintArea" class="hidden" style="font-size:0.75rem; color:var(--text-mid); font-style:italic; margin-bottom:0.5rem;"></div>
       </div>
-      <!-- Multiple choice (early) -->
-      <div id="situationMC">
-        <div style="font-size:0.7rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What do you say?</div>
-        <div class="mc-options" id="mcOptions"></div>
-      </div>
-      <!-- Speak (later) -->
-      <div id="situationSpeak" class="hidden" style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-bottom:1rem;">
-        <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem;">Say the appropriate phrase</div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
+        <div id="situReveal" class="hidden" style="text-align:center; margin-bottom:0.75rem;">
+          <div style="font-family:'Cormorant Garamond',serif; font-size:1.2rem; font-style:italic; color:var(--text);" id="situRevealText"></div>
+        </div>
         <button class="mic-btn" id="situMicBtn" onclick="toggleSituMic()">
           <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>
         </button>
-        <div class="eyebrow" id="situMicHint" style="letter-spacing:0.15em;">Tap to speak</div>
+        <div class="eyebrow" id="situMicHint" style="letter-spacing:0.15em;"></div>
         <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem;" id="situHeardText"></div>
+        <div id="situHelpers" class="hidden" style="display:flex; gap:1.25rem; margin-top:0.25rem;">
+          <button id="situHintBtn" onclick="showSituHint()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Give me a hint</button>
+          <button id="situShowMe" onclick="revealSituPhrase()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show me</button>
+        </div>
       </div>
       <div class="result-bar" id="situResult">
         <div class="result-bar-title" id="situResultTitle"></div>
@@ -1009,7 +1025,8 @@ body::after {
           </div>
         </div>
         <div style="font-size:0.62rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.5rem;" id="revealMeaning"></div>
-        <div style="font-size:0.78rem; color:var(--text-dim); line-height:1.7; margin-bottom:clamp(1rem, 3vh, 1.5rem);" id="revealNote"></div>
+        <div style="font-size:0.78rem; color:var(--text-dim); line-height:1.7; margin-bottom:clamp(0.5rem, 1.5vh, 0.75rem);" id="revealNote"></div>
+        <div id="revealFrameNote" class="hidden" style="font-size:0.75rem; color:var(--fr); line-height:1.6; margin-bottom:clamp(0.75rem, 2vh, 1.25rem); padding:0.6rem 0.8rem; background:rgba(91,155,213,0.06); border-left:2px solid rgba(91,155,213,0.3); border-radius:0 var(--radius-sm) var(--radius-sm) 0;"></div>
         <div style="display:flex; justify-content:center;">
           <button onclick="playRevealAudio()" style="background:var(--card); border:1px solid var(--border); border-radius:2rem; padding:0.5rem 1.25rem; color:var(--text-dim); font-family:'Lexend',sans-serif; font-size:0.72rem; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
             <svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:var(--text-dim);"><path d="M8 5v14l11-7z"/></svg>
@@ -1191,6 +1208,669 @@ body::after {
 
 let AUDIO_MANIFEST = {};
 fetch('audio/manifest.json').then(r => r.json()).then(m => { AUDIO_MANIFEST = m; }).catch(() => {});
+
+const SITUATIONS = [
+  {
+    "id": "rec08IRkLfxr3Ozg6",
+    "scenario": "Someone at the hotel desk is explaining something important. You've understood none of it.",
+    "contextLabel": "At the Hotel",
+    "phraseNative": "Désolé, mon français est très limité — parlez-vous anglais?",
+    "englishHint": "tell them your French is limited and ask for English",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 5,
+    "scoreRange": "Any"
+  },
+  {
+    "id": "rec0DG4Ii85FcLQNv",
+    "scenario": "You're heading into a bar after dinner. The bartender looks up.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Bonsoir",
+    "englishHint": "say good evening",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rec0FUtpqL88udpDL",
+    "scenario": "The shopkeeper wraps your purchase and slides it across the counter.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Merci",
+    "englishHint": "thank them",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 3,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rec1LftO0BeefGCs0",
+    "scenario": "The waiter described a dish and you caught none of it.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Je comprends pas",
+    "englishHint": "say you didn't understand",
+    "recoveryAlsoValid": true,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "rec2WKiiVnBrSYGUe",
+    "scenario": "You're leaving a shop and the owner says something as you go.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Au revoir",
+    "englishHint": "say goodbye back",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rec3ODtxWhZVdWPZT",
+    "scenario": "The market vendor says something while handing you change. You have no idea what it was.",
+    "contextLabel": "At the Market",
+    "phraseNative": "Je comprends pas",
+    "englishHint": "say you didn't understand",
+    "recoveryAlsoValid": true,
+    "language": "French",
+    "sortOrder": 3,
+    "scoreRange": "Any"
+  },
+  {
+    "id": "rec44tdqfJILWITUI",
+    "scenario": "Someone tries to hand you a flyer on the street.",
+    "contextLabel": "On the Street",
+    "phraseNative": "Non",
+    "englishHint": "say no thanks",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rec4Hqld9UHwopv7g",
+    "scenario": "Someone holds the door open for you as you enter a shop.",
+    "contextLabel": "On the Street",
+    "phraseNative": "Merci",
+    "englishHint": "thank them",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rec5S2Lfw8OW1ZAv4",
+    "scenario": "The waiter offers you a second basket of bread. You're full.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Non",
+    "englishHint": "decline politely",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "rec5gwRWTrsqmN0vj",
+    "scenario": "You've been sitting with an empty cup for ten minutes. The waiter hasn't come back.",
+    "contextLabel": "At the Café",
+    "phraseNative": "L'addition, s'il vous plaît",
+    "englishHint": "ask for the bill",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rec5wPHTLu7pJAcl7",
+    "scenario": "You've just walked in. A staff member immediately walks toward you.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Je regarde",
+    "englishHint": "tell them you're just looking",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "rec66RpWkoYHwMEgH",
+    "scenario": "You walk into the hotel lobby and the person at the desk looks up from their computer.",
+    "contextLabel": "At the Hotel",
+    "phraseNative": "Bonjour",
+    "englishHint": "greet them",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rec7Fdnanf3JFcMzv",
+    "scenario": "Someone on the street stops you and asks something in French. You're completely lost.",
+    "contextLabel": "On the Street",
+    "phraseNative": "Désolé, mon français est très limité — parlez-vous anglais?",
+    "englishHint": "tell them your French is limited",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 6,
+    "scoreRange": "Any"
+  },
+  {
+    "id": "rec7goExYXPk4Oyvu",
+    "scenario": "The waiter hasn't noticed you and is chatting with a colleague.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Excusez-moi",
+    "englishHint": "get his attention",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "rec7omTcpZpmE6xaL",
+    "scenario": "A shopkeeper asks you something in rapid French. You have no idea what they said.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Désolé, mon français est très limité — parlez-vous anglais?",
+    "englishHint": "ask if they speak English",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 4,
+    "scoreRange": "Any"
+  },
+  {
+    "id": "rec82vPHFIZHZZ0wa",
+    "scenario": "The sommelier just spent five minutes walking you through the wine list.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Merci beaucoup",
+    "englishHint": "thank them warmly",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recD7060EUh8Pqr9F",
+    "scenario": "You need the bathroom and have no idea where it is.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Les toilettes?",
+    "englishHint": "ask where the bathroom is",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recD9Rv95dqNt7Eoh",
+    "scenario": "The waiter pauses and looks at you after clearing the plates.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "C'est bon",
+    "englishHint": "say you're done",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recDDeMPAA9CTvB8l",
+    "scenario": "You stepped in front of someone in a queue without realizing it.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Désolé",
+    "englishHint": "apologize sincerely",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recDIIFjZwZtkLJNe",
+    "scenario": "You push open the door of a boulangerie. The woman behind the counter looks up.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Bonjour",
+    "englishHint": "greet her",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recGZdT1E5w5GHokC",
+    "scenario": "The waiter asks if you want anything else. You're good.",
+    "contextLabel": "At the Café",
+    "phraseNative": "C'est bon",
+    "englishHint": "say you're good",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recJBShuho7fwmgxf",
+    "scenario": "You arrived late to a shared table and everyone had to move their things.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Désolé",
+    "englishHint": "apologize sincerely",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recMs54q4ty2aAks8",
+    "scenario": "You sit down at a café table. The server walks over and looks at you.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Un café, s'il vous plaît",
+    "englishHint": "order a coffee",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recN84aAaGif7Zair",
+    "scenario": "You want to add something to your order and the server is nearby.",
+    "contextLabel": "At the Café",
+    "phraseNative": "S'il vous plaît",
+    "englishHint": "end your request politely",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recNkHyfHj3Pqca9f",
+    "scenario": "A shopkeeper asks if you need help finding something. You want to browse alone.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Je regarde",
+    "englishHint": "say you're just browsing",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recPE4lrd2IMRlkXh",
+    "scenario": "The waiter launches into a long explanation you can't follow at all.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Désolé, mon français est très limité — parlez-vous anglais?",
+    "englishHint": "tell them your French is limited and ask for English",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recPxvxt2i7a4HL5P",
+    "scenario": "The server sets your coffee down and says one word.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Voilà",
+    "englishHint": "say thank you",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recQLbfrKgduvZdgD",
+    "scenario": "You've been trying to catch the waiter's eye for a few minutes. He finally looks over.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "S'il vous plaît",
+    "englishHint": "get his attention politely",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recQqxbCNkFTJl19V",
+    "scenario": "Your taxi driver confirms the address and looks in the mirror waiting for a response.",
+    "contextLabel": "At the Café",
+    "phraseNative": "D'accord",
+    "englishHint": "show you understood",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recSMeTHlqNz43zCz",
+    "scenario": "Your taxi driver is chatting and seems to be asking you something. You have no idea what.",
+    "contextLabel": "Anywhere",
+    "phraseNative": "Désolé, mon français est très limité — parlez-vous anglais?",
+    "englishHint": "tell them your French is limited",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 8,
+    "scoreRange": "Any"
+  },
+  {
+    "id": "recT7L4YxcobeDss0",
+    "scenario": "The waiter takes drink orders before the meal. Everyone else has ordered.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Un café, s'il vous plaît",
+    "englishHint": "order a coffee",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recUJyPCW6f9qhaBG",
+    "scenario": "You need something specific. You pull up a photo of it on your phone.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Est-ce que vous avez ça?",
+    "englishHint": "ask if they have it",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recUQ8QNjSwqEroGR",
+    "scenario": "You asked a question in French and the person answered at full speed for twenty seconds.",
+    "contextLabel": "Anywhere",
+    "phraseNative": "Désolé, mon français est très limité — parlez-vous anglais?",
+    "englishHint": "tell them your French is limited and ask for English",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 9,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recWp0SHW5ZMC7GCk",
+    "scenario": "The waiter rattles off the daily specials at full speed. You caught maybe one word.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Désolé, mon français est très limité — parlez-vous anglais?",
+    "englishHint": "tell them your French is limited",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 3,
+    "scoreRange": "Any"
+  },
+  {
+    "id": "recXhXhTLIwXC32oR",
+    "scenario": "You walk into a restaurant without a reservation. The host looks up.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Une table pour deux",
+    "englishHint": "ask for a table for two",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recY1ATd9Yw4ZLiap",
+    "scenario": "Something in the display case looks amazing but you have no idea what it's called.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Ça, s'il vous plaît",
+    "englishHint": "order it by pointing",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recYE53pGVtoICXZb",
+    "scenario": "The person at the hotel desk smiles and says something with a rising tone.",
+    "contextLabel": "At the Hotel",
+    "phraseNative": "Ça va",
+    "englishHint": "respond that you're fine",
+    "recoveryAlsoValid": true,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recYZErJubydk2Wwr",
+    "scenario": "The receptionist explained something about your room and you nodded but have no idea what they said.",
+    "contextLabel": "At the Hotel",
+    "phraseNative": "Je comprends pas",
+    "englishHint": "say you didn't understand",
+    "recoveryAlsoValid": true,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recbbrP7BEboJAtyv",
+    "scenario": "Someone has been speaking French at you for thirty seconds. You've completely lost the thread.",
+    "contextLabel": "Anywhere",
+    "phraseNative": "Désolé, mon français est très limité — parlez-vous anglais?",
+    "englishHint": "tell them your French is limited and ask for English",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "reccfbHQoj31PDuGA",
+    "scenario": "Your waiter checks back after you've been eating for a few minutes.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Ça va",
+    "englishHint": "signal everything is good",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recdKK8tDME4gIhtE",
+    "scenario": "The host at the restaurant says something before showing you to your table. You missed it.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Je comprends pas",
+    "englishHint": "say you didn't understand",
+    "recoveryAlsoValid": true,
+    "language": "French",
+    "sortOrder": 5,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "receMqRUL1A4UGFb2",
+    "scenario": "The café is packed and you need to squeeze past two people to get to your table.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Excusez-moi",
+    "englishHint": "ask to get past",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "receo6vWrBxNDFa9v",
+    "scenario": "The young guy at the café counter catches your eye with a relaxed nod.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Salut",
+    "englishHint": "say hello casually",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recfSpZO0YejnECDW",
+    "scenario": "It's evening. You've just arrived at the restaurant. The host turns to greet you.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Bonsoir",
+    "englishHint": "say good evening",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recfbQQw8iqTaNJI8",
+    "scenario": "You've been in this large department store for half an hour and urgently need facilities.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Les toilettes?",
+    "englishHint": "ask where the bathroom is",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recgWto5x9EMff3Bp",
+    "scenario": "The waiter sets a coffee down in front of you and steps back.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Merci",
+    "englishHint": "thank him",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "rechjVAg2vaqdZmhH",
+    "scenario": "Someone gives you directions in French. They were thorough. You understood nothing.",
+    "contextLabel": "On the Street",
+    "phraseNative": "Je comprends pas",
+    "englishHint": "say you didn't understand",
+    "recoveryAlsoValid": true,
+    "language": "French",
+    "sortOrder": 4,
+    "scoreRange": "Any"
+  },
+  {
+    "id": "recjmNqDppFhl3MrW",
+    "scenario": "You can see what you want on someone else's table but can't find it on the menu.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Ça, s'il vous plaît",
+    "englishHint": "point and order it",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "reclBmxBPQSJsm3A7",
+    "scenario": "You were struggling with your luggage and a stranger stopped to help. They didn't have to.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Merci beaucoup",
+    "englishHint": "thank them sincerely",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "reclYNrgn2OruqT00",
+    "scenario": "Your friends are putting on their coats. Nobody has asked for the bill.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "L'addition, s'il vous plaît",
+    "englishHint": "ask for the bill",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recmu385tFpS7vrDy",
+    "scenario": "You've paid. The waiter who looked after you gives you a nod as you head for the door.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Au revoir",
+    "englishHint": "say goodbye",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recoJVtooPIprimFf",
+    "scenario": "You're at a market stall and want to know the price of something.",
+    "contextLabel": "At the Market",
+    "phraseNative": "C'est combien?",
+    "englishHint": "ask how much it is",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recocuvymeQXTIZ0e",
+    "scenario": "You turn around in a narrow market aisle and nearly knock someone's basket out of their hands.",
+    "contextLabel": "On the Street",
+    "phraseNative": "Pardon",
+    "englishHint": "quick apology",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recq1OsuYdp4BfVpe",
+    "scenario": "The waiter runs through tonight's specials, then pauses and looks at you.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "D'accord",
+    "englishHint": "show you understood",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "rect7nofkjjCp3WOM",
+    "scenario": "You step off the metro and clip someone's shoulder.",
+    "contextLabel": "On the Street",
+    "phraseNative": "Pardon",
+    "englishHint": "apologize quickly",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rectG0at0eWQ7hQY9",
+    "scenario": "The pharmacist is explaining dosage instructions. This is important and you've caught nothing.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Désolé, mon français est très limité — parlez-vous anglais?",
+    "englishHint": "ask if they speak English",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 7,
+    "scoreRange": "Any"
+  },
+  {
+    "id": "rectJEsI0mMfVt9WZ",
+    "scenario": "You step into a small pharmacy. The pharmacist glances over from behind the counter.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Bonjour",
+    "englishHint": "greet them first",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 3,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rectKbrhDH5cPa75W",
+    "scenario": "The host at the restaurant asks you something directly and waits for your answer.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "Oui",
+    "englishHint": "say yes",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "rectpkmmitodYUHfM",
+    "scenario": "The waiter holds up two bottles of water and raises an eyebrow. You want water.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Oui",
+    "englishHint": "confirm yes",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recwSfPS7qu3LeRR6",
+    "scenario": "You want to ask about a product but the shopkeeper is busy arranging stock.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Excusez-moi",
+    "englishHint": "get their attention",
+    "recoveryAlsoValid": true,
+    "language": "French",
+    "sortOrder": 3,
+    "scoreRange": "Late (score 2+)"
+  }
+];
 
 const EXPERIENCES = [
   {
@@ -1930,7 +2610,7 @@ const PHRASES = [
     ],
     "native": "Pardon",
     "romanization": "par-DON",
-    "note": "The quick social sorry — bumping into someone. Lighter than excusez-moi.",
+    "note": "The reflexive bump apology. Say it when you accidentally brush past someone or knock into them in a crowd. It asks for forgiveness without drawing attention — which is exactly right when you bumped someone and don't want to make a scene. Don't overthink it. One word, said quietly, and move on.",
     "hasBuildup": false,
     "isBuildupChunk": false,
     "capabilityLabel": "Apologize if you bump into someone",
@@ -2083,7 +2763,7 @@ const PHRASES = [
     "meanings": [],
     "native": "Excusez-moi",
     "romanization": "ex-kyoo-zay-MWAH",
-    "note": "Use to get a waiter's attention, to pass someone, or to apologize for interrupting.",
+    "note": "Use this to get someone's attention politely — a waiter, a shopkeeper, someone you need to interrupt. It works for minor bumps too, but its real purpose is initiation: you're asking someone to notice you. If you bumped into someone and just want to slip away quietly, pardon is better. Excusez-moi says I need something from you.",
     "hasBuildup": false,
     "isBuildupChunk": false,
     "capabilityLabel": "Get someone's attention politely",
@@ -2220,7 +2900,7 @@ const PHRASES = [
     ],
     "native": "Désolé",
     "romanization": "day-zoh-LAY",
-    "note": "More genuine than pardon. Pronunciation is the same male or female — the feminine désolée adds a silent E. Use when you've caused a real inconvenience.",
+    "note": "More genuine than pardon. Use it when you've caused a real inconvenience — not just a brush in a crowd, but something that actually affected someone. You stepped in front of them in a queue. You made them move their things. You were genuinely in the wrong. The feminine form désolée adds a silent E but sounds identical. Both are understood everywhere.",
     "hasBuildup": false,
     "isBuildupChunk": false,
     "capabilityLabel": "",
@@ -2457,8 +3137,7 @@ const PHRASES = [
       "Someone on the street stops you and starts speaking rapid French"
     ],
     "situationLate": [
-      "Still or sparkling. Choose one",
-      "Water question at the table"
+      "Someone has been speaking French at you for thirty seconds and you've lost the thread entirely"
     ],
     "responses": [
       "Désolé, mon français est très limité — parlez-vous anglais?",
@@ -3113,15 +3792,15 @@ function getPhraseArc(phrase) {
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
     if (score === 0) return ['listen']; // triggers buildup via checkAndStartBuildup
-    return ['situation_mc'];
+    return ['situation'];
   }
 
   // Foundation (tier 1): strict score-based gating
   const score = getScore(phrase.id);
   if (score === 0) return ['listen']; // listen + meaning match
   if (score === 1) return ['listen']; // listen + meaning (60%) / identify (40%) handled by pickListenSubType
-  if (score === 2) return [weightedPick([['listen', 40], ['speak', 40], ['situation_mc', 20]])];
-  return [weightedPick([['speak', 50], ['situation_speak', 50]])];
+  if (score === 2) return [weightedPick([['listen', 40], ['speak', 40], ['situation', 20]])];
+  return [weightedPick([['speak', 50], ['situation', 50]])];
 }
 
 function setSessionLength(len) {
@@ -3301,7 +3980,7 @@ function renderCurrentExercise() {
   const type = item.type;
 
   // Only show universal skip for panels that don't have their own skip button
-  const hasOwnSkip = ['speak', 'situation_mc', 'situation_speak', 'situation'].includes(type);
+  const hasOwnSkip = ['speak', 'situation'].includes(type);
   if (!hasOwnSkip) {
     _skipTimer = setTimeout(() => {
       document.getElementById('universalSkip').classList.remove('hidden');
@@ -3312,7 +3991,7 @@ function renderCurrentExercise() {
   // Update badges
   const typeLabels = {
     listen: 'Listen', learn: 'Learn', speak: 'Speak',
-    situation_mc: 'Situation', situation_speak: 'Situation',
+    situation: 'Situation',
     situation: 'Situation',
   };
   document.getElementById('exTypeBadge').textContent = typeLabels[type] || type;
@@ -3328,8 +4007,7 @@ function renderCurrentExercise() {
   if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
   else if (type === 'speak') renderSpeakPanel(phrase);
   else if (type === 'vocab_mc') renderVocabMC(phrase);
-  else if (type === 'situation_mc' || type === 'situation') renderSituationPanel(phrase, false);
-  else if (type === 'situation_speak') renderSituationPanel(phrase, true);
+  else if (type === 'situation') renderSituationPanel(phrase);
 }
 
 
@@ -3405,6 +4083,12 @@ function pickListenSubType(phrase) {
 // Phrases that need chunk-by-chunk buildup before the full reveal.
 // Each entry: phraseId -> array of {text, highlight, hint}
 // ═══════════════════════════════════════════════════════════════════
+
+// Formulaic unit frame notes — shown once on the vocab card
+const FRAME_NOTES = {
+  "Un café, s'il vous plaît": "This is a pattern. Swap café for any drink you know — une bière, un thé, de l'eau — and the whole phrase works.",
+  "Ça, s'il vous plaît": "Point at anything and this phrase works. The gesture does the rest.",
+};
 
 const PHRASE_BUILDUPS = {
   'Désolé, mon français est très limité — parlez-vous anglais?': [
@@ -3589,6 +4273,19 @@ function showPhraseRevealScreen(phrase) {
     document.getElementById('revealMeaning').textContent = allMeanings[0].toUpperCase();
   }
   document.getElementById('revealNote').textContent = phrase.note || '';
+
+  // Frame note for formulaic units — shows once per phrase
+  const frameNoteEl = document.getElementById('revealFrameNote');
+  const frameNote = FRAME_NOTES[phrase.native];
+  const frameKey = 'tt_seenFrameNote_' + phrase.id;
+  if (frameNote && !localStorage.getItem(frameKey)) {
+    frameNoteEl.textContent = frameNote;
+    frameNoteEl.classList.remove('hidden');
+    localStorage.setItem(frameKey, 'true');
+  } else {
+    frameNoteEl.classList.add('hidden');
+  }
+
   clearTimeout(_skipTimer);
   document.getElementById('universalSkip').classList.add('hidden');
   showScreen('screenPhraseReveal');
@@ -3628,9 +4325,9 @@ function renderSpeakPanel(phrase) {
   document.getElementById('speakNativeText').textContent = score < 4 ? displayNative(phrase, 'card') : '';
   document.getElementById('speakRoman').textContent = stripHtmlTags(phrase.romanization || '');
 
-  // Show/hide "Hear it slower" based on whether audio exists
+  // "Hear it slower" available at score 0-2 only, hidden at 3+
   const slowerBtn = document.getElementById('speakSlowerBtn');
-  slowerBtn.style.display = getAudio(phrase.native) ? '' : 'none';
+  slowerBtn.style.display = (score < 3 && getAudio(phrase.native)) ? '' : 'none';
 
   // Set recognition language
   if (window.SpeechRecognition || window.webkitSpeechRecognition) {
@@ -3749,11 +4446,20 @@ function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, 
     bumpScore(phrase.id, 3);
   } else {
     btn.className = 'mic-btn';
-    document.getElementById(hintId).textContent = 'Try again or skip';
+    document.getElementById(hintId).textContent = '';
     document.getElementById(resultId).className = 'result-bar wrong visible';
-    document.getElementById(titleId).textContent = '✗ Not quite';
-    document.getElementById(bodyId).textContent = 'Target: ' + phrase.native;
+    document.getElementById(titleId).textContent = phrase.native;
+    document.getElementById(bodyId).textContent = getMeaning(phrase);
     bumpScore(phrase.id, 2, false);
+    // Play the correct phrase audio as corrective feedback
+    const url = getAudio(phrase.native);
+    if (url) {
+      const audio = new Audio(url);
+      audio.playbackRate = 1.0;
+      currentAudio = audio;
+      audio.onended = () => { currentAudio = null; };
+      audio.play().catch(() => { currentAudio = null; });
+    }
   }
   document.getElementById(nextId).classList.remove('hidden');
 }
@@ -3857,116 +4563,219 @@ function showVocabRevealAfterTask(isCorrect, phrase) {
 
 // ── SITUATION ────────────────────────────────────────────────────
 
-function isValidSituation(text) {
-  // Reject short internal notes (under 20 chars) and generic prompts
-  if (!text || text.length < 20) return false;
-  return true;
+let _currentSituPhrase = null;
+let _currentSituation = null;
+let _situRetried = false;
+let _situHelpersTimer = null;
+
+function getSituationForPhrase(phrase) {
+  if (typeof SITUATIONS === 'undefined') return null;
+  const score = getScore(phrase.id);
+  const matches = SITUATIONS.filter(s => {
+    if (s.phraseNative !== phrase.native) return false;
+    if (s.scoreRange === 'Early (score 0-1)' && score > 1) return false;
+    if (s.scoreRange === 'Late (score 2+)' && score < 2) return false;
+    return true;
+  }).sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+
+  if (!matches.length) return null;
+
+  // Avoid repeating the last situation for this phrase
+  const lastId = localStorage.getItem('tt_lastSituation_' + phrase.id);
+  const fresh = matches.filter(s => s.id !== lastId);
+  return fresh.length ? fresh[0] : matches[0];
 }
 
-function renderSituationPanel(phrase, useSpeak) {
-  // Pick a situation based on score: early (0-1) vs late (2+)
-  const score = getScore(phrase.id);
-  const earlyPool = (phrase.situationEarly || []).filter(isValidSituation);
-  const latePool = (phrase.situationLate || []).filter(isValidSituation);
-  const fallbackPool = (phrase.situations || []).filter(isValidSituation);
-  const pool = score <= 1
-    ? (earlyPool.length ? earlyPool : fallbackPool)
-    : (latePool.length ? latePool : fallbackPool);
+function renderSituationPanel(phrase) {
+  const situ = getSituationForPhrase(phrase);
+  if (!situ) { skipExercise(); return; }
 
-  // If no valid situation text, skip this exercise entirely
-  if (!pool.length) {
-    skipExercise();
-    return;
-  }
+  const score = getScore(phrase.id);
+  _currentSituPhrase = phrase;
+  _currentSituation = situ;
+  _situRetried = false;
+  localStorage.setItem('tt_lastSituation_' + phrase.id, situ.id);
 
   document.getElementById('panelSituation').classList.remove('hidden');
+  document.getElementById('exTypeBadgeRow').classList.add('hidden');
   document.getElementById('situResult').className = 'result-bar';
   document.getElementById('situNextBtn').classList.add('hidden');
+  document.getElementById('situReveal').classList.add('hidden');
+  document.getElementById('situHintArea').classList.add('hidden');
+  document.getElementById('situHelpers').classList.add('hidden');
+  document.getElementById('situHeardText').textContent = '';
 
-  const situation = pool[Math.floor(Math.random() * pool.length)];
-  document.getElementById('situationText').textContent = situation;
+  // Context label and scenario
+  document.getElementById('situContextLabel').textContent = (situ.contextLabel || '').toUpperCase();
+  document.getElementById('situScenarioText').textContent = situ.scenario;
 
-  if (useSpeak) {
-    document.getElementById('situationMC').classList.add('hidden');
-    document.getElementById('situationSpeak').classList.remove('hidden');
-    document.getElementById('situMicBtn').className = 'mic-btn';
-    document.getElementById('situMicHint').textContent = 'Tap to speak';
-    document.getElementById('situHeardText').textContent = '';
+  // Reveal text
+  document.getElementById('situRevealText').textContent = displayNative(phrase, 'response');
 
-    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition = new SR();
-      recognition.lang = LANG_CODES[phrase.lang] || 'fr-FR';
-      recognition.continuous = false;
-      recognition.interimResults = true;
-    }
-  } else {
-    document.getElementById('situationMC').classList.remove('hidden');
-    document.getElementById('situationSpeak').classList.add('hidden');
+  // "Show me" available at score <= 3, hidden at 4+
+  document.getElementById('situShowMe').style.display = score <= 3 ? '' : 'none';
+  // "Give me a hint" available if englishHint exists
+  document.getElementById('situHintBtn').style.display = situ.englishHint ? '' : 'none';
 
-    // Build MC options — correct answer + 3 plausible distractors
-    const correctAnswers = phrase.responses || [phrase.native];
-    const correctAnswer = correctAnswers[0];
-
-    // Primary source: static Responses field (contextually appropriate wrong answers)
-    let distractors = [];
-    if (phrase.responses && phrase.responses.length > 1) {
-      distractors = shuffle(phrase.responses.filter(r => r !== correctAnswer)).slice(0, 3);
-    }
-
-    // Fill remaining from seen phrases in same tier (not semantically close)
-    if (distractors.length < 3) {
-      const seen = getActivePhrases().filter(p =>
-        p.id !== phrase.id &&
-        p.tier !== 'Recovery' &&
-        getScore(p.id) >= 1 &&
-        !correctAnswers.includes(p.native) &&
-        !distractors.includes(displayNative(p, 'response')) &&
-        !isSemanticallyClose(phrase, p)
-      );
-      const extra = shuffle(seen).slice(0, 3 - distractors.length).map(p => displayNative(p, 'response'));
-      distractors = [...distractors, ...extra];
-    }
-
-    const options = shuffle([correctAnswer, ...distractors]);
-    const container = document.getElementById('mcOptions');
-    container.innerHTML = '';
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'mc-option';
-      btn.textContent = opt;
-      btn.onclick = () => handleMCClick(btn, opt, correctAnswers, phrase, container);
-      container.appendChild(btn);
-    });
+  // Set up mic
+  document.getElementById('situMicBtn').className = 'mic-btn';
+  document.getElementById('situMicHint').textContent = '';
+  if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.lang = LANG_CODES[phrase.lang] || 'fr-FR';
+    recognition.continuous = false;
+    recognition.interimResults = true;
   }
+
+  // Auto-open mic after 1 second
+  setTimeout(() => {
+    if (document.getElementById('panelSituation') && !document.getElementById('panelSituation').classList.contains('hidden')) {
+      toggleSituMic();
+    }
+  }, 1000);
+
+  // Show hint/reveal helpers after 3 seconds
+  clearTimeout(_situHelpersTimer);
+  _situHelpersTimer = setTimeout(() => {
+    const helpers = document.getElementById('situHelpers');
+    if (helpers) helpers.classList.remove('hidden');
+  }, 3000);
 }
 
+function showSituHint() {
+  if (!_currentSituation || !_currentSituation.englishHint) return;
+  document.getElementById('situHintArea').textContent = _currentSituation.englishHint;
+  document.getElementById('situHintArea').classList.remove('hidden');
+  document.getElementById('situHintBtn').style.display = 'none';
+}
 
-function handleMCClick(btn, selected, correctAnswers, phrase, container) {
-  const isCorrect = correctAnswers.includes(selected);
-  container.querySelectorAll('.mc-option').forEach(b => {
-    if (correctAnswers.includes(b.textContent)) b.classList.add('reveal');
-  });
-  if (isCorrect) {
-    btn.className = 'mc-option correct';
-    document.getElementById('situResult').className = 'result-bar correct visible';
-    document.getElementById('situResultTitle').textContent = '✓ Exactly right';
-    document.getElementById('situResultBody').textContent = phrase.note.split('.')[0] + '.';
-    bumpScore(phrase.id, 3);
-  } else {
-    btn.className = 'mc-option wrong';
-    document.getElementById('situResult').className = 'result-bar wrong visible';
-    document.getElementById('situResultTitle').textContent = '✗ Not quite';
-    document.getElementById('situResultBody').textContent = 'The right response: ' + correctAnswers[0];
-    bumpScore(phrase.id, 2, false);
-  }
-  document.getElementById('situNextBtn').classList.remove('hidden');
+function revealSituPhrase() {
+  document.getElementById('situReveal').classList.remove('hidden');
+  document.getElementById('situShowMe').style.display = 'none';
 }
 
 function toggleSituMic() {
   if (isListening) { stopMic(); return; }
-  const phrase = getCurrentPhrase();
-  startMic(phrase, 'situMicBtn', 'situMicHint', 'situHeardText', 'situResult', 'situResultTitle', 'situResultBody', 'situNextBtn');
+  const phrase = _currentSituPhrase || getCurrentPhrase();
+  startSituMic(phrase);
+}
+
+function startSituMic(phrase) {
+  if (!recognition) {
+    document.getElementById('situMicHint').textContent = 'Mic not supported';
+    return;
+  }
+  isListening = true;
+  document.getElementById('situMicBtn').classList.add('listening');
+  document.getElementById('situMicHint').textContent = 'Listening...';
+  document.getElementById('situHeardText').textContent = '';
+
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results).map(res => res[0].transcript).join('').toLowerCase().trim();
+    document.getElementById('situHeardText').textContent = '"' + transcript + '"';
+    if (event.results[0].isFinal) evaluateSituSpeak(transcript, phrase);
+  };
+
+  recognition.onerror = (event) => {
+    isListening = false;
+    document.getElementById('situMicBtn').className = 'mic-btn';
+    const msgs = { 'no-speech': 'No speech detected', 'not-allowed': 'Microphone access denied' };
+    document.getElementById('situMicHint').textContent = msgs[event.error] || 'Try again';
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    const btn = document.getElementById('situMicBtn');
+    if (!btn.classList.contains('correct')) {
+      btn.classList.remove('listening');
+      if (document.getElementById('situMicHint').textContent === 'Listening...') {
+        document.getElementById('situMicHint').textContent = '';
+      }
+    }
+  };
+
+  recognition.start();
+}
+
+function evaluateSituSpeak(heard, phrase) {
+  isListening = false;
+  const btn = document.getElementById('situMicBtn');
+  btn.classList.remove('listening');
+
+  const heardClean = heard.replace(/[.,!?]/g, '');
+
+  // Check primary phrase
+  const target = phrase.native.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
+  const keywords = target.split(' ').filter(w => w.length > 2);
+  const matched = keywords.filter(kw => heardClean.includes(kw));
+  const threshold = Math.max(1, Math.floor(keywords.length * 0.4));
+  let isCorrect = matched.length >= threshold;
+  let usedRecovery = false;
+
+  // Check recovery phrase if recoveryAlsoValid
+  if (!isCorrect && _currentSituation && _currentSituation.recoveryAlsoValid) {
+    const recoveryPhrase = PHRASES.find(p => p.tier === 'Recovery');
+    if (recoveryPhrase) {
+      const recTarget = recoveryPhrase.native.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
+      const recKeywords = recTarget.split(' ').filter(w => w.length > 2);
+      const recMatched = recKeywords.filter(kw => heardClean.includes(kw));
+      const recThreshold = Math.max(1, Math.floor(recKeywords.length * 0.3));
+      if (recMatched.length >= recThreshold) {
+        isCorrect = true;
+        usedRecovery = true;
+      }
+    }
+  }
+
+  if (isCorrect) {
+    btn.className = 'mic-btn correct';
+    document.getElementById('situMicHint').textContent = 'Nice!';
+    document.getElementById('situResult').className = 'result-bar correct visible';
+    if (usedRecovery) {
+      document.getElementById('situResultTitle').textContent = 'That works too.';
+      document.getElementById('situResultBody').textContent = 'The full recovery phrase is always a valid way out.';
+    } else {
+      document.getElementById('situResultTitle').textContent = '✓ Got it';
+      document.getElementById('situResultBody').textContent = phrase.native;
+    }
+    bumpScore(phrase.id, 3);
+    document.getElementById('situNextBtn').classList.remove('hidden');
+    clearTimeout(_situHelpersTimer);
+  } else if (!_situRetried) {
+    _situRetried = true;
+    document.getElementById('situMicHint').textContent = 'Try again';
+    // Re-open mic after a pause
+    setTimeout(() => {
+      if (document.getElementById('panelSituation') && !document.getElementById('panelSituation').classList.contains('hidden')) {
+        if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+          recognition = new SR();
+          recognition.lang = LANG_CODES[phrase.lang] || 'fr-FR';
+          recognition.continuous = false;
+          recognition.interimResults = true;
+        }
+        startSituMic(phrase);
+      }
+    }, 1200);
+  } else {
+    // Second failure — show correct answer + play audio
+    btn.className = 'mic-btn';
+    document.getElementById('situResult').className = 'result-bar wrong visible';
+    document.getElementById('situResultTitle').textContent = phrase.native;
+    document.getElementById('situResultBody').textContent = getMeaning(phrase);
+    bumpScore(phrase.id, 2, false);
+    const url = getAudio(phrase.native);
+    if (url) {
+      const audio = new Audio(url);
+      audio.playbackRate = 1.0;
+      currentAudio = audio;
+      audio.onended = () => { currentAudio = null; };
+      audio.play().catch(() => { currentAudio = null; });
+    }
+    document.getElementById('situNextBtn').classList.remove('hidden');
+    clearTimeout(_situHelpersTimer);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -4099,8 +4908,50 @@ function getHomeState() {
 }
 
 function selectLanguage(lang) {
-  // First-time user selects a language — go straight into first session
+  // Show trip date screen before first session
+  showScreen('screenTripDate');
+  // Set a sensible default (2 weeks from now)
+  const twoWeeks = new Date();
+  twoWeeks.setDate(twoWeeks.getDate() + 14);
+  document.getElementById('tripDateInput').value = twoWeeks.toISOString().slice(0, 10);
+}
+
+function saveTripDate() {
+  const val = document.getElementById('tripDateInput').value;
+  if (val) localStorage.setItem('tt_trip_date', val);
   startLesson();
+}
+
+function skipTripDate() {
+  startLesson();
+}
+
+function renderTripCountdown(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const tripDate = localStorage.getItem('tt_trip_date');
+  if (!tripDate) { el.classList.add('hidden'); return; }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const trip = new Date(tripDate + 'T00:00:00');
+  const days = Math.ceil((trip - today) / 86400000);
+
+  if (days < 0) {
+    el.textContent = 'How did it go?';
+    el.style.cursor = 'pointer';
+    el.onclick = () => {
+      localStorage.removeItem('tt_trip_date');
+      updateWelcomeScreen();
+    };
+  } else if (days === 0) {
+    el.textContent = "Your trip is today. You're ready.";
+  } else if (days <= 7) {
+    el.textContent = `${days} day${days === 1 ? '' : 's'} to go. Keep practicing.`;
+  } else {
+    el.textContent = `${days} days until your trip`;
+  }
+  el.classList.remove('hidden');
 }
 
 function updateWelcomeScreen() {
@@ -4129,6 +4980,7 @@ function updateWelcomeScreen() {
     document.getElementById('foundationBtn').textContent = allCaughtUp ? 'Practice anyway →' : 'Keep going →';
 
     renderCapabilities(document.getElementById('foundationCapabilities'));
+    renderTripCountdown('tripCountdownFoundation');
     return;
   }
 
@@ -4136,6 +4988,7 @@ function updateWelcomeScreen() {
   document.getElementById('welcomeExperiences').classList.remove('hidden');
 
   renderCapabilities(document.getElementById('experienceCapabilities'));
+  renderTripCountdown('tripCountdownExperiences');
 
   const tiles = document.getElementById('experienceTiles');
   tiles.innerHTML = '';
@@ -4303,17 +5156,24 @@ function startExpWatch(pass) {
 
   showScreen('screenExpWatch');
 
-  // Coach marks fire once at the start of their respective pass.
-  // Each is gated: only fire if all prior coach marks have been seen.
-  if (pass === 1) {
-    showCoachMark('tt_seenExperiencePass1CoachMark');
-  } else if (pass === 2 && localStorage.getItem('tt_seenExperiencePass1CoachMark')) {
-    showCoachMark('tt_seenExperiencePass2CoachMark');
-  } else if (pass === 3 && localStorage.getItem('tt_seenExperiencePass2CoachMark')) {
-    showCoachMark('tt_seenExperiencePass3CoachMark');
-  }
+  // Determine which coach mark to show (if any)
+  let coachKey = null;
+  if (pass === 1) coachKey = 'tt_seenExperiencePass1CoachMark';
+  else if (pass === 2 && localStorage.getItem('tt_seenExperiencePass1CoachMark')) coachKey = 'tt_seenExperiencePass2CoachMark';
+  else if (pass === 3 && localStorage.getItem('tt_seenExperiencePass2CoachMark')) coachKey = 'tt_seenExperiencePass3CoachMark';
 
-  setTimeout(() => playNextBeat(), 600);
+  // If coach mark shows, gate playback behind "Got it" dismissal.
+  // If coach mark was already seen or fails to show, start immediately.
+  if (coachKey) {
+    _onCoachMarkDismiss = () => setTimeout(() => playNextBeat(), 400);
+    const shown = showCoachMark(coachKey);
+    if (!shown) {
+      _onCoachMarkDismiss = null;
+      setTimeout(() => playNextBeat(), 600);
+    }
+  } else {
+    setTimeout(() => playNextBeat(), 600);
+  }
 }
 
 function fadeOlderBeats(container) {
@@ -4451,6 +5311,16 @@ let _expTriggerIdx = 0;
 let _expSpeakTarget = '';
 let _expSpeakRetry = false;
 
+function getTriggerCorrectCount(triggerId) {
+  return parseInt(localStorage.getItem('tt_trigger_correct_' + triggerId) || '0', 10);
+}
+
+function incTriggerCorrect(triggerId) {
+  const count = getTriggerCorrectCount(triggerId) + 1;
+  localStorage.setItem('tt_trigger_correct_' + triggerId, String(count));
+  return count;
+}
+
 function startExpPractice() {
   _expTriggers = TRIGGER_PHRASES
     .filter(t => t.experience === 'At the Café' && t.depthLevel === 'Level 1 — Survive it')
@@ -4458,15 +5328,35 @@ function startExpPractice() {
   _expTriggerIdx = 0;
 
   showScreen('screenExpPractice');
+
+  const practiceKey = 'tt_seenExperiencePracticeCoachMark';
   if (localStorage.getItem('tt_seenExperiencePass3CoachMark')) {
-    showCoachMark('tt_seenExperiencePracticeCoachMark');
+    _onCoachMarkDismiss = () => renderTriggerExercise();
+    const shown = showCoachMark(practiceKey);
+    if (!shown) {
+      _onCoachMarkDismiss = null;
+      renderTriggerExercise();
+    }
+  } else {
+    renderTriggerExercise();
   }
-  renderTriggerExercise();
 }
 
 function renderTriggerExercise() {
+  // Skip trigger phrases already mastered (2+ correct)
+  while (_expTriggerIdx < _expTriggers.length && getTriggerCorrectCount(_expTriggers[_expTriggerIdx].id) >= 2) {
+    _expTriggerIdx++;
+  }
   if (_expTriggerIdx >= _expTriggers.length) {
-    showExpPracticeComplete();
+    // All mastered — check if all have 2+
+    const allReady = _expTriggers.every(t => getTriggerCorrectCount(t.id) >= 2);
+    if (allReady) {
+      showExpPracticeComplete();
+    } else {
+      // Loop back to serve remaining
+      _expTriggerIdx = 0;
+      renderTriggerExercise();
+    }
     return;
   }
   const tp = _expTriggers[_expTriggerIdx];
@@ -4648,6 +5538,10 @@ function startExpMic(target) {
       if (pass) {
         btn.classList.add('correct');
         document.getElementById('expMicHint').textContent = 'Nice!';
+        // Track correct answer for advancement threshold
+        if (_expTriggerIdx < _expTriggers.length) {
+          incTriggerCorrect(_expTriggers[_expTriggerIdx].id);
+        }
         setTimeout(() => advanceToNextTrigger(), 1000);
       } else if (!_expSpeakRetry) {
         _expSpeakRetry = true;
@@ -4773,9 +5667,9 @@ function dismissActiveCoachMark() {
 }
 
 function showCoachMark(storageKey) {
-  if (localStorage.getItem(storageKey)) return;
+  if (localStorage.getItem(storageKey)) return false;
   const def = COACH_MARKS[storageKey];
-  if (!def) return;
+  if (!def) return false;
 
   _activeCoachMarkKey = storageKey;
   const overlay = document.getElementById('coachOverlay');
@@ -4808,7 +5702,10 @@ function showCoachMark(storageKey) {
   overlay.innerHTML = '';
   overlay.appendChild(bubble);
   overlay.style.display = 'block';
+  return true;
 }
+
+let _onCoachMarkDismiss = null;
 
 function dismissCoachMark(storageKey) {
   localStorage.setItem(storageKey, 'true');
@@ -4816,6 +5713,11 @@ function dismissCoachMark(storageKey) {
   const overlay = document.getElementById('coachOverlay');
   overlay.style.display = 'none';
   overlay.innerHTML = '';
+  if (_onCoachMarkDismiss) {
+    const cb = _onCoachMarkDismiss;
+    _onCoachMarkDismiss = null;
+    cb();
+  }
 }
 
 
