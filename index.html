@@ -762,6 +762,24 @@ body::after {
   color: var(--text);
   line-height: 1.6;
 }
+.exp-pulse {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(240,237,232,0.06);
+  border: 1px solid var(--border-hi);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: expPulse 1.6s ease-in-out infinite;
+}
+@keyframes expPulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+.exp-fade-in { animation: fadeUp 0.35s ease both; }
+.exp-fade-out { animation: expFadeOut 0.25s ease both; }
+@keyframes expFadeOut { to { opacity: 0; transform: translateY(-6px); } }
 </style>
 </head>
 <body>
@@ -843,16 +861,10 @@ body::after {
     <div style="font-size:0.68rem; color:var(--text-dim); min-width:40px; text-align:right;" id="exProgressCount"></div>
   </div>
 
-  <div class="speed-row">
-    <label>Speed</label>
-    <input type="range" id="speedSlider" min="0.5" max="1.1" step="0.05" value="0.75">
-    <span class="speed-val" id="speedVal">0.75×</span>
-  </div>
-
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
 
-    <!-- Exercise type label -->
-    <div style="margin-bottom:1.25rem;">
+    <!-- Exercise type label (hidden for speak exercises) -->
+    <div style="margin-bottom:1.25rem;" id="exTypeBadgeRow">
       <span class="exercise-type-badge" id="exTypeBadge">Listen</span>
       <span id="exLangBadge" style="margin-left:0.4rem;"></span>
     </div>
@@ -891,13 +903,16 @@ body::after {
 
     <!-- ── SPEAK panel ── -->
     <div id="panelSpeak" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div class="phrase-reveal" style="margin-bottom:clamp(0.5rem, 2vh, 1.25rem);">
-        <div class="phrase-meaning-label" id="speakMeaning"></div>
-        <div class="phrase-romanization" id="speakRoman"></div>
-        <div class="phrase-native" id="speakNative"></div>
-        <button onclick="playCurrentAudio()" style="background:none;border:none;color:var(--text-dim);font-size:0.72rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">↺ Hear it again</button>
+      <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+        <div class="phrase-meaning-label" id="speakMeaning" style="margin-bottom:0.6rem;"></div>
+        <div class="phrase-native" id="speakNative" style="margin-bottom:0.3rem;"></div>
+        <div class="phrase-romanization hidden" id="speakRoman"></div>
       </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; margin-bottom:1.25rem;">
+      <div id="speakHelpers" class="hidden" style="display:flex; justify-content:center; gap:1.25rem; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+        <button id="speakSlowerBtn" onclick="hearSlower()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Hear it slower</button>
+        <button id="speakPronounceBtn" onclick="showPronunciation()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">See pronunciation</button>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
         <button class="mic-btn" id="micBtn" onclick="toggleMic()">
           <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>
         </button>
@@ -1006,23 +1021,27 @@ body::after {
      PHRASE REVEAL SCREEN (full-screen card after exercise)
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="screenPhraseReveal">
-  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center;">
-    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:clamp(1rem, 3vh, 2rem);">
-      <div style="font-size:2rem; line-height:1;" id="revealEmoji"></div>
-      <div>
-        <div style="font-family:'Cormorant Garamond',serif; font-size:clamp(1.3rem, 4vw, 1.6rem); font-style:italic; line-height:1.3;" id="revealNative"></div>
-        <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.15rem;" id="revealRoman"></div>
+  <div style="flex:1; display:flex; flex-direction:column; min-height:100vh;">
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:1.5rem;">
+      <div style="max-width:400px; width:100%;">
+        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:clamp(1rem, 3vh, 2rem);">
+          <div style="font-size:2rem; line-height:1;" id="revealEmoji"></div>
+          <div>
+            <div style="font-family:'Cormorant Garamond',serif; font-size:clamp(1.3rem, 4vw, 1.6rem); font-style:italic; line-height:1.3;" id="revealNative"></div>
+            <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.15rem;" id="revealRoman"></div>
+          </div>
+        </div>
+        <div style="font-size:0.62rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.5rem;" id="revealMeaning"></div>
+        <div style="font-size:0.78rem; color:var(--text-dim); line-height:1.7; margin-bottom:clamp(1rem, 3vh, 1.5rem);" id="revealNote"></div>
+        <div style="display:flex; justify-content:center;">
+          <button onclick="playRevealAudio()" style="background:var(--card); border:1px solid var(--border); border-radius:2rem; padding:0.5rem 1.25rem; color:var(--text-dim); font-family:'Lexend',sans-serif; font-size:0.72rem; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
+            <svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:var(--text-dim);"><path d="M8 5v14l11-7z"/></svg>
+            Hear again
+          </button>
+        </div>
       </div>
     </div>
-    <div style="font-size:0.62rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.5rem;" id="revealMeaning"></div>
-    <div style="font-size:0.78rem; color:var(--text-dim); line-height:1.7; margin-bottom:clamp(1rem, 3vh, 1.5rem);" id="revealNote"></div>
-    <div style="display:flex; justify-content:center; margin-bottom:clamp(1rem, 3vh, 2rem);">
-      <button onclick="playRevealAudio()" style="background:var(--card); border:1px solid var(--border); border-radius:2rem; padding:0.5rem 1.25rem; color:var(--text-dim); font-family:'Lexend',sans-serif; font-size:0.72rem; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
-        <svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:var(--text-dim);"><path d="M8 5v14l11-7z"/></svg>
-        Hear again
-      </button>
-    </div>
-    <div class="mt-auto">
+    <div style="padding:0 1.5rem 1.5rem;">
       <button class="btn-primary" onclick="nextExercise()">Continue →</button>
     </div>
   </div>
@@ -1058,11 +1077,6 @@ body::after {
       <button class="btn-back" onclick="goHome()" aria-label="Back">←</button>
       <div class="progress-bar"><div class="progress-bar-fill" id="buildupProgressFill" style="width:0%"></div></div>
       <div style="font-size:0.68rem; color:var(--text-dim); min-width:40px; text-align:right;" id="buildupProgressCount"></div>
-    </div>
-    <div class="speed-row">
-      <label>Speed</label>
-      <input type="range" id="buildupSpeedSlider" min="0.5" max="1.1" step="0.05" value="0.75" oninput="speechRate=parseFloat(this.value);document.getElementById('buildupSpeedVal').textContent=speechRate.toFixed(2)+'x'">
-      <span class="speed-val" id="buildupSpeedVal">0.75x</span>
     </div>
     <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
       <div style="margin-bottom:1rem;">
@@ -1100,7 +1114,7 @@ body::after {
     <div style="font-size:0.68rem; color:var(--text-dim); min-width:60px; text-align:right;" id="expWatchPassLabel">Pass 1</div>
   </div>
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch;">
-    <div id="expWatchBeats" style="flex:1; padding-top:45vh; padding-bottom:50vh;"></div>
+    <div id="expWatchBeats" style="flex:1; padding-top:1rem; padding-bottom:50vh;"></div>
   </div>
   <div style="padding:0 1.5rem 1.5rem; display:none;" id="expWatchActions">
     <button class="btn-primary" id="expWatchPrimaryBtn" style="margin-bottom:0.5rem;"></button>
@@ -2809,7 +2823,7 @@ function recordLeitner(phraseId, correct) {
 // AUDIO
 // ═══════════════════════════════════════════════════════════════════
 
-let speechRate = 0.75;
+let speechRate = 1.0;
 let currentAudio = null;
 
 const LANG_CODES = { fr: 'fr-FR' };
@@ -2878,7 +2892,7 @@ function playPhrase(phrase, circleId) {
   const _a0 = getAudio(phrase.native);
   if (_a0) {
     const audio = new Audio(_a0);
-    audio.playbackRate = Math.min(speechRate / 0.75, 1.5);
+    audio.playbackRate = 1.0;
     currentAudio = audio;
     setPlay();
     audio.onended = () => { currentAudio = null; setStop(); onAudioEnded(); };
@@ -2898,7 +2912,7 @@ function fallbackTTS(phrase, setPlay, setStop) {
   }
   const u = new SpeechSynthesisUtterance(phrase.native);
   u.lang = LANG_CODES[phrase.lang] || 'fr-FR';
-  u.rate = speechRate;
+  u.rate = 1.0;
   const voices = speechSynthesis.getVoices();
   const v = voices.find(v => v.lang === LANG_CODES[phrase.lang]) || voices.find(v => v.lang.startsWith(phrase.lang));
   if (v) u.voice = v;
@@ -3008,7 +3022,7 @@ function playBuildupChunkAudio(text) {
   const _a1 = getAudio(text);
   if (_a1) {
     const audio = new Audio(_a1);
-    audio.playbackRate = Math.min(speechRate / 0.75, 1.5);
+    audio.playbackRate = 1.0;
     currentAudio = audio;
     setPlay();
     audio.onended = () => { currentAudio = null; setStop(); };
@@ -3024,7 +3038,7 @@ function buildupTTS(text, setPlay, setStop) {
   const lang = _buildupPhrase ? (LANG_CODES[_buildupPhrase.lang] || 'fr-FR') : 'fr-FR';
   const u = new SpeechSynthesisUtterance(text);
   u.lang = lang;
-  u.rate = speechRate;
+  u.rate = 1.0;
   const voices = speechSynthesis.getVoices();
   const v = voices.find(v => v.lang === lang) || voices.find(v => v.lang.startsWith(lang.slice(0, 2)));
   if (v) u.voice = v;
@@ -3322,19 +3336,25 @@ let _skipTimer = null;
 function renderCurrentExercise() {
   hidePanels();
   updateExerciseHeader();
+  document.getElementById('exTypeBadgeRow').classList.remove('hidden');
 
   // Reset universal skip
   document.getElementById('universalSkip').classList.add('hidden');
   clearTimeout(_skipTimer);
-  _skipTimer = setTimeout(() => {
-    document.getElementById('universalSkip').classList.remove('hidden');
-  }, 5000);
 
   const item = getCurrentItem();
   if (!item) { showCompletion(); return; }
 
   const phrase = item.phraseId ? PHRASES.find(p => p.id === item.phraseId) : null;
   const type = item.type;
+
+  // Only show universal skip for panels that don't have their own skip button
+  const hasOwnSkip = ['speak', 'situation_mc', 'situation_speak', 'situation'].includes(type);
+  if (!hasOwnSkip) {
+    _skipTimer = setTimeout(() => {
+      document.getElementById('universalSkip').classList.remove('hidden');
+    }, 5000);
+  }
 
 
   // Update badges
@@ -3641,20 +3661,29 @@ let isListening = false;
 
 function renderSpeakPanel(phrase) {
   document.getElementById('panelSpeak').classList.remove('hidden');
+  document.getElementById('exTypeBadgeRow').classList.add('hidden');
   document.getElementById('micBtn').className = 'mic-btn';
   document.getElementById('micHint').textContent = 'Tap to speak';
   document.getElementById('heardText').textContent = '';
   document.getElementById('speakResult').className = 'result-bar';
   document.getElementById('speakNextBtn').classList.add('hidden');
+  document.getElementById('speakHelpers').classList.add('hidden');
+  document.getElementById('speakRoman').classList.add('hidden');
+
+  // Store phrase ref for helper functions
+  _currentSpeakPhrase = phrase;
 
   // Speak coach mark — first speaking exercise ever
   showCoachMark('tt_seenSpeakCoachMark');
 
   const score = getScore(phrase.id);
-  // Scaffolding based on score
   document.getElementById('speakMeaning').textContent = getMeaning(phrase).toUpperCase();
-  document.getElementById('speakRoman').textContent = score < 3 ? stripHtmlTags(phrase.romanization || '') : '';
   document.getElementById('speakNative').textContent = score < 4 ? displayNative(phrase, 'card') : '';
+  document.getElementById('speakRoman').textContent = stripHtmlTags(phrase.romanization || '');
+
+  // Show/hide "Hear it slower" based on whether audio exists
+  const slowerBtn = document.getElementById('speakSlowerBtn');
+  slowerBtn.style.display = getAudio(phrase.native) ? '' : 'none';
 
   // Set recognition language
   if (window.SpeechRecognition || window.webkitSpeechRecognition) {
@@ -3666,8 +3695,33 @@ function renderSpeakPanel(phrase) {
     recognition.maxAlternatives = 3;
   }
 
-  // Play phrase first
+  // Play phrase first, then show helpers
+  audioEndedCallback = () => {
+    document.getElementById('speakHelpers').classList.remove('hidden');
+  };
   setTimeout(() => playPhrase(phrase, null), 400);
+}
+
+let _currentSpeakPhrase = null;
+
+function hearSlower() {
+  if (!_currentSpeakPhrase) return;
+  const url = getAudio(_currentSpeakPhrase.native);
+  if (!url) return;
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  const audio = new Audio(url);
+  audio.playbackRate = 0.75;
+  currentAudio = audio;
+  audio.onended = () => { currentAudio = null; };
+  audio.onerror = () => { currentAudio = null; };
+  audio.play().catch(() => { currentAudio = null; });
+  // Hide the button after use
+  document.getElementById('speakSlowerBtn').style.display = 'none';
+}
+
+function showPronunciation() {
+  document.getElementById('speakRoman').classList.remove('hidden');
+  document.getElementById('speakPronounceBtn').style.display = 'none';
 }
 
 function toggleMic() {
@@ -4526,188 +4580,237 @@ function onExpWatchComplete() {
 }
 
 // ── Practice the Pieces ──
-// Steps: 0=scene+ready, 1=trigger plays+reveal, 2=recognition MC, 3=response MC (Respond) or natural reaction (React), 4=speak
+// Single-screen flowing interaction per trigger phrase.
+// States: listen → respond/react → speak. No navigation buttons between states.
 
 let _expTriggers = [];
 let _expTriggerIdx = 0;
-let _expPracticeStep = 0;
 let _expSpeakTarget = '';
+let _expSpeakRetry = false;
 
 function startExpPractice() {
   _expTriggers = TRIGGER_PHRASES
     .filter(t => t.experience === 'At the Café' && t.depthLevel === 'Level 1 — Survive it')
     .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
   _expTriggerIdx = 0;
-  _expPracticeStep = 0;
 
   showScreen('screenExpPractice');
-  // Only fire practice coach mark if user has been through Pass 3
   if (localStorage.getItem('tt_seenExperiencePass3CoachMark')) {
     showCoachMark('tt_seenExperiencePracticeCoachMark');
   }
-  renderExpPracticeExercise();
+  renderTriggerExercise();
 }
 
-function renderExpPracticeExercise() {
+function renderTriggerExercise() {
   if (_expTriggerIdx >= _expTriggers.length) {
     showExpPracticeComplete();
     return;
   }
   const tp = _expTriggers[_expTriggerIdx];
-  document.getElementById('expPracticeProgressFill').style.width = Math.round((_expTriggerIdx / _expTriggers.length) * 100) + '%';
-  document.getElementById('expPracticeCount').textContent = (_expTriggerIdx + 1) + ' / ' + _expTriggers.length;
-  _expPracticeStep = 0;
-  renderPracticeStep(tp);
+  const total = _expTriggers.length;
+  document.getElementById('expPracticeProgressFill').style.width = Math.round((_expTriggerIdx / total) * 100) + '%';
+  document.getElementById('expPracticeCount').textContent = (_expTriggerIdx + 1) + ' / ' + total;
+
+  const content = document.getElementById('expPracticeContent');
+  content.className = 'p-screen exp-fade-in';
+  content.style.cssText = 'flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;';
+  content.innerHTML = '';
+  _expSpeakRetry = false;
+
+  practiceStateListen(tp);
 }
 
-function renderPracticeStep(tp) {
+// ── State 1: Listen ──
+function practiceStateListen(tp) {
   const content = document.getElementById('expPracticeContent');
-  content.innerHTML = '';
+  content.innerHTML = `
+    <div style="font-size:0.75rem; color:var(--text-dim); font-style:italic; margin-bottom:2rem; max-width:280px; line-height:1.6;">${tp.scenePrompt}</div>
+    <div class="exp-pulse" id="expPulse">
+      <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:var(--text-dim);"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+    </div>
+    <div id="expListenReveal" style="margin-top:1.5rem; opacity:0; transition:opacity 0.4s ease;">
+      <div class="exp-french-text" style="margin-bottom:0.3rem;">${tp.triggerPhrase}</div>
+      <div style="font-size:0.78rem; color:var(--text-dim);">${stripHtmlTags(tp.romanization || '')}</div>
+    </div>
+  `;
 
-  const micSvg = '<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>';
-  const playSvg = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  // Play trigger audio
+  playExpTriggerAudio(tp, () => {
+    // Audio done — fade in French text
+    const reveal = document.getElementById('expListenReveal');
+    if (reveal) reveal.style.opacity = '1';
+    // Auto-advance after 500ms
+    setTimeout(() => {
+      if (tp.type === 'React') {
+        practiceStateReact(tp);
+      } else {
+        practiceStateRespond(tp);
+      }
+    }, 500);
+  });
+}
 
-  if (_expPracticeStep === 0) {
-    // Step 1: Scene prompt with Ready button
-    content.innerHTML = `
-      <div class="exp-scene-prompt">
-        <div class="exp-scene-label">The scene</div>
-        <div class="exp-scene-text">${tp.scenePrompt}</div>
-      </div>
-      <div class="mt-auto" style="padding-top:1rem;">
-        <button class="btn-primary" onclick="_expPracticeStep=1;renderPracticeStep(TRIGGER_PHRASES.find(t=>t.id==='${tp.id}'))">Ready →</button>
-      </div>
-    `;
+// ── State 2a: Respond (MC) ──
+function practiceStateRespond(tp) {
+  const content = document.getElementById('expPracticeContent');
 
-  } else if (_expPracticeStep === 1) {
-    // Step 2: Play trigger audio, then reveal French + romanization
-    content.innerHTML = `
-      <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0.75rem;">
-        <div class="play-circle" id="expTriggerCircle">${playSvg}</div>
-        <div style="font-size:0.72rem; color:var(--text-dim);" id="expTriggerHint">Listening...</div>
-        <div id="expTriggerReveal" class="hidden" style="text-align:center; margin-top:1rem;">
-          <div class="exp-french-text" style="margin-bottom:0.3rem;">${tp.triggerPhrase}</div>
-          <div style="font-size:0.78rem; color:var(--text-dim);">${stripHtmlTags(tp.romanization || '')}</div>
-        </div>
-      </div>
-      <div class="mt-auto hidden" id="expTriggerNext" style="padding-top:1rem;">
-        <button class="btn-primary" onclick="_expPracticeStep=2;renderPracticeStep(TRIGGER_PHRASES.find(t=>t.id==='${tp.id}'))">Continue →</button>
-      </div>
-    `;
-    const circle = document.getElementById('expTriggerCircle');
-    circle.classList.add('playing');
-    playExpTrigger(() => {
-      circle.classList.remove('playing');
-      document.getElementById('expTriggerHint').textContent = 'Tap to hear again';
-      circle.onclick = () => playExpTrigger();
-      circle.style.cursor = 'pointer';
-      document.getElementById('expTriggerReveal').classList.remove('hidden');
-      document.getElementById('expTriggerNext').classList.remove('hidden');
-    });
+  // Find correct response from arc
+  const exp = getCafeL1();
+  const responsePhrases = exp?.arc ? findResponseForTrigger(tp, exp.arc) : [];
+  const correctResponse = responsePhrases[0] || "Un café, s'il vous plaît";
+  _expSpeakTarget = correctResponse;
 
-  } else if (_expPracticeStep === 2) {
-    // Step 3: Recognition MC — "What's happening?"
-    const options = shuffle([tp.signal, ...tp.distractors.slice(0, 3)]);
-    content.innerHTML = `
-      <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What's happening?</div>
-      <div class="mc-options" id="expSignalOptions"></div>
-    `;
-    const container = document.getElementById('expSignalOptions');
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'mc-option';
-      btn.style.fontStyle = 'normal';
-      btn.style.fontFamily = "'Lexend', sans-serif";
-      btn.style.fontSize = '0.78rem';
-      btn.textContent = opt;
-      btn.onclick = () => {
-        container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
-        const correct = opt === tp.signal;
-        btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-        if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
-          if (b.textContent === tp.signal) b.className = 'mc-option reveal';
+  // Build distractors from known tier 2 phrases
+  const allResponses = PHRASES.filter(p => p.tier === '2' && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native)).map(p => p.native);
+  const distractors = shuffle(allResponses.filter(r => r !== correctResponse)).slice(0, 3);
+  const options = shuffle([correctResponse, ...distractors]);
+
+  content.innerHTML = `
+    <div style="font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-style:italic; color:var(--text-dim); opacity:0.6; margin-bottom:1.5rem;">${tp.triggerPhrase}</div>
+    <div class="mc-options" id="expRespondOptions" style="width:100; max-width:340px;"></div>
+  `;
+
+  const container = document.getElementById('expRespondOptions');
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-option';
+    btn.textContent = opt;
+    btn.onclick = () => {
+      container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
+      const correct = opt === correctResponse;
+      btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
+      if (!correct) {
+        container.querySelectorAll('.mc-option').forEach(b => {
+          if (b.textContent === correctResponse) b.className = 'mc-option reveal';
         });
-        _expPracticeStep = 3;
-        setTimeout(() => renderPracticeStep(tp), 800);
-      };
-      container.appendChild(btn);
-    });
+      }
+      // Play the correct response audio (Emile)
+      const responseAudio = getAudio(correctResponse);
+      if (responseAudio) {
+        setTimeout(() => {
+          const audio = new Audio(responseAudio);
+          currentAudio = audio;
+          audio.onended = () => { currentAudio = null; setTimeout(() => practiceStateSpeak(), 800); };
+          audio.onerror = () => { currentAudio = null; setTimeout(() => practiceStateSpeak(), 800); };
+          audio.play().catch(() => { currentAudio = null; setTimeout(() => practiceStateSpeak(), 800); });
+        }, 400);
+      } else {
+        setTimeout(() => practiceStateSpeak(), 800);
+      }
+    };
+    container.appendChild(btn);
+  });
+}
 
-  } else if (_expPracticeStep === 3) {
-    if (tp.type === 'React') {
-      // React: show natural response + speak
-      content.innerHTML = `
-        <div style="text-align:center; margin-bottom:1.5rem;">
-          <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.5rem;">${tp.signal}</div>
-          <div style="font-size:0.85rem; color:var(--text); line-height:1.6;">The natural response is <em style="font-family:'Cormorant Garamond',serif; font-size:1.1rem;">Merci</em></div>
-        </div>
-        <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
-          <button class="mic-btn" id="expMicBtn" onclick="startExpMic('Merci')">${micSvg}</button>
-          <div class="eyebrow" id="expMicHint">Say: Merci</div>
-          <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem;" id="expHeardText"></div>
-        </div>
-        <div class="mt-auto" style="padding-top:1rem;">
-          <button class="btn-primary" onclick="nextExpTrigger()">Continue →</button>
-        </div>
-      `;
-    } else {
-      // Respond: response phrase selection
-      const exp = getCafeL1();
-      const responsePhrases = exp?.arc ? findResponseForTrigger(tp, exp.arc) : [];
-      const correctResponse = responsePhrases[0] || "Un café, s'il vous plaît";
+// ── State 2b: React (no MC) ──
+function practiceStateReact(tp) {
+  const content = document.getElementById('expPracticeContent');
+  _expSpeakTarget = 'Merci';
 
-      const allResponses = PHRASES.filter(p => p.tier === '2' && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native)).map(p => p.native);
-      const distractors = shuffle(allResponses.filter(r => r !== correctResponse)).slice(0, 2);
-      const options = shuffle([correctResponse, ...distractors]);
+  content.innerHTML = `
+    <div style="font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-style:italic; color:var(--text-dim); opacity:0.6; margin-bottom:1.5rem;">${tp.triggerPhrase}</div>
+    <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem;">The natural response is</div>
+    <div style="font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-style:italic; color:var(--text);">Merci</div>
+  `;
 
-      content.innerHTML = `
-        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What do you say?</div>
-        <div class="mc-options" id="expResponseOptions"></div>
-        <div class="mt-auto hidden" id="expResponseNext" style="padding-top:1rem;">
-          <button class="btn-primary" id="expResponseNextBtn">Continue →</button>
-        </div>
-      `;
-      const container = document.getElementById('expResponseOptions');
-      options.forEach(opt => {
-        const btn = document.createElement('button');
-        btn.className = 'mc-option';
-        btn.textContent = opt;
-        btn.onclick = () => {
-          container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
-          const correct = opt === correctResponse;
-          btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-          if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
-            if (b.textContent === correctResponse) b.className = 'mc-option reveal';
-          });
-          document.getElementById('expResponseNext').classList.remove('hidden');
-          document.getElementById('expResponseNextBtn').onclick = () => {
-            _expSpeakTarget = correctResponse;
-            _expPracticeStep = 4;
-            renderPracticeStep(tp);
-          };
-        };
-        container.appendChild(btn);
-      });
-    }
+  setTimeout(() => practiceStateSpeak(), 500);
+}
 
-  } else if (_expPracticeStep === 4) {
-    // Step 5: Speak the response
-    const target = _expSpeakTarget || 'Merci';
-    content.innerHTML = `
-      <div style="text-align:center; margin-bottom:0.75rem;">
-        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.5rem;">Now say it out loud.</div>
-        <div style="font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-style:italic; color:var(--text);">${target}</div>
-      </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
-        <button class="mic-btn" id="expMicBtn" onclick="startExpMic('${target.replace(/'/g, "\\'")}')">${micSvg}</button>
-        <div class="eyebrow" id="expMicHint">Tap to speak</div>
-        <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem;" id="expHeardText"></div>
-      </div>
-      <div class="mt-auto" style="padding-top:1rem;">
-        <button class="btn-primary" onclick="nextExpTrigger()">Continue →</button>
-      </div>
-    `;
+// ── State 3: Speak ──
+function practiceStateSpeak() {
+  const target = _expSpeakTarget || 'Merci';
+  const content = document.getElementById('expPracticeContent');
+  const micSvg = '<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>';
+
+  content.innerHTML = `
+    <div style="font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-style:italic; color:var(--text); margin-bottom:1.5rem;">${target}</div>
+    <button class="mic-btn" id="expMicBtn">${micSvg}</button>
+    <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.6rem; letter-spacing:0.1em;" id="expMicHint">Your turn</div>
+    <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem; margin-top:0.4rem;" id="expHeardText"></div>
+  `;
+
+  const btn = document.getElementById('expMicBtn');
+  btn.onclick = () => startExpMic(target);
+
+  // Auto-open mic after 500ms
+  setTimeout(() => {
+    if (document.getElementById('expMicBtn')) startExpMic(target);
+  }, 500);
+}
+
+function startExpMic(target) {
+  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+    document.getElementById('expMicHint').textContent = 'Mic not supported';
+    setTimeout(() => advanceToNextTrigger(), 1500);
+    return;
   }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'fr-FR';
+  rec.continuous = false;
+  rec.interimResults = true;
+
+  const btn = document.getElementById('expMicBtn');
+  if (!btn) return;
+  btn.classList.add('listening');
+  document.getElementById('expMicHint').textContent = 'Listening...';
+
+  let handled = false;
+
+  rec.onresult = (event) => {
+    const transcript = Array.from(event.results).map(r => r[0].transcript).join('').toLowerCase().trim();
+    const heard = document.getElementById('expHeardText');
+    if (heard) heard.textContent = '"' + transcript + '"';
+    if (event.results[0].isFinal && !handled) {
+      handled = true;
+      const targetClean = target.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
+      const keywords = targetClean.split(' ').filter(w => w.length > 2);
+      const matched = keywords.filter(kw => transcript.includes(kw));
+      const pass = matched.length >= Math.max(1, Math.floor(keywords.length * 0.4));
+
+      btn.classList.remove('listening');
+      if (pass) {
+        btn.classList.add('correct');
+        document.getElementById('expMicHint').textContent = 'Nice!';
+        setTimeout(() => advanceToNextTrigger(), 1000);
+      } else if (!_expSpeakRetry) {
+        _expSpeakRetry = true;
+        document.getElementById('expMicHint').textContent = 'Try once more';
+        setTimeout(() => startExpMic(target), 1200);
+      } else {
+        document.getElementById('expMicHint').textContent = '';
+        setTimeout(() => advanceToNextTrigger(), 800);
+      }
+    }
+  };
+  rec.onerror = () => {
+    if (handled) return;
+    handled = true;
+    btn.classList.remove('listening');
+    if (!_expSpeakRetry) {
+      _expSpeakRetry = true;
+      document.getElementById('expMicHint').textContent = 'Try once more';
+      setTimeout(() => startExpMic(target), 1200);
+    } else {
+      setTimeout(() => advanceToNextTrigger(), 800);
+    }
+  };
+  rec.onend = () => {
+    if (!handled && btn) {
+      btn.classList.remove('listening');
+    }
+  };
+  rec.start();
+}
+
+function advanceToNextTrigger() {
+  const content = document.getElementById('expPracticeContent');
+  content.classList.remove('exp-fade-in');
+  content.classList.add('exp-fade-out');
+  setTimeout(() => {
+    _expTriggerIdx++;
+    renderTriggerExercise();
+  }, 250);
 }
 
 function findResponseForTrigger(tp, arcText) {
@@ -4722,9 +4825,7 @@ function findResponseForTrigger(tp, arcText) {
   return [];
 }
 
-function playExpTrigger(onDone) {
-  const tp = _expTriggers[_expTriggerIdx];
-  if (!tp) return;
+function playExpTriggerAudio(tp, onDone) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   const audioUrl = tp.fileName ? 'audio/trigger-phrases/' + tp.fileName : null;
   if (audioUrl) {
@@ -4737,47 +4838,6 @@ function playExpTrigger(onDone) {
   } else {
     if (onDone) setTimeout(onDone, 500);
   }
-}
-
-function startExpMic(target) {
-  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-    document.getElementById('expMicHint').textContent = 'Mic not supported';
-    return;
-  }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const rec = new SR();
-  rec.lang = 'fr-FR';
-  rec.continuous = false;
-  rec.interimResults = true;
-
-  const btn = document.getElementById('expMicBtn');
-  btn.classList.add('listening');
-  document.getElementById('expMicHint').textContent = 'Listening...';
-
-  rec.onresult = (event) => {
-    const transcript = Array.from(event.results).map(r => r[0].transcript).join('').toLowerCase().trim();
-    const heard = document.getElementById('expHeardText');
-    if (heard) heard.textContent = '"' + transcript + '"';
-    if (event.results[0].isFinal) {
-      btn.classList.remove('listening');
-      btn.classList.add('correct');
-      document.getElementById('expMicHint').textContent = 'Nice!';
-    }
-  };
-  rec.onerror = () => {
-    btn.classList.remove('listening');
-    document.getElementById('expMicHint').textContent = 'Try again';
-  };
-  rec.onend = () => {
-    if (!btn.classList.contains('correct')) btn.classList.remove('listening');
-  };
-  rec.start();
-}
-
-function nextExpTrigger() {
-  _expTriggerIdx++;
-  _expPracticeStep = 0;
-  renderExpPracticeExercise();
 }
 
 function showExpPracticeComplete() {
@@ -4894,14 +4954,6 @@ function dismissCoachMark(storageKey) {
   overlay.innerHTML = '';
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SPEED SLIDER
-// ═══════════════════════════════════════════════════════════════════
-
-document.getElementById('speedSlider').addEventListener('input', e => {
-  speechRate = parseFloat(e.target.value);
-  document.getElementById('speedVal').textContent = speechRate.toFixed(2) + '×';
-});
 
 // ═══════════════════════════════════════════════════════════════════
 // INIT
