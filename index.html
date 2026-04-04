@@ -699,10 +699,12 @@ body::after {
 .exp-beat {
   opacity: 0;
   transform: translateY(6px);
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition: opacity 0.5s ease, transform 0.4s ease;
   margin-bottom: 0.75rem;
 }
 .exp-beat.visible { opacity: 1; transform: translateY(0); }
+.exp-beat.faded-1 { opacity: 0.7; }
+.exp-beat.faded-2 { opacity: 0.4; }
 .exp-beat-narrator {
   font-size: 0.78rem;
   color: var(--text-dim);
@@ -1004,7 +1006,7 @@ body::after {
      PHRASE REVEAL SCREEN (full-screen card after exercise)
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="screenPhraseReveal">
-  <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center;">
     <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:clamp(1rem, 3vh, 2rem);">
       <div style="font-size:2rem; line-height:1;" id="revealEmoji"></div>
       <div>
@@ -1098,7 +1100,7 @@ body::after {
     <div style="font-size:0.68rem; color:var(--text-dim); min-width:60px; text-align:right;" id="expWatchPassLabel">Pass 1</div>
   </div>
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch;">
-    <div id="expWatchBeats" style="flex:1; padding-bottom:1rem;"></div>
+    <div id="expWatchBeats" style="flex:1; padding-top:45vh; padding-bottom:50vh;"></div>
   </div>
   <div style="padding:0 1.5rem 1.5rem; display:none;" id="expWatchActions">
     <button class="btn-primary" id="expWatchPrimaryBtn" style="margin-bottom:0.5rem;"></button>
@@ -4380,11 +4382,38 @@ function startExpWatch(pass) {
 
   showScreen('screenExpWatch');
 
-  if (pass === 1) showCoachMark('tt_seenExperiencePass1CoachMark');
-  if (pass === 2) showCoachMark('tt_seenExperiencePass2CoachMark');
-  if (pass === 3) showCoachMark('tt_seenExperiencePass3CoachMark');
+  // Coach marks fire once at the start of their respective pass.
+  // Each is gated: only fire if all prior coach marks have been seen.
+  if (pass === 1) {
+    showCoachMark('tt_seenExperiencePass1CoachMark');
+  } else if (pass === 2 && localStorage.getItem('tt_seenExperiencePass1CoachMark')) {
+    showCoachMark('tt_seenExperiencePass2CoachMark');
+  } else if (pass === 3 && localStorage.getItem('tt_seenExperiencePass2CoachMark')) {
+    showCoachMark('tt_seenExperiencePass3CoachMark');
+  }
 
   setTimeout(() => playNextBeat(), 600);
+}
+
+function fadeOlderBeats(container) {
+  const beats = container.querySelectorAll('.exp-beat.visible');
+  const count = beats.length;
+  beats.forEach((b, i) => {
+    b.classList.remove('faded-1', 'faded-2');
+    if (i === count - 1) return; // newest — full opacity
+    if (i === count - 2) b.classList.add('faded-1'); // previous — 70%
+    else b.classList.add('faded-2'); // older — 40%
+  });
+}
+
+function scrollBeatToCenter(container, el) {
+  const scrollParent = container.parentElement; // the .p-screen overflow container
+  const elRect = el.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  const targetY = parentRect.height * 0.45; // 45% from top
+  const currentOffset = elRect.top - parentRect.top;
+  const scrollDelta = currentOffset - targetY;
+  scrollParent.scrollBy({ top: scrollDelta, behavior: 'smooth' });
 }
 
 function playNextBeat() {
@@ -4393,6 +4422,7 @@ function playNextBeat() {
   const beat = _expBeats[_expBeatIdx];
   const container = document.getElementById('expWatchBeats');
   const total = _expBeats.length;
+  const isNextDialogue = _expBeatIdx + 1 < total && _expBeats[_expBeatIdx + 1].type === 'dialogue';
 
   document.getElementById('expWatchProgressFill').style.width = Math.round((_expBeatIdx / total) * 100) + '%';
 
@@ -4405,22 +4435,23 @@ function playNextBeat() {
     } else if (_expPass >= 2) {
       el.innerHTML = `<div class="exp-beat-narrator">${beat.text}</div>`;
     }
-    // Pass 1: no visible content for narrators
     container.appendChild(el);
-    requestAnimationFrame(() => el.classList.add('visible'));
+    requestAnimationFrame(() => {
+      el.classList.add('visible');
+      fadeOlderBeats(container);
+      scrollBeatToCenter(container, el);
+    });
     _expBeatIdx++;
-    _expPlayTimer = setTimeout(() => playNextBeat(), 2000);
+    // Narrator pause: 3s, or 1.5s if next beat is dialogue
+    const pause = isNextDialogue ? 1500 : 3000;
+    _expPlayTimer = setTimeout(() => playNextBeat(), pause);
   } else {
     // Dialogue beat
     if (_expPass >= 2) {
-      const align = beat.voice === 'Emile' ? 'align-right' : 'align-left';
-      let html = '';
-      if (beat.voice === 'Emile') {
-        html += `<div class="exp-voice-label" style="color:var(--fr);">You</div>`;
-      } else {
-        html += `<div class="exp-voice-label">${beat.voice}</div>`;
-      }
-      html += `<div class="exp-french-text">${beat.french}</div>`;
+      const isUser = beat.voice === 'Emile';
+      const align = isUser ? 'align-right' : 'align-left';
+      const textStyle = isUser ? 'color:var(--text);' : 'color:var(--text); opacity:0.6;';
+      let html = `<div class="exp-french-text" style="${textStyle}">${beat.french}</div>`;
       if (beat.stageDir) {
         html += `<div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.2rem; font-style:italic;">${beat.stageDir}</div>`;
       }
@@ -4434,22 +4465,33 @@ function playNextBeat() {
       currentAudio = audio;
       const advance = () => {
         currentAudio = null;
-        requestAnimationFrame(() => el.classList.add('visible'));
+        requestAnimationFrame(() => {
+          el.classList.add('visible');
+          fadeOlderBeats(container);
+          scrollBeatToCenter(container, el);
+        });
         _expBeatIdx++;
-        _expPlayTimer = setTimeout(() => playNextBeat(), 500);
+        _expPlayTimer = setTimeout(() => playNextBeat(), 1200);
       };
       audio.onended = advance;
       audio.onerror = advance;
-      if (_expPass >= 2) requestAnimationFrame(() => el.classList.add('visible'));
+      if (_expPass >= 2) {
+        requestAnimationFrame(() => {
+          el.classList.add('visible');
+          scrollBeatToCenter(container, el);
+        });
+      }
       audio.play().catch(advance);
     } else {
-      requestAnimationFrame(() => el.classList.add('visible'));
+      requestAnimationFrame(() => {
+        el.classList.add('visible');
+        fadeOlderBeats(container);
+        scrollBeatToCenter(container, el);
+      });
       _expBeatIdx++;
-      _expPlayTimer = setTimeout(() => playNextBeat(), 1000);
+      _expPlayTimer = setTimeout(() => playNextBeat(), 1200);
     }
   }
-
-  container.scrollTop = container.scrollHeight;
 }
 
 function onExpWatchComplete() {
@@ -4499,7 +4541,10 @@ function startExpPractice() {
   _expPracticeStep = 0;
 
   showScreen('screenExpPractice');
-  showCoachMark('tt_seenExperiencePracticeCoachMark');
+  // Only fire practice coach mark if user has been through Pass 3
+  if (localStorage.getItem('tt_seenExperiencePass3CoachMark')) {
+    showCoachMark('tt_seenExperiencePracticeCoachMark');
+  }
   renderExpPracticeExercise();
 }
 
@@ -4760,7 +4805,7 @@ const COACH_MARKS = {
   },
   tt_seenVocabCoachMark: {
     text: "Every new word gets a card like this. It\u2019s here to refer back to, not to memorize on the spot.",
-    target: 'screenPhraseReveal',
+    target: 'revealNative',
   },
   tt_seenSpeakCoachMark: {
     text: "This is the part most language apps let you skip. Don\u2019t skip it. Saying it out loud is what makes it available to you when you need it.",
