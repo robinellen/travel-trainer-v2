@@ -1742,7 +1742,7 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "Vocabulary",
+    "tier": "Vocabulary — Pending Pack System",
     "sortOrder": null,
     "alwaysCapitalize": false,
     "emoji": "💧",
@@ -2310,7 +2310,7 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "Vocabulary",
+    "tier": "Vocabulary — Pending Pack System",
     "sortOrder": null,
     "alwaysCapitalize": false,
     "emoji": "☕",
@@ -2362,7 +2362,7 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "Vocabulary",
+    "tier": "Vocabulary — Pending Pack System",
     "sortOrder": null,
     "alwaysCapitalize": false,
     "emoji": "🍺",
@@ -2496,7 +2496,7 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "Vocabulary",
+    "tier": "Vocabulary — Pending Pack System",
     "sortOrder": null,
     "alwaysCapitalize": false,
     "emoji": "🍷",
@@ -2525,7 +2525,7 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "Vocabulary",
+    "tier": "Vocabulary — Pending Pack System",
     "sortOrder": null,
     "alwaysCapitalize": false,
     "emoji": "🍵",
@@ -2710,8 +2710,8 @@ function getActivePhrases() {
     const tier = p.tier || '1';
     if (tier === '1') return p.audioRecorded;
     if (tier === 'Recovery') return !!localStorage.getItem('tt_recoveryUnlocked');
-    if (tier === 'Vocabulary') return !!localStorage.getItem('tt_vocabularyUnlocked');
     if (tier === '2') return !!localStorage.getItem('tt_tier2Unlocked');
+    // Any other tier value (Vocabulary, Vocabulary — Pending Pack System, etc.) is excluded
     return false;
   });
 }
@@ -3088,14 +3088,9 @@ function checkUnlocks() {
   const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
   const tier1 = playable.filter(p => (p.tier || '1') === '1' && p.audioRecorded);
   const recovery = playable.filter(p => p.tier === 'Recovery');
-  const vocab = playable.filter(p => p.tier === 'Vocabulary');
 
   // Recovery unlocks when ALL playable tier 1 phrases are at score 3+
-  // (genuine recall across multiple spaced repetition intervals)
-  // AND the buildup prerequisite words are at score 2+.
-  // français and anglais don't have recorded audio yet, so we check
-  // only Désolé for now. When audio is added for français/anglais,
-  // they'll be gated by the tier1.every(score >= 3) check automatically.
+  // AND the buildup prerequisite word Désolé is at score 2+.
   if (!localStorage.getItem('tt_recoveryUnlocked')) {
     if (tier1.length && tier1.every(p => getScore(p.id) >= 3)) {
       const desole = PHRASES.find(p => p.native === 'Désolé' && (p.tier || '1') === '1' && p.audioRecorded);
@@ -3106,19 +3101,11 @@ function checkUnlocks() {
     }
   }
 
-  // Vocabulary unlocks after Recovery phrase is completed (score 1+)
-  if (!localStorage.getItem('tt_vocabularyUnlocked') && localStorage.getItem('tt_recoveryUnlocked')) {
-    if (recovery.length && recovery.every(p => getScore(p.id) >= 1)) {
-      localStorage.setItem('tt_vocabularyUnlocked', 'true');
-      return 'vocabulary';
-    }
-  }
-
-  // Tier 2 unlocks when all Vocabulary score 2+ AND all Tier 1 score 3+
-  if (!localStorage.getItem('tt_tier2Unlocked') && localStorage.getItem('tt_vocabularyUnlocked')) {
+  // Tier 2 unlocks when Recovery phrase is completed (score 1+) AND all Tier 1 at score 3+
+  if (!localStorage.getItem('tt_tier2Unlocked') && localStorage.getItem('tt_recoveryUnlocked')) {
     if (
       tier1.length && tier1.every(p => getScore(p.id) >= 3) &&
-      vocab.length && vocab.every(p => getScore(p.id) >= 2)
+      recovery.length && recovery.every(p => getScore(p.id) >= 1)
     ) {
       localStorage.setItem('tt_tier2Unlocked', 'true');
       return 'tier2';
@@ -3146,9 +3133,6 @@ function weightedPick(options) {
 
 // Build a within-session arc for a phrase based on its current score and tier.
 function getPhraseArc(phrase) {
-  // Vocabulary: listen + meaning match only at all scores
-  if (phrase.tier === 'Vocabulary') return ['vocab_mc'];
-
   // Recovery: buildup on first encounter, then situation only
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
@@ -3290,9 +3274,9 @@ function startSessionWithMode(mode) {
     const situationModes = ['situation_mc', 'situation_speak', 'situation'];
     let pool;
     if (mode === 'speed_drill') {
-      pool = activePhrases.filter(p => getScore(p.id) >= 3 && p.tier !== 'Vocabulary');
+      pool = activePhrases.filter(p => getScore(p.id) >= 3);
     } else if (situationModes.includes(mode)) {
-      pool = activePhrases.filter(p => p.tier !== 'Vocabulary');
+      pool = activePhrases;
     } else {
       pool = activePhrases;
     }
@@ -3363,7 +3347,6 @@ function renderCurrentExercise() {
     situation_mc: 'Situation', situation_speak: 'Situation',
     situation: 'Situation',
     speed_drill: 'Speed Drill',
-    vocab_mc: 'Vocabulary',
   };
   document.getElementById('exTypeBadge').textContent = typeLabels[type] || type;
 
@@ -3415,9 +3398,7 @@ function getDistractors(phrase, count) {
 
   // Strict tier matching
   let pool;
-  if (tier === 'Vocabulary') {
-    pool = all.filter(p => p.tier === 'Vocabulary');
-  } else if (tier === '1') {
+  if (tier === '1') {
     pool = all.filter(p => (p.tier || '1') === '1');
   } else {
     pool = all.filter(p => p.tier === tier);
