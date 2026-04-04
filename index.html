@@ -606,6 +606,94 @@ body::after {
   .mc-option { padding: 0.45rem 0.75rem; font-size: 0.85rem; }
   .phrase-native { font-size: 1.05rem; }
 }
+
+/* Coach mark overlay */
+.coach-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 500;
+  animation: coachFadeIn 0.2s ease both;
+}
+@keyframes coachFadeIn { from { opacity: 0; } to { opacity: 1; } }
+.coach-bubble {
+  position: absolute;
+  left: 1.5rem;
+  right: 1.5rem;
+  max-width: 340px;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  animation: fadeUp 0.3s ease both;
+}
+/* Arrow pointing up (bubble below target) */
+.coach-bubble.arrow-up::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 7px;
+  background: var(--surface);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+.coach-bubble.arrow-up::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 8px;
+  background: var(--border-hi);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  z-index: -1;
+}
+/* Arrow pointing down (bubble above target) */
+.coach-bubble.arrow-down::before {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 7px;
+  background: var(--surface);
+  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+}
+.coach-bubble.arrow-down::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 8px;
+  background: var(--border-hi);
+  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+  z-index: -1;
+}
+.coach-text {
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+.coach-dismiss {
+  background: none;
+  border: 1px solid var(--border-hi);
+  border-radius: var(--radius-sm);
+  color: var(--text-mid);
+  font-family: 'Lexend', sans-serif;
+  font-size: 0.72rem;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.coach-dismiss:hover { border-color: var(--text-mid); color: var(--text); }
 </style>
 </head>
 <body>
@@ -655,26 +743,22 @@ body::after {
 
     <!-- STATE 2: Mid-Foundation -->
     <div id="welcomeFoundation" class="hidden">
-      <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:2rem;">
+      <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.5rem;">
         <span style="font-size:1.6rem;">🇫🇷</span>
         <div class="eyebrow">Building Foundation</div>
       </div>
-      <div style="font-size:0.82rem; color:var(--text-dim); margin-bottom:1.25rem;" id="foundationProgress">0 of 15 phrases</div>
+      <div style="font-size:0.82rem; color:var(--text-dim); margin-bottom:1rem;" id="foundationProgress">0 of 15 phrases</div>
       <div id="foundationCapabilities" style="margin-bottom:1.5rem;"></div>
       <button class="btn-primary" id="foundationBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
-      <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.72rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.25rem 0 1rem;letter-spacing:0.04em;transition:color 0.15s;width:100%;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">View phrases</button>
+      <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">View phrases</button>
     </div>
 
     <!-- STATE 3: Experiences available -->
     <div id="welcomeExperiences" class="hidden">
-      <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.5rem;">
-        <span style="font-size:1.6rem;">🇫🇷</span>
-        <div class="eyebrow" id="experienceStageLabel">French</div>
-      </div>
-      <div id="experienceCapabilities" style="margin-bottom:1.5rem;"></div>
-      <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.5rem;" id="experienceTiles"></div>
+      <div id="experienceCapabilities" style="margin-bottom:1.25rem;"></div>
+      <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1.5rem;" id="experienceTiles"></div>
       <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Continue session →</button>
-      <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.72rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.25rem 0 1rem;letter-spacing:0.04em;transition:color 0.15s;width:100%;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">View all phrases</button>
+      <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">All phrases</button>
     </div>
 
   </div>
@@ -945,8 +1029,7 @@ body::after {
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:0;">
     <div style="font-size:2.5rem; margin-bottom:1.5rem;">✦</div>
     <h2 class="serif" style="font-size:2.2rem; margin-bottom:0.5rem;">Session complete.</h2>
-    <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:2rem; max-width:300px;" id="completionMsg"></p>
-    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center; margin-bottom:2.5rem;" id="completionLangs"></div>
+    <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:300px;" id="completionMsg"></p>
     <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
     <button class="btn-ghost" onclick="goHome()">Home</button>
   </div>
@@ -962,6 +1045,9 @@ body::after {
   </div>
 </div>
 
+<!-- Coach mark overlay (injected dynamically) -->
+<div id="coachOverlay" class="coach-overlay" style="display:none;"></div>
+
 </div><!-- .app -->
 
 <!-- ═══════════════════════════════════════════════════
@@ -974,7 +1060,7 @@ body::after {
     <button onclick="closeDevPanel()" style="background:none;border:none;color:var(--text-dim);font-size:1rem;cursor:pointer;padding:0.25rem;line-height:1;">✕</button>
   </div>
   <div style="overflow-y:auto; padding:0 1.25rem 2rem; display:flex; flex-direction:column; gap:0.5rem;">
-    <button onclick="devSetTier1Score2()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all Tier 1 → score 2 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock Recovery)</span></button>
+    <button onclick="devSetTier1Score3()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all Tier 1 → score 3 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock Recovery)</span></button>
     <button onclick="devSetAllScore3()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all → score 3 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock everything)</span></button>
     <button onclick="devResetAll()" style="background:var(--card);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--red);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Reset everything <span style="color:var(--text-dim); font-size:0.68rem;">(clear all progress)</span></button>
     <button onclick="devShowScores()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Show current scores</button>
@@ -1003,6 +1089,389 @@ body::after {
 
 let AUDIO_MANIFEST = {};
 fetch('audio/manifest.json').then(r => r.json()).then(m => { AUDIO_MANIFEST = m; }).catch(() => {});
+
+const EXPERIENCES = [
+  {
+    "id": "recKHqZ1CdtvVQ2QR",
+    "name": "Out and About",
+    "emoji": "🛍️",
+    "language": "French",
+    "culturalNote": "Staff will approach you and that's normal, not pushy. A smile and je regarde (just looking) is all you need and they'll back off immediately. If you need to ask whether they have something, your phone is your friend: show a picture and ask.",
+    "depthLevel": "Level 1 — Survive it",
+    "status": "Planned",
+    "region": "France",
+    "arc": ""
+  },
+  {
+    "id": "recU1DH7dh9PNUz87",
+    "name": "Out and About",
+    "emoji": "🛍️",
+    "language": "French",
+    "culturalNote": "Staff will approach you and that's normal, not pushy. A smile and je regarde (just looking) is all you need and they'll back off immediately. If you need to ask whether they have something, your phone is your friend: show a picture and ask.",
+    "depthLevel": "Level 2 — Handle it",
+    "status": "Planned",
+    "region": "France",
+    "arc": ""
+  },
+  {
+    "id": "rechFazMe5xtYVFEl",
+    "name": "At the Café",
+    "emoji": "☕",
+    "language": "French",
+    "culturalNote": "You might feel ignored. You're not. French servers give you space on purpose. When you're ready to order or pay, make eye contact and give a small nod. They're watching. You won't need to wave or call out.",
+    "depthLevel": "Level 3 — Own it",
+    "status": "Planned",
+    "region": "France",
+    "arc": ""
+  },
+  {
+    "id": "recitU9rUzdruB9ec",
+    "name": "At the Café",
+    "emoji": "☕",
+    "language": "French",
+    "culturalNote": "You might feel ignored. You're not. French servers give you space on purpose. When you're ready to order or pay, make eye contact and give a small nod. They're watching. You won't need to wave or call out.",
+    "depthLevel": "Level 1 — Survive it",
+    "status": "In progress",
+    "region": "France",
+    "arc": "You walk in and find a table. At a casual café in France, seating yourself is usually fine — make brief eye contact with the server as you sit down.\n\n[Sébastien] \"Vous désirez?\" — the server walks over\n\n[Emile] \"Un café, s'il vous plaît\"\n\n[Sébastien] \"C'est tout?\"\n\n[Emile] \"Oui\"\n\nA few minutes pass. Once you've ordered, no one will rush you. Sitting for an hour over one coffee is completely normal — the table is yours.\n\n[Sébastien] \"Voilà\" — the server sets your coffee down\n\n[Emile] \"Merci\"\n\nWhen you're ready to leave, the bill won't come on its own. You have to ask for it — waiting without asking could mean waiting forever.\n\n[Emile] \"L'addition, s'il vous plaît\"\n\nThe server brings the bill. Service is already included by law in France — leaving nothing is completely fine. If you want to leave something, rounding up a euro or two is plenty. Leaving a huge tip can actually feel awkward to a French server.\n\nYou pay and leave."
+  },
+  {
+    "id": "recpdZZlWO2xQHPBu",
+    "name": "At the Restaurant",
+    "emoji": "🍽️",
+    "language": "French",
+    "culturalNote": "The bill won't come until you ask for it. That's not slow service, that's giving you space to linger. And don't stress about tipping. In France, leaving nothing is completely normal. Rounding up a euro or two is generous.",
+    "depthLevel": "Level 2 — Handle it",
+    "status": "Planned",
+    "region": "France",
+    "arc": ""
+  },
+  {
+    "id": "recphiQnoXOJCUVUj",
+    "name": "At the Restaurant",
+    "emoji": "🍽️",
+    "language": "French",
+    "culturalNote": "The bill won't come until you ask for it. That's not slow service, that's giving you space to linger. And don't stress about tipping. In France, leaving nothing is completely normal. Rounding up a euro or two is generous.",
+    "depthLevel": "Level 1 — Survive it",
+    "status": "Planned",
+    "region": "France",
+    "arc": ""
+  },
+  {
+    "id": "recy2LslbmgtLwNqY",
+    "name": "At the Café",
+    "emoji": "☕",
+    "language": "French",
+    "culturalNote": "You might feel ignored. You're not. French servers give you space on purpose. When you're ready to order or pay, make eye contact and give a small nod. They're watching. You won't need to wave or call out.",
+    "depthLevel": "Level 2 — Handle it",
+    "status": "Planned",
+    "region": "France",
+    "arc": ""
+  }
+];
+
+const TRIGGER_PHRASES = [
+  {
+    "id": "rec8a5rL2Bdw4KwE8",
+    "triggerPhrase": "Vous avez choisi?",
+    "signal": "They're ready for your order",
+    "type": "Respond",
+    "language": "French",
+    "experience": "At the Restaurant",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You're seated. The server comes to your table after you've had a chance to look at the menu.",
+    "romanization": "voo za-VAY shwah-ZEE",
+    "distractors": [
+      "They're asking if you have a reservation",
+      "They're asking if everything is OK",
+      "They're asking if you want the bill"
+    ],
+    "fileName": "T8_French_Hugo.mp3",
+    "audioRecorded": true,
+    "sortOrder": 5,
+    "voice": "Hugo"
+  },
+  {
+    "id": "rec8lGlbifed5CABs",
+    "triggerPhrase": "Je peux vous aider?",
+    "signal": "They're offering to help you",
+    "type": "Respond",
+    "language": "French",
+    "experience": "Out and About",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You're looking around. A staff member walks over.",
+    "romanization": "zhuh puh voo zay-DAY",
+    "distractors": [
+      "They're asking you to follow them",
+      "They're asking how much you want to spend",
+      "They're telling you the shop is closing"
+    ],
+    "fileName": "T13_French_Claudia.mp3",
+    "audioRecorded": true,
+    "sortOrder": 2,
+    "voice": "Claudia"
+  },
+  {
+    "id": "rec9uhDimyx6bSC9U",
+    "triggerPhrase": "Vous avez une réservation?",
+    "signal": "They're asking if you have a reservation",
+    "type": "Respond",
+    "language": "French",
+    "experience": "At the Restaurant",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "The host is ready to find you a table.",
+    "romanization": "voo za-VAY oon ray-zer-VAH-syon",
+    "distractors": [
+      "They're asking how many people are in your party",
+      "They're asking what you'd like to drink",
+      "They're asking you to follow them"
+    ],
+    "fileName": "T5_French_Audia.mp3",
+    "audioRecorded": true,
+    "sortOrder": 2,
+    "voice": "Audia"
+  },
+  {
+    "id": "recL8aMr642aXlYfr",
+    "triggerPhrase": "Voilà",
+    "signal": "Something is being placed in front of you",
+    "type": "React",
+    "language": "French",
+    "experience": "At the Café",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "Your coffee arrives at the table.",
+    "romanization": "vwah-LAH",
+    "distractors": [
+      "They're asking if you want anything else",
+      "They're asking you to pay",
+      "They want to take your order"
+    ],
+    "fileName": "T3_French_Sebastien.mp3",
+    "audioRecorded": true,
+    "sortOrder": 3,
+    "voice": "Sébastien"
+  },
+  {
+    "id": "recMY1X9fS0dpTeMl",
+    "triggerPhrase": "Pour combien de personnes?",
+    "signal": "They're asking how many people are in your party",
+    "type": "Respond",
+    "language": "French",
+    "experience": "At the Restaurant",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You said you don't have a reservation. The host looks for a table.",
+    "romanization": "poor kom-BYAN duh pair-SON",
+    "distractors": [
+      "They're asking if you have a reservation",
+      "They're asking what you want to drink",
+      "They're asking you to wait"
+    ],
+    "fileName": "T6_French_Audia.mp3",
+    "audioRecorded": true,
+    "sortOrder": 3,
+    "voice": "Audia"
+  },
+  {
+    "id": "recS3NlKp7ibzxZZH",
+    "triggerPhrase": "Suivez-moi",
+    "signal": "Follow them to your table",
+    "type": "Recognize",
+    "language": "French",
+    "experience": "At the Restaurant",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "The host has found a table and turns to walk.",
+    "romanization": "swee-VAY mwah",
+    "distractors": [
+      "They're asking you to wait",
+      "They're asking what you'd like",
+      "They're bringing your bill"
+    ],
+    "fileName": "T7_French_Audia.mp3",
+    "audioRecorded": true,
+    "sortOrder": 4,
+    "voice": "Audia"
+  },
+  {
+    "id": "recUCKlyR1pR7Dzfq",
+    "triggerPhrase": "Voilà votre monnaie",
+    "signal": "They're handing you your change",
+    "type": "React",
+    "language": "French",
+    "experience": "Out and About",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You've paid. They count out your change and hand it over.",
+    "romanization": "vwah-LAH voh-truh moh-NAY",
+    "distractors": [
+      "They're asking if you want a bag",
+      "They're telling you the total",
+      "They're asking if you have a loyalty card"
+    ],
+    "fileName": "T14_French_Claudia.mp3",
+    "audioRecorded": true,
+    "sortOrder": 3,
+    "voice": "Claudia"
+  },
+  {
+    "id": "reccY7o90lZykkp4W",
+    "triggerPhrase": "Bonne journée",
+    "signal": "They're wishing you a good day",
+    "type": "React",
+    "language": "French",
+    "experience": "Out and About",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You're heading for the door. The person behind the counter says something.",
+    "romanization": "bun zhoor-NAY",
+    "distractors": [
+      "They're asking you to come back",
+      "They're asking if you found everything",
+      "They're telling you the shop is closing"
+    ],
+    "fileName": "T15_French_Claudia.mp3",
+    "audioRecorded": true,
+    "sortOrder": 4,
+    "voice": "Claudia"
+  },
+  {
+    "id": "recfo0HBzNzukxgyy",
+    "triggerPhrase": "Bon appétit",
+    "signal": "They're wishing you a good meal",
+    "type": "React",
+    "language": "French",
+    "experience": "At the Restaurant",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "The server sets down your food and pauses.",
+    "romanization": "bon a-pay-TEE",
+    "distractors": [
+      "They're asking if you want anything else",
+      "They're asking you to follow them",
+      "They're asking if you have a reservation"
+    ],
+    "fileName": "T10_French_Hugo.mp3",
+    "audioRecorded": true,
+    "sortOrder": 7,
+    "voice": "Hugo"
+  },
+  {
+    "id": "recjnUwSDvri7WisX",
+    "triggerPhrase": "Bonjour",
+    "signal": "They're greeting you",
+    "type": "React",
+    "language": "French",
+    "experience": "Out and About",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You walk into a small shop. The person behind the counter looks up.",
+    "romanization": "bohn-ZHOOR",
+    "distractors": [
+      "They're asking if they can help you",
+      "They're asking what you want to buy",
+      "They're telling you the price"
+    ],
+    "fileName": "T12_French_Claudia.mp3",
+    "audioRecorded": true,
+    "sortOrder": 1,
+    "voice": "Claudia"
+  },
+  {
+    "id": "recmoOc5X8paFxvre",
+    "triggerPhrase": "Vous désirez?",
+    "signal": "They want your order",
+    "type": "Respond",
+    "language": "French",
+    "experience": "At the Café",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You just sat down. The server walks over.",
+    "romanization": "voo day-zee-RAY",
+    "distractors": [
+      "They're asking if you have a reservation",
+      "They're bringing your bill",
+      "They're asking you to follow them"
+    ],
+    "fileName": "T1_French_Sebastien.mp3",
+    "audioRecorded": true,
+    "sortOrder": 1,
+    "voice": "Sébastien"
+  },
+  {
+    "id": "recpH2auf2EIPAp0h",
+    "triggerPhrase": "C'est tout?",
+    "signal": "They're asking if that's everything",
+    "type": "Respond",
+    "language": "French",
+    "experience": "At the Café",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You've ordered. The server pauses and looks at you.",
+    "romanization": "say TOO",
+    "distractors": [
+      "They're telling you the total price",
+      "They're asking what you'd like",
+      "They're saying your order is ready"
+    ],
+    "fileName": "T2_French_Sebastien.mp3",
+    "audioRecorded": true,
+    "sortOrder": 2,
+    "voice": "Sébastien"
+  },
+  {
+    "id": "recuaCIw771oLBoTp",
+    "triggerPhrase": "Voilà l'addition",
+    "signal": "The bill is being placed in front of you",
+    "type": "React",
+    "language": "French",
+    "experience": "At the Restaurant",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You've finished eating. The server comes over with a piece of paper.",
+    "romanization": "vwah-LAH lah-dee-SYON",
+    "distractors": [
+      "They're asking if you want dessert",
+      "They're asking if everything was OK",
+      "They're asking you to follow them"
+    ],
+    "fileName": "T11_French_Hugo.mp3",
+    "audioRecorded": true,
+    "sortOrder": 8,
+    "voice": "Hugo"
+  },
+  {
+    "id": "recxyKmL5ARW13lOB",
+    "triggerPhrase": "Bonsoir",
+    "signal": "They're greeting you",
+    "type": "React",
+    "language": "French",
+    "experience": "At the Restaurant",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "You approach the restaurant entrance. The host looks up.",
+    "romanization": "bon-SWAHR",
+    "distractors": [
+      "They're asking if you have a reservation",
+      "They're asking how many people",
+      "They're telling you to follow them"
+    ],
+    "fileName": "T4_French_Audia.mp3",
+    "audioRecorded": true,
+    "sortOrder": 1,
+    "voice": "Audia"
+  },
+  {
+    "id": "recyV12tjMTV20m4p",
+    "triggerPhrase": "Voilà",
+    "signal": "Your food is being placed in front of you",
+    "type": "React",
+    "language": "French",
+    "experience": "At the Restaurant",
+    "depthLevel": "Level 1 — Survive it",
+    "scenePrompt": "Your food arrives at the table.",
+    "romanization": "vwah-LAH",
+    "distractors": [
+      "They're asking if you want anything else",
+      "They're asking you to pay",
+      "They want to take your order"
+    ],
+    "fileName": "T9_French_Hugo.mp3",
+    "audioRecorded": true,
+    "sortOrder": 6,
+    "voice": "Hugo"
+  }
+];
 
 const PHRASES = [
   {
@@ -2178,8 +2647,14 @@ function getScore(phraseId) {
 }
 
 function bumpScore(phraseId, to, correct = true) {
+  const wasSeen = getScore(phraseId) >= 1;
   if (getScore(phraseId) < to) {
     state.scores[phraseId] = to;
+  }
+  // Track first-time introductions for session pacing
+  if (!wasSeen && getScore(phraseId) >= 1) {
+    const count = parseInt(localStorage.getItem('tt_seenPhraseCount') || '0', 10);
+    localStorage.setItem('tt_seenPhraseCount', String(count + 1));
   }
   recordLeitner(phraseId, correct);
   saveState();
@@ -2448,6 +2923,7 @@ function nextBuildupStep() {
   if (state.session.buildupStep >= buildup.length) {
     // Buildup complete — show phrase reveal card before continuing
     const phrase = _buildupPhrase;
+    if (phrase.tier === 'Recovery') state.session._completedRecovery = true;
     bumpScore(phrase.id, 1);
     state.session.inBuildup = false;
     _buildupPhrase = null;
@@ -2483,15 +2959,16 @@ function checkUnlocks() {
   const recovery = playable.filter(p => p.tier === 'Recovery');
   const vocab = playable.filter(p => p.tier === 'Vocabulary');
 
-  // Recovery unlocks when ALL playable tier 1 phrases are at score 2+
-  // AND the buildup prerequisite words have been seen (score 1+).
+  // Recovery unlocks when ALL playable tier 1 phrases are at score 3+
+  // (genuine recall across multiple spaced repetition intervals)
+  // AND the buildup prerequisite words are at score 2+.
   // français and anglais don't have recorded audio yet, so we check
   // only Désolé for now. When audio is added for français/anglais,
-  // they'll be gated by the tier1.every(score >= 2) check automatically.
+  // they'll be gated by the tier1.every(score >= 3) check automatically.
   if (!localStorage.getItem('tt_recoveryUnlocked')) {
-    if (tier1.length && tier1.every(p => getScore(p.id) >= 2)) {
+    if (tier1.length && tier1.every(p => getScore(p.id) >= 3)) {
       const desole = PHRASES.find(p => p.native === 'Désolé' && (p.tier || '1') === '1' && p.audioRecorded);
-      if (desole && getScore(desole.id) >= 1) {
+      if (desole && getScore(desole.id) >= 2) {
         localStorage.setItem('tt_recoveryUnlocked', 'true');
         return 'recovery';
       }
@@ -2587,8 +3064,9 @@ function startSessionWithMode(mode) {
 
   if (mode === 'lesson') {
     const SESSION_SIZE = state.sessionLength === 'long' ? 8 : 3;
+    const seenCount = parseInt(localStorage.getItem('tt_seenPhraseCount') || '0', 10);
 
-    // Foundation phrases (tier 1) that have never been seen must be introduced in sortOrder
+    // Foundation phrases (tier 1) that have never been seen, in sortOrder
     const unseenFoundation = activePhrases
       .filter(p => (p.tier || '1') === '1' && getScore(p.id) === 0)
       .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
@@ -2598,13 +3076,30 @@ function startSessionWithMode(mode) {
     const due = shuffle(seenPhrases.filter(p => isPhrasedue(p.id)));
     const notDue = shuffle(seenPhrases.filter(p => !isPhrasedue(p.id)));
 
-    // Fill session: unseen foundation first (in order), then due, then not-due
-    const selected = [...unseenFoundation, ...due, ...notDue].slice(0, SESSION_SIZE);
+    // New-user pacing: limit new introductions based on tt_seenPhraseCount
+    let maxNew;
+    if (seenCount === 0) maxNew = 3;       // Session 1: max 3 new
+    else if (seenCount <= 3) maxNew = 0;   // Session 2: review only
+    else if (seenCount <= 5) maxNew = 2;   // Session 3: max 2 new
+    else maxNew = SESSION_SIZE;             // Session 4+: normal
 
-    // Track how many unseen foundation phrases made it into this session
-    const unseenInSession = Math.min(unseenFoundation.length, SESSION_SIZE);
+    const newToIntroduce = unseenFoundation.slice(0, maxNew);
+    const reviewPhrases = [...due, ...notDue];
 
-    // Build per-wave pools (wave 0 = each phrase's first exercise, etc.)
+    // Review first, then new introductions (new users review before seeing new)
+    let selected;
+    if (seenCount < 6) {
+      selected = [...reviewPhrases, ...newToIntroduce].slice(0, SESSION_SIZE);
+    } else {
+      // Normal mode: unseen foundation first (in sortOrder), then review
+      selected = [...newToIntroduce, ...reviewPhrases].slice(0, SESSION_SIZE);
+    }
+
+    // Track how many new introductions are in this session and their position
+    const newIds = new Set(newToIntroduce.map(p => p.id));
+    const newInSession = selected.filter(p => newIds.has(p.id)).length;
+
+    // Build per-wave pools
     const arcs = selected.map(p => ({ id: p.id, arc: getPhraseArc(p) }));
     const maxWaves = arcs.length ? Math.max(...arcs.map(a => a.arc.length)) : 0;
 
@@ -2613,19 +3108,22 @@ function startSessionWithMode(mode) {
       const pool = arcs
         .filter(a => w < a.arc.length)
         .map(a => ({ phraseId: a.id, type: a.arc[w] }));
-      pools.push(pool); // don't shuffle yet
+      pools.push(pool);
     }
 
-    // Build the queue preserving unseen foundation order at the front.
-    // The first unseenInSession items in pools[0] are already in sortOrder
-    // because selected[] starts with unseenFoundation in sortOrder.
-    // Shuffle only the remaining (seen/due) items in each pool.
+    // For early sessions (seenCount < 6): review phrases shuffled first, then new in sortOrder
+    // For normal sessions: new in sortOrder first, then review shuffled
     for (let w = 0; w < pools.length; w++) {
-      if (w === 0 && unseenInSession > 0) {
-        // Keep the first unseenInSession items in order, shuffle the rest
-        const ordered = pools[w].slice(0, unseenInSession);
-        const rest = shuffle(pools[w].slice(unseenInSession));
+      if (w === 0 && newInSession > 0 && seenCount >= 6) {
+        // Normal mode: keep new introductions in sortOrder at front, shuffle rest
+        const ordered = pools[w].slice(0, newInSession);
+        const rest = shuffle(pools[w].slice(newInSession));
         pools[w] = [...ordered, ...rest];
+      } else if (w === 0 && seenCount < 6) {
+        // Early pacing: review (shuffled) first, then new introductions in sortOrder at end
+        const reviewItems = pools[w].filter(item => !newIds.has(item.phraseId));
+        const newItems = pools[w].filter(item => newIds.has(item.phraseId));
+        pools[w] = [...shuffle(reviewItems), ...newItems];
       } else {
         pools[w] = shuffle(pools[w]);
       }
@@ -2873,6 +3371,14 @@ function renderListenPanel(phrase, type) {
   document.getElementById('listenNextBtn').classList.add('hidden');
   document.getElementById('listenTaskResult').className = 'result-bar';
 
+  // Listen coach mark — first listening exercise ever
+  showCoachMark('tt_seenListenCoachMark');
+
+  // Review coach mark — first time a previously-seen phrase comes back
+  if (getScore(phrase.id) >= 1) {
+    showCoachMark('tt_seenReviewCoachMark');
+  }
+
   let listenCallbackFired = false;
   audioEndedCallback = () => {
     if (listenCallbackFired) return;
@@ -3002,6 +3508,9 @@ function showPhraseRevealScreen(phrase) {
   clearTimeout(_skipTimer);
   document.getElementById('universalSkip').classList.add('hidden');
   showScreen('screenPhraseReveal');
+
+  // Vocab coach mark — first time seeing a phrase reveal card
+  showCoachMark('tt_seenVocabCoachMark');
 }
 
 function playRevealAudio() {
@@ -3020,6 +3529,9 @@ function renderSpeakPanel(phrase) {
   document.getElementById('heardText').textContent = '';
   document.getElementById('speakResult').className = 'result-bar';
   document.getElementById('speakNextBtn').classList.add('hidden');
+
+  // Speak coach mark — first speaking exercise ever
+  showCoachMark('tt_seenSpeakCoachMark');
 
   const score = getScore(phrase.id);
   // Scaffolding based on score
@@ -3516,16 +4028,18 @@ function showCompletion() {
   saveState();
 
   showScreen('screenComplete');
-  const msgs = [
-    "Every phrase you practiced today is a little more solid. Come back when you're ready and they'll feel more natural each time.",
-    "Your brain did real work. The phrases that felt tricky will click faster than you expect.",
-    "The recovery phrase alone will carry you through most situations. Everything else is a bonus.",
-  ];
-  document.getElementById('completionMsg').textContent = msgs[Math.floor(Math.random() * msgs.length)];
 
-  const langs = document.getElementById('completionLangs');
-  langs.innerHTML = '';
-  langs.innerHTML = '<span class="lang-pill fr">🇫🇷 French</span>';
+  // Context-aware completion copy
+  let msg;
+  if (state.session._completedRecovery) {
+    msg = "The recovery phrase alone will carry you through most situations. Everything else is a bonus.";
+    state.session._completedRecovery = false;
+  } else if (!localStorage.getItem('tt_recoveryUnlocked')) {
+    msg = "Each time you come back it gets a little easier. See you next time.";
+  } else {
+    msg = "Good work. Come back when you're ready for the next round.";
+  }
+  document.getElementById('completionMsg').textContent = msg;
 }
 
 
@@ -3540,8 +4054,8 @@ function showCompletion() {
 function getHomeState() {
   if (!hasAnyProgress()) return 'new';
   const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
-  const allTier1Score2 = tier1.length > 0 && tier1.every(p => getScore(p.id) >= 2);
-  if (allTier1Score2 && localStorage.getItem('tt_recoveryUnlocked')) return 'experiences';
+  const allTier1Score3 = tier1.length > 0 && tier1.every(p => getScore(p.id) >= 3);
+  if (allTier1Score3 && localStorage.getItem('tt_recoveryUnlocked')) return 'experiences';
   return 'foundation';
 }
 
@@ -3570,7 +4084,6 @@ function updateWelcomeScreen() {
     const total = tier1.length;
     document.getElementById('foundationProgress').textContent = `${seen} of ${total} phrases`;
 
-    // Button text: "Keep going" or "Practice anyway" if all caught up
     const activePhrases = getActivePhrases();
     const dueCount = getDueCount(activePhrases);
     const allCaughtUp = dueCount === 0 && activePhrases.every(p => !!state.leitner[p.id]);
@@ -3595,24 +4108,15 @@ function updateWelcomeScreen() {
   ];
 
   experiences.forEach(exp => {
-    const tile = document.createElement('button');
-    tile.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.25rem; cursor:pointer; transition:all 0.2s; width:100%; display:flex; align-items:center; gap:1rem; text-align:left;';
-    tile.onmouseover = () => { tile.style.borderColor = 'var(--border-hi)'; tile.style.transform = 'translateY(-1px)'; };
-    tile.onmouseout = () => { tile.style.borderColor = 'var(--border)'; tile.style.transform = 'none'; };
-    tile.onclick = () => startLesson();
-    tile.innerHTML = `
-      <span style="font-size:1.8rem;">${exp.emoji}</span>
-      <div style="flex:1;">
-        <div style="font-size:0.82rem; color:var(--text); font-weight:400;">${exp.name}</div>
-        <div style="font-size:0.68rem; color:var(--text-dim);">${exp.free ? 'Free' : '🔒 Coming soon'}</div>
-      </div>
-    `;
-    if (!exp.free) {
-      tile.style.opacity = '0.4';
-      tile.style.cursor = 'default';
-      tile.onclick = null;
-      tile.onmouseover = null;
-      tile.onmouseout = null;
+    const tile = document.createElement('div');
+    tile.style.cssText = 'display:flex; align-items:center; gap:0.75rem; padding:0.7rem 0; border-bottom:1px solid var(--border);';
+    if (exp.free) {
+      tile.style.cursor = 'pointer';
+      tile.onclick = () => startLesson();
+      tile.innerHTML = `<span style="font-size:1.2rem;">${exp.emoji}</span><span style="font-size:0.82rem; color:var(--text); flex:1;">${exp.name}</span><span style="font-size:0.65rem; color:var(--text-dim);">Free</span>`;
+    } else {
+      tile.style.opacity = '0.35';
+      tile.innerHTML = `<span style="font-size:1.2rem;">${exp.emoji}</span><span style="font-size:0.82rem; color:var(--text); flex:1;">${exp.name}</span><span style="font-size:0.65rem; color:var(--text-dim);">🔒</span>`;
     }
     tiles.appendChild(tile);
   });
@@ -3620,35 +4124,37 @@ function updateWelcomeScreen() {
 
 function renderCapabilities(container) {
   container.innerHTML = '';
-  const withLabel = PHRASES.filter(p => p.capabilityLabel);
-  if (!withLabel.length) return;
+  const unlocked = PHRASES.filter(p => p.capabilityLabel && getScore(p.id) >= 2);
+  if (!unlocked.length) return;
 
-  const unlocked = withLabel.filter(p => getScore(p.id) >= 2);
-  const locked = withLabel.filter(p => getScore(p.id) < 2);
-
-  if (!unlocked.length && !locked.length) return;
+  const MAX_SHOWN = 3;
+  const shown = unlocked.slice(-MAX_SHOWN); // most recently unlocked (highest sortOrder)
+  const extra = unlocked.length - shown.length;
 
   const heading = document.createElement('div');
-  heading.style.cssText = 'font-size:0.62rem; letter-spacing:0.28em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.6rem;';
+  heading.style.cssText = 'font-size:0.62rem; letter-spacing:0.28em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.5rem;';
   heading.textContent = 'You can now';
   container.appendChild(heading);
 
   const list = document.createElement('div');
-  list.style.cssText = 'display:flex; flex-direction:column; gap:0.35rem;';
+  list.style.cssText = 'display:flex; flex-direction:column; gap:0.3rem;';
 
-  unlocked.forEach(p => {
+  shown.forEach(p => {
     const row = document.createElement('div');
     row.style.cssText = 'display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; color:var(--text); line-height:1.4;';
     row.innerHTML = `<span style="color:var(--green); font-size:0.7rem;">&#10003;</span> ${p.capabilityLabel}`;
     list.appendChild(row);
   });
 
-  locked.forEach(p => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; gap:0.5rem; font-size:0.78rem; color:var(--text-dim); line-height:1.4; opacity:0.4;';
-    row.innerHTML = `<span style="font-size:0.7rem;">&#9679;</span> ${p.capabilityLabel}`;
-    list.appendChild(row);
-  });
+  if (extra > 0) {
+    const more = document.createElement('button');
+    more.style.cssText = 'background:none; border:none; color:var(--text-dim); font-size:0.72rem; font-family:\'Lexend\',sans-serif; cursor:pointer; padding:0.25rem 0 0; text-align:left; transition:color 0.15s;';
+    more.textContent = `and ${extra} more`;
+    more.onmouseover = () => { more.style.color = 'var(--text)'; };
+    more.onmouseout = () => { more.style.color = 'var(--text-dim)'; };
+    more.onclick = () => openVocabModal();
+    list.appendChild(more);
+  }
 
   container.appendChild(list);
 }
@@ -3656,6 +4162,102 @@ function renderCapabilities(container) {
 // Keep backward-compatible alias
 function updateWelcomeProgress() {
   updateWelcomeScreen();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// COACH MARKS
+// ═══════════════════════════════════════════════════════════════════
+
+// All coach mark definitions — foundation (1-4) and experience stubs (5-8)
+const COACH_MARKS = {
+  tt_seenListenCoachMark: {
+    text: "This app is built around hearing real French. Training your ear here is what makes the difference in the moment.",
+    target: 'listenCircle',
+  },
+  tt_seenReviewCoachMark: {
+    text: "You\u2019ve seen this before and that\u2019s intentional. Coming back to it is what moves it from short-term to long-term memory.",
+    target: 'listenCircle',
+  },
+  tt_seenVocabCoachMark: {
+    text: "Every new word gets a card like this. It\u2019s here to refer back to, not to memorize on the spot.",
+    target: 'screenPhraseReveal',
+  },
+  tt_seenSpeakCoachMark: {
+    text: "This is the part most language apps let you skip. Don\u2019t skip it. Saying it out loud is what makes it available to you when you need it.",
+    target: 'micBtn',
+  },
+  // Experience stubs — wire up when experience system is built
+  tt_seenExperiencePass1CoachMark: {
+    text: "Just listen. You\u2019ll recognize more than you think.",
+    target: null,
+  },
+  tt_seenExperiencePass2CoachMark: {
+    text: "Same exchange. This time the words appear as you hear them.",
+    target: null,
+  },
+  tt_seenExperiencePass3CoachMark: {
+    text: "One more time \u2014 now with context about what\u2019s actually happening.",
+    target: null,
+  },
+  tt_seenExperiencePracticeCoachMark: {
+    text: "You\u2019ve heard the whole thing. Now let\u2019s take it apart.",
+    target: null,
+  },
+};
+
+function showCoachMark(storageKey) {
+  if (localStorage.getItem(storageKey)) return;
+  const def = COACH_MARKS[storageKey];
+  if (!def) return;
+
+  const overlay = document.getElementById('coachOverlay');
+  const targetEl = def.target ? document.getElementById(def.target) : null;
+
+  // Determine position: place bubble below or above the target element
+  let arrowClass = 'arrow-up';
+  let topPx = '50%';
+  if (targetEl) {
+    const rect = targetEl.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const vh = window.innerHeight;
+    if (midY < vh * 0.5) {
+      // Target is in upper half — place bubble below it
+      arrowClass = 'arrow-up';
+      topPx = (rect.bottom + 12) + 'px';
+    } else {
+      // Target is in lower half — place bubble above it
+      arrowClass = 'arrow-down';
+      topPx = ''; // set via bottom instead
+    }
+  }
+
+  const bubble = document.createElement('div');
+  bubble.className = 'coach-bubble ' + arrowClass;
+  if (topPx) {
+    bubble.style.top = topPx;
+  } else if (targetEl) {
+    const rect = targetEl.getBoundingClientRect();
+    bubble.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
+  } else {
+    // No target — center vertically
+    bubble.style.top = '50%';
+    bubble.style.transform = 'translateY(-50%)';
+  }
+  bubble.innerHTML = `
+    <div class="coach-text">${def.text}</div>
+    <button class="coach-dismiss" onclick="dismissCoachMark('${storageKey}')">Got it</button>
+  `;
+
+  overlay.innerHTML = '';
+  overlay.appendChild(bubble);
+  overlay.style.display = 'block';
+}
+
+function dismissCoachMark(storageKey) {
+  localStorage.setItem(storageKey, 'true');
+  const overlay = document.getElementById('coachOverlay');
+  overlay.style.display = 'none';
+  overlay.innerHTML = '';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -3777,15 +4379,15 @@ function closeDevPanel() {
   setTimeout(() => { backdrop.style.display = 'none'; panel.style.display = 'none'; }, 350);
 }
 
-function devSetTier1Score2() {
+function devSetTier1Score3() {
   const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
   const tier1 = playable.filter(p => (p.tier || '1') === '1' && p.audioRecorded);
-  tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 2); });
+  tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
   localStorage.setItem('tt_recoveryUnlocked', 'true');
   state.seenTierUnlock.recovery = true;
   saveState();
   updateWelcomeScreen();
-  console.log('[dev] Tier 1 set to score 2. Recovery unlocked.');
+  console.log('[dev] Tier 1 set to score 3. Recovery unlocked.');
   closeDevPanel();
 }
 
