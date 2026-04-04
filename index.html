@@ -846,6 +846,7 @@ body::after {
       <div id="experienceCapabilities" style="margin-bottom:1.25rem;"></div>
       <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1.5rem;" id="experienceTiles"></div>
       <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Continue session →</button>
+      <button class="btn-ghost" onclick="startSituationSession()" style="margin-bottom:0.75rem;">Practice situations</button>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">All phrases</button>
     </div>
 
@@ -1147,8 +1148,8 @@ body::after {
     <div style="font-size:2.5rem; margin-bottom:1.5rem;">✦</div>
     <h2 class="serif" style="font-size:2.2rem; margin-bottom:0.5rem;">Session complete.</h2>
     <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:300px;" id="completionMsg"></p>
-    <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
-    <button class="btn-ghost" onclick="goHome()">Home</button>
+    <button class="btn-primary" id="completePrimaryBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
+    <button class="btn-ghost" id="completeSecondaryBtn" onclick="goHome()">Home</button>
   </div>
 </div>
 
@@ -3123,7 +3124,7 @@ const PHRASES = [
     ],
     "native": "Désolé, mon français est très limité — parlez-vous anglais?",
     "romanization": "day-zoh-LAY, mon frahn-SAY ay treh lee-mee-TAY, par-lay-VOO ahn-GLAY",
-    "note": "Lead with désolé (sorry), acknowledge your limitation, then ask for English. In France the gesture of trying matters before asking for accommodation.",
+    "note": "This phrase asks for English — but don't assume the answer will be yes. In Paris and in tourist-heavy areas, many people in hospitality speak some English. Outside cities, in markets, smaller towns, or with older generations, English may be limited or absent. The phrase still matters because making the effort in French first — désolé, mon français est très limité — signals respect before you ask. Even if they can't switch to English, saying this usually results in slower speech, gestures, or a colleague being called over. It keeps the interaction going rather than shutting it down.",
     "hasBuildup": true,
     "isBuildupChunk": false,
     "capabilityLabel": "Recover if French comes too fast",
@@ -3810,6 +3811,64 @@ function setSessionLength(len) {
 
 function startLesson() {
   startSessionWithMode('lesson');
+}
+
+function startSituationSession() {
+  if (typeof SITUATIONS === 'undefined') return;
+
+  const activePhrases = getActivePhrases().filter(p => getScore(p.id) >= 1);
+  const now = Date.now();
+  const MAX_EXERCISES = 8;
+
+  // Build candidate list: phrases that have situations available
+  let candidates = [];
+  for (const phrase of activePhrases) {
+    const situ = getSituationForPhrase(phrase);
+    if (!situ) continue;
+    const lastDate = parseInt(localStorage.getItem('tt_lastSituationDate_' + phrase.id) || '0', 10);
+    candidates.push({ phrase, situ, lastDate });
+  }
+
+  if (!candidates.length) return;
+
+  // Sort by least recently practiced
+  candidates.sort((a, b) => a.lastDate - b.lastDate);
+
+  // Ensure at least one recovery phrase scenario
+  const recoveryPhrase = activePhrases.find(p => p.tier === 'Recovery');
+  let selected = [];
+  if (recoveryPhrase) {
+    const recCandidate = candidates.find(c => c.phrase.id === recoveryPhrase.id);
+    if (recCandidate) {
+      selected.push(recCandidate);
+      candidates = candidates.filter(c => c.phrase.id !== recoveryPhrase.id);
+    }
+  }
+
+  // Fill remaining slots
+  const remaining = candidates.slice(0, MAX_EXERCISES - selected.length);
+  selected = [...selected, ...remaining];
+
+  // Shuffle
+  for (let i = selected.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [selected[i], selected[j]] = [selected[j], selected[i]];
+  }
+
+  // Cap
+  selected = selected.slice(0, MAX_EXERCISES);
+
+  // Build queue — all situation exercises
+  state.session.mode = 'situation_practice';
+  state.session.index = 0;
+  state.session.pendingUnlock = null;
+  state.session.queue = selected.map(c => ({ phraseId: c.phrase.id, type: 'situation' }));
+
+  // Track dates
+  selected.forEach(c => localStorage.setItem('tt_lastSituationDate_' + c.phrase.id, String(now)));
+
+  showScreen('screenExercise');
+  renderCurrentExercise();
 }
 
 function startPractice(mode) {
@@ -4879,7 +4938,9 @@ function showCompletion() {
 
   // Context-aware completion copy
   let msg;
-  if (state.session._completedRecovery) {
+  if (state.session.mode === 'situation_practice') {
+    msg = "Good work. The more you practice these moments, the more automatic they become.";
+  } else if (state.session._completedRecovery) {
     msg = "The recovery phrase alone will carry you through most situations. Everything else is a bonus.";
     state.session._completedRecovery = false;
   } else if (!localStorage.getItem('tt_recoveryUnlocked')) {
@@ -4888,6 +4949,20 @@ function showCompletion() {
     msg = "Good work. Come back when you're ready for the next round.";
   }
   document.getElementById('completionMsg').textContent = msg;
+
+  const primaryBtn = document.getElementById('completePrimaryBtn');
+  const secondaryBtn = document.getElementById('completeSecondaryBtn');
+  if (state.session.mode === 'situation_practice') {
+    primaryBtn.textContent = 'Done';
+    primaryBtn.onclick = () => goHome();
+    secondaryBtn.style.display = 'none';
+  } else {
+    primaryBtn.textContent = 'Keep going →';
+    primaryBtn.onclick = () => startLesson();
+    secondaryBtn.style.display = '';
+    secondaryBtn.textContent = 'Home';
+    secondaryBtn.onclick = () => goHome();
+  }
 }
 
 
