@@ -7,6 +7,7 @@ const BASE_ID = 'appkvW8Fy5q6eCKLa';
 const PHRASES_TABLE = 'tbljYanxfDihWhaMs';
 const TRIGGER_TABLE = 'tbltyfoXkuoNdP03O';
 const EXPERIENCES_TABLE = 'Experiences';
+const SITUATIONS_TABLE = 'tbldojSHHVbgGTPjD';
 const HTML_FILE = path.join(__dirname, 'index.html');
 
 const LANG_CODE = { French: 'fr', Dutch: 'nl', German: 'de' };
@@ -115,6 +116,23 @@ function recordToTrigger(record) {
   };
 }
 
+// ── Situations ──
+
+function recordToSituation(record) {
+  const f = record.fields;
+  return {
+    id: record.id,
+    scenario: f['Scenario'] || '',
+    contextLabel: f['Context Label'] || '',
+    phraseNative: f['Phrase (Native)'] || '',
+    englishHint: f['English Hint'] || '',
+    recoveryAlsoValid: f['Recovery Also Valid'] === true,
+    language: f['Language'] || 'French',
+    sortOrder: f['Sort Order'] || null,
+    scoreRange: f['Score Range'] || 'Any',
+  };
+}
+
 // ── Experiences ──
 
 function recordToExperience(record) {
@@ -134,7 +152,7 @@ function recordToExperience(record) {
 
 // ── HTML update ──
 
-function updateHtmlFile(phrases, triggerPhrases, experiences) {
+function updateHtmlFile(phrases, triggerPhrases, experiences, situations) {
   let html = fs.readFileSync(HTML_FILE, 'utf8');
 
   // Replace PHRASES array
@@ -163,8 +181,17 @@ function updateHtmlFile(phrases, triggerPhrases, experiences) {
     html = html.replace('const TRIGGER_PHRASES = ', expBlock + '\n\n' + 'const TRIGGER_PHRASES = ');
   }
 
+  // Replace or insert SITUATIONS array
+  const situPattern = /const SITUATIONS = \[[\s\S]*?\];/;
+  const situBlock = 'const SITUATIONS = ' + JSON.stringify(situations, null, 2) + ';';
+  if (situPattern.test(html)) {
+    html = html.replace(situPattern, situBlock);
+  } else {
+    html = html.replace('const EXPERIENCES = ', situBlock + '\n\n' + 'const EXPERIENCES = ');
+  }
+
   fs.writeFileSync(HTML_FILE, html, 'utf8');
-  console.log(`Updated index.html with ${phrases.length} phrases, ${triggerPhrases.length} trigger phrases, ${experiences.length} experiences`);
+  console.log(`Updated index.html with ${phrases.length} phrases, ${triggerPhrases.length} trigger phrases, ${experiences.length} experiences, ${situations.length} situations`);
 }
 
 function gitCommitAndPush() {
@@ -182,14 +209,15 @@ function gitCommitAndPush() {
 (async () => {
   console.log('Fetching records from Airtable...');
 
-  // Fetch all three tables in parallel
-  const [phraseRecords, triggerRecords, experienceRecords] = await Promise.all([
+  // Fetch all four tables in parallel
+  const [phraseRecords, triggerRecords, experienceRecords, situationRecords] = await Promise.all([
     fetchAllRecords(PHRASES_TABLE),
     fetchAllRecords(TRIGGER_TABLE),
     fetchAllRecords(EXPERIENCES_TABLE),
+    fetchAllRecords(SITUATIONS_TABLE),
   ]);
 
-  console.log(`Fetched ${phraseRecords.length} phrases, ${triggerRecords.length} trigger phrases, ${experienceRecords.length} experiences`);
+  console.log(`Fetched ${phraseRecords.length} phrases, ${triggerRecords.length} trigger phrases, ${experienceRecords.length} experiences, ${situationRecords.length} situations`);
 
   // Process phrases
   const allPhrases = phraseRecords.map(recordToPhrase);
@@ -201,6 +229,9 @@ function gitCommitAndPush() {
 
   // Process experiences
   const experiences = experienceRecords.map(recordToExperience);
+
+  // Process situations
+  const situations = situationRecords.map(recordToSituation);
 
   // Debug logging
   const recovery = phrases.filter(p => p.tier === 'Recovery');
@@ -218,6 +249,10 @@ function gitCommitAndPush() {
   const cafeL1 = experiences.find(e => e.name === 'At the Café' && e.depthLevel === 'Level 1 — Survive it');
   console.log(`Café L1 arc:`, cafeL1?.arc ? cafeL1.arc.slice(0, 80) + '...' : 'NOT FOUND');
 
-  updateHtmlFile(phrases, triggerPhrases, experiences);
+  const frenchSituations = situations.filter(s => s.language === 'French');
+  console.log(`French situations (${frenchSituations.length})`);
+  console.log(`Situations with recoveryAlsoValid (${situations.filter(s => s.recoveryAlsoValid).length})`);
+
+  updateHtmlFile(phrases, triggerPhrases, experiences, situations);
   gitCommitAndPush();
 })();
