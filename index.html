@@ -1148,7 +1148,7 @@ body::after {
 </div>
 
 <!-- Coach mark overlay (injected dynamically) -->
-<div id="coachOverlay" class="coach-overlay" style="display:none;"></div>
+<div id="coachOverlay" class="coach-overlay" style="display:none;" onclick="dismissActiveCoachMark()"></div>
 
 </div><!-- .app -->
 
@@ -1589,7 +1589,7 @@ const PHRASES = [
     "meaning": "That one, please",
     "meanings": [],
     "native": "Ça, s'il vous plaît",
-    "romanization": "<strong>SA</strong>, seel voo <strong>PLAY</strong>",
+    "romanization": "SA, seel voo PLAY",
     "note": "Ça technically means that, but French speakers use it freely when pointing at something nearby too. Point at anything — a pastry in a display case, a menu item, a bottle behind the bar — and ça works. Don't overthink it. The gesture does the work.",
     "hasBuildup": true,
     "isBuildupChunk": false,
@@ -1618,7 +1618,7 @@ const PHRASES = [
     "meaning": "A coffee, please",
     "meanings": [],
     "native": "Un café, s'il vous plaît",
-    "romanization": "un kah-<strong>FAY</strong>, seel voo <strong>PLAY</strong>",
+    "romanization": "un kah-FAY, seel voo PLAY",
     "note": "This is a pattern, not just a phrase. Swap café for any drink you know — une bière, un verre de vin, un thé, de l'eau — and the whole frame works. This one phrase unlocks every order at a café or bar.",
     "hasBuildup": true,
     "isBuildupChunk": false,
@@ -1647,7 +1647,7 @@ const PHRASES = [
     "meaning": "French",
     "meanings": [],
     "native": "français",
-    "romanization": "frahn-<strong>SAY</strong>",
+    "romanization": "frahn-SAY",
     "note": "Both the language and the nationality. Mon français means my French, as in my ability to speak it.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -1674,7 +1674,7 @@ const PHRASES = [
       "Exactly"
     ],
     "native": "Voilà",
-    "romanization": "vwah-<strong>LAH</strong>",
+    "romanization": "vwah-LAH",
     "note": "You'll hear this constantly from French speakers: when a waiter sets something in front of you, when a shopkeeper hands you change, when someone finishes explaining something. It's a verbal punctuation mark that means done, there it is, here you go. Knowing it means you're not confused when people say it to you.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -1703,7 +1703,7 @@ const PHRASES = [
     "meaning": "A table for two",
     "meanings": [],
     "native": "Une table pour deux",
-    "romanization": "oon <strong>TAB</strong>-luh poor <strong>DUH</strong>",
+    "romanization": "oon TAB-luh poor DUH",
     "note": "The first thing you say when you walk into a restaurant without a reservation. Hold up two fingers as you say it. The gesture and the words together are unmistakable.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -1730,7 +1730,7 @@ const PHRASES = [
       "sparkling water"
     ],
     "native": "eau",
-    "romanization": "<strong>OH</strong>",
+    "romanization": "OH",
     "note": "Eau alone means water. In restaurants you'll always be asked plate ou gazeuse, still or sparkling. Eau plate is still, eau gazeuse is sparkling. Tap water is free, ask for une carafe d'eau. Bottled water costs money.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -1764,7 +1764,7 @@ const PHRASES = [
     "meaning": "sorry",
     "meanings": [],
     "native": "désolé",
-    "romanization": "day-zoh-<strong>LAY</strong>",
+    "romanization": "day-zoh-LAY",
     "note": "The first word of your escape hatch. You'll learn what it's part of soon.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -1828,7 +1828,7 @@ const PHRASES = [
       "It's fine"
     ],
     "native": "Ça va",
-    "romanization": "sah <strong>VAH</strong>",
+    "romanization": "sah VAH",
     "note": "This two-syllable phrase does more work than almost any other in French. Ça va? is a question meaning how are you or you OK? Ça va as an answer means I'm fine or things are good. Ça va as a statement means something is acceptable or fine. You'll use all three versions within a single day.",
     "hasBuildup": true,
     "isBuildupChunk": false,
@@ -1898,7 +1898,7 @@ const PHRASES = [
     "meaning": "The bathrooms?",
     "meanings": [],
     "native": "Les toilettes?",
-    "romanization": "lay twah-<strong>LET</strong>",
+    "romanization": "lay twah-LET",
     "note": "The full grammatically correct version is Où sont les toilettes? but in real spoken French just saying les toilettes? with a slightly questioning tone while looking lost works perfectly. The word toilettes alone with the right expression usually does it.",
     "hasBuildup": true,
     "isBuildupChunk": false,
@@ -1967,7 +1967,7 @@ const PHRASES = [
     "meaning": "Do you have this?",
     "meanings": [],
     "native": "Est-ce que vous avez ça?",
-    "romanization": "ess-kuh voo za-<strong>VAY</strong> sa",
+    "romanization": "ess-kuh voo za-VAY sa",
     "note": "Show your phone with a picture of what you need. This phrase does the rest. Works in pharmacies, shops, markets, anywhere you need something specific but don't know the word.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -1994,7 +1994,7 @@ const PHRASES = [
       "I'm done"
     ],
     "native": "C'est bon",
-    "romanization": "say <strong>BON</strong>",
+    "romanization": "say BON",
     "note": "Signals approval, satisfaction, or that you're done. Different from c'est délicieux — that's a compliment about food. C'est bon just means it's fine, acceptable, or you're finished. Locals say this constantly.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -2060,7 +2060,7 @@ const PHRASES = [
     "meaning": "How much is it?",
     "meanings": [],
     "native": "C'est combien?",
-    "romanization": "say kom-<strong>BYAN</strong>",
+    "romanization": "say kom-BYAN",
     "note": "Works in any shop, market, or stall. Point at the thing first, then ask. The answer will be a number, so focus on catching the digits.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -2120,7 +2120,7 @@ const PHRASES = [
     "meaning": "Just looking",
     "meanings": [],
     "native": "Je regarde",
-    "romanization": "zhuh ruh-<strong>GARD</strong>",
+    "romanization": "zhuh ruh-GARD",
     "note": "The phrase that ends the approach. Say it with a smile and shop staff will leave you alone. That's the expectation, not a brush-off.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -2294,7 +2294,7 @@ const PHRASES = [
     "meaning": "coffee",
     "meanings": [],
     "native": "café",
-    "romanization": "kah-<strong>FAY</strong>",
+    "romanization": "kah-FAY",
     "note": "The most ordered thing in France. Un café is a single shot espresso — what French people drink standing at a bar. If you want something longer ask for un grand café or un café allongé.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -2323,7 +2323,7 @@ const PHRASES = [
     "meaning": "English",
     "meanings": [],
     "native": "anglais",
-    "romanization": "ahn-<strong>GLAY</strong>",
+    "romanization": "ahn-GLAY",
     "note": "The language, not the nationality. Parlez-vous anglais? means do you speak English? It's the most useful question you can ask.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -2346,7 +2346,7 @@ const PHRASES = [
     "meaning": "beer",
     "meanings": [],
     "native": "bière",
-    "romanization": "bee-<strong>AIR</strong>",
+    "romanization": "bee-AIR",
     "note": "Une bière pression is a draft beer, une bière en bouteille is bottled. Just saying une bière is completely fine and gets you a beer.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -2412,7 +2412,7 @@ const PHRASES = [
     "meaning": "I don't understand",
     "meanings": [],
     "native": "Je comprends pas",
-    "romanization": "zhuh kom-<strong>PRAHN</strong> pah",
+    "romanization": "zhuh kom-PRAHN pah",
     "note": "The grammatically correct version is je ne comprends pas. The ne is dropped in almost all spoken French. Both are understood, both are fine. This is shorter and more immediate than the recovery phrase. Use it when you understood the words but not the meaning, or when someone speaks too fast.",
     "hasBuildup": true,
     "isBuildupChunk": false,
@@ -2480,7 +2480,7 @@ const PHRASES = [
     "meaning": "wine",
     "meanings": [],
     "native": "vin",
-    "romanization": "<strong>VAN</strong>",
+    "romanization": "VAN",
     "note": "Vin rouge is red, vin blanc is white, vin rosé is rosé. Un verre de vin is a glass of wine. You'll hear this constantly in restaurants.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -2509,7 +2509,7 @@ const PHRASES = [
     "meaning": "tea",
     "meanings": [],
     "native": "thé",
-    "romanization": "<strong>TAY</strong>",
+    "romanization": "TAY",
     "note": "Un thé is perfectly sufficient. Thé au lait is tea with milk, thé citron is with lemon. France is coffee country so tea is always available but not the default.",
     "hasBuildup": false,
     "isBuildupChunk": false,
@@ -2575,7 +2575,7 @@ const PHRASES = [
     "meaning": "The bill, please",
     "meanings": [],
     "native": "L'addition, s'il vous plaît",
-    "romanization": "lah-dee-<strong>SYON</strong>, seel voo <strong>PLAY</strong>",
+    "romanization": "lah-dee-SYON, seel voo PLAY",
     "note": "You can also just catch the waiter's eye and mime signing a check — universally understood. But having the words ready feels better. In Belgium you might hear l'addition or de rekening depending on which region you're in.",
     "hasBuildup": true,
     "isBuildupChunk": false,
@@ -2818,6 +2818,11 @@ function getAudio(key) {
 // Returns the native text formatted for the given context.
 // context='card'     → learning face: lowercase first letter unless alwaysCapitalize
 // context='response' → response option: capitalize first letter unless already capitalized
+// Strip HTML tags from romanization (safety net for legacy data)
+function stripHtmlTags(str) {
+  return str.replace(/<[^>]*>/g, '');
+}
+
 function displayNative(phrase, context) {
   const raw = phrase.native;
   if (!raw) return raw;
@@ -3600,7 +3605,7 @@ function showPhraseRevealScreen(phrase) {
   _revealPhrase = phrase;
   document.getElementById('revealEmoji').textContent = phrase.emoji || '';
   document.getElementById('revealNative').textContent = displayNative(phrase, 'response');
-  document.getElementById('revealRoman').textContent = phrase.romanization || '';
+  document.getElementById('revealRoman').textContent = stripHtmlTags(phrase.romanization || '');
   const allMeanings = getAllMeanings(phrase);
   if (allMeanings.length > 1) {
     document.getElementById('revealMeaning').innerHTML = allMeanings.map(m => m.toUpperCase()).join('<br>');
@@ -3639,7 +3644,7 @@ function renderSpeakPanel(phrase) {
   const score = getScore(phrase.id);
   // Scaffolding based on score
   document.getElementById('speakMeaning').textContent = getMeaning(phrase).toUpperCase();
-  document.getElementById('speakRoman').innerHTML = score < 3 ? phrase.romanization : '';
+  document.getElementById('speakRoman').textContent = score < 3 ? stripHtmlTags(phrase.romanization || '') : '';
   document.getElementById('speakNative').textContent = score < 4 ? displayNative(phrase, 'card') : '';
 
   // Set recognition language
@@ -4813,11 +4818,18 @@ const COACH_MARKS = {
   },
 };
 
+let _activeCoachMarkKey = null;
+
+function dismissActiveCoachMark() {
+  if (_activeCoachMarkKey) dismissCoachMark(_activeCoachMarkKey);
+}
+
 function showCoachMark(storageKey) {
   if (localStorage.getItem(storageKey)) return;
   const def = COACH_MARKS[storageKey];
   if (!def) return;
 
+  _activeCoachMarkKey = storageKey;
   const overlay = document.getElementById('coachOverlay');
   const targetEl = def.target ? document.getElementById(def.target) : null;
 
@@ -4855,6 +4867,7 @@ function showCoachMark(storageKey) {
     <div class="coach-text">${def.text}</div>
     <button class="coach-dismiss" onclick="dismissCoachMark('${storageKey}')">Got it</button>
   `;
+  bubble.onclick = (e) => e.stopPropagation();
 
   overlay.innerHTML = '';
   overlay.appendChild(bubble);
@@ -4863,6 +4876,7 @@ function showCoachMark(storageKey) {
 
 function dismissCoachMark(storageKey) {
   localStorage.setItem(storageKey, 'true');
+  _activeCoachMarkKey = null;
   const overlay = document.getElementById('coachOverlay');
   overlay.style.display = 'none';
   overlay.innerHTML = '';
