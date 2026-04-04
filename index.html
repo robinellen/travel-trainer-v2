@@ -947,8 +947,8 @@ body::after {
     <h2 class="serif" style="font-size:2.2rem; margin-bottom:0.5rem;">Session complete.</h2>
     <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:2rem; max-width:300px;" id="completionMsg"></p>
     <div style="display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center; margin-bottom:2.5rem;" id="completionLangs"></div>
-    <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Practice again</button>
-    <button class="btn-ghost" onclick="goHome()">Back to start</button>
+    <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
+    <button class="btn-ghost" onclick="goHome()">Home</button>
   </div>
 </div>
 
@@ -1080,7 +1080,7 @@ const PHRASES = [
     "hasBuildup": false,
     "isBuildupChunk": false,
     "capabilityLabel": "",
-    "audioRecorded": false,
+    "audioRecorded": true,
     "situations": [],
     "situationEarly": [],
     "situationLate": [],
@@ -1095,7 +1095,7 @@ const PHRASES = [
     "sortOrder": null,
     "alwaysCapitalize": true,
     "emoji": "✨",
-    "meaning": "There you go / Here it is / Exactly",
+    "meaning": "There you go",
     "meanings": [
       "There you go",
       "Here it is",
@@ -1151,7 +1151,7 @@ const PHRASES = [
     "sortOrder": null,
     "alwaysCapitalize": false,
     "emoji": "💧",
-    "meaning": "water / still water / sparkling water",
+    "meaning": "water",
     "meanings": [
       "water",
       "still water",
@@ -1249,7 +1249,7 @@ const PHRASES = [
     "sortOrder": null,
     "alwaysCapitalize": true,
     "emoji": "👋",
-    "meaning": "How are you / I'm fine / It's fine",
+    "meaning": "How are you?",
     "meanings": [
       "How are you?",
       "I'm fine",
@@ -1282,7 +1282,7 @@ const PHRASES = [
     "sortOrder": 9,
     "alwaysCapitalize": false,
     "emoji": "👍",
-    "meaning": "OK / Got it / Agreed",
+    "meaning": "OK",
     "meanings": [
       "OK",
       "Got it",
@@ -1352,7 +1352,7 @@ const PHRASES = [
     "sortOrder": 7,
     "alwaysCapitalize": false,
     "emoji": "😬",
-    "meaning": "Pardon / Sorry (quick)",
+    "meaning": "Pardon",
     "meanings": [
       "Pardon",
       "Sorry (quick)"
@@ -1415,7 +1415,7 @@ const PHRASES = [
     "sortOrder": null,
     "alwaysCapitalize": true,
     "emoji": "✅",
-    "meaning": "It's good / That's fine / I'm done",
+    "meaning": "It's good",
     "meanings": [
       "It's good",
       "That's fine",
@@ -1642,7 +1642,7 @@ const PHRASES = [
     "sortOrder": 8,
     "alwaysCapitalize": false,
     "emoji": "😔",
-    "meaning": "Sorry / I'm sorry",
+    "meaning": "Sorry",
     "meanings": [
       "Sorry",
       "I'm sorry"
@@ -1756,7 +1756,7 @@ const PHRASES = [
     "hasBuildup": false,
     "isBuildupChunk": false,
     "capabilityLabel": "",
-    "audioRecorded": false,
+    "audioRecorded": true,
     "situations": [],
     "situationEarly": [],
     "situationLate": [],
@@ -2029,7 +2029,7 @@ const PHRASES = [
     "sortOrder": 1,
     "alwaysCapitalize": false,
     "emoji": "👋",
-    "meaning": "Hello / Good morning",
+    "meaning": "Hello",
     "meanings": [
       "Hello",
       "Good morning"
@@ -2111,7 +2111,7 @@ const PHRASES = [
 // Returns phrases the user currently has access to, based on unlock flags.
 function getActivePhrases() {
   return PHRASES.filter(p => {
-    if (!p.meaning || !getAudio(p.native)) return false;
+    if (!(p.meaning || (p.meanings && p.meanings.length)) || !getAudio(p.native)) return false;
     const tier = p.tier || '1';
     if (tier === '1') return p.audioRecorded;
     if (tier === 'Recovery') return !!localStorage.getItem('tt_recoveryUnlocked');
@@ -2478,16 +2478,23 @@ function goHome() {
 // ═══════════════════════════════════════════════════════════════════
 
 function checkUnlocks() {
-  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
   const tier1 = playable.filter(p => (p.tier || '1') === '1' && p.audioRecorded);
   const recovery = playable.filter(p => p.tier === 'Recovery');
   const vocab = playable.filter(p => p.tier === 'Vocabulary');
 
-  // Recovery unlocks when ALL tier 1 phrases are at score 2+
+  // Recovery unlocks when ALL playable tier 1 phrases are at score 2+
+  // AND the buildup prerequisite words have been seen (score 1+).
+  // français and anglais don't have recorded audio yet, so we check
+  // only Désolé for now. When audio is added for français/anglais,
+  // they'll be gated by the tier1.every(score >= 2) check automatically.
   if (!localStorage.getItem('tt_recoveryUnlocked')) {
     if (tier1.length && tier1.every(p => getScore(p.id) >= 2)) {
-      localStorage.setItem('tt_recoveryUnlocked', 'true');
-      return 'recovery';
+      const desole = PHRASES.find(p => p.native === 'Désolé' && (p.tier || '1') === '1' && p.audioRecorded);
+      if (desole && getScore(desole.id) >= 1) {
+        localStorage.setItem('tt_recoveryUnlocked', 'true');
+        return 'recovery';
+      }
     }
   }
 
@@ -3510,7 +3517,7 @@ function showCompletion() {
 
   showScreen('screenComplete');
   const msgs = [
-    "Every phrase you produced today got a little more hardwired. Come back tomorrow — they'll feel more natural each time.",
+    "Every phrase you practiced today is a little more solid. Come back when you're ready and they'll feel more natural each time.",
     "Your brain did real work. The phrases that felt tricky will click faster than you expect.",
     "The recovery phrase alone will carry you through most situations. Everything else is a bonus.",
   ];
@@ -3532,7 +3539,7 @@ function showCompletion() {
 
 function getHomeState() {
   if (!hasAnyProgress()) return 'new';
-  const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && p.meaning && getAudio(p.native));
+  const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
   const allTier1Score2 = tier1.length > 0 && tier1.every(p => getScore(p.id) >= 2);
   if (allTier1Score2 && localStorage.getItem('tt_recoveryUnlocked')) return 'experiences';
   return 'foundation';
@@ -3558,7 +3565,7 @@ function updateWelcomeScreen() {
 
   if (homeState === 'foundation') {
     document.getElementById('welcomeFoundation').classList.remove('hidden');
-    const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && p.meaning && getAudio(p.native));
+    const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
     const seen = tier1.filter(p => getScore(p.id) >= 1).length;
     const total = tier1.length;
     document.getElementById('foundationProgress').textContent = `${seen} of ${total} phrases`;
@@ -3771,7 +3778,7 @@ function closeDevPanel() {
 }
 
 function devSetTier1Score2() {
-  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
   const tier1 = playable.filter(p => (p.tier || '1') === '1' && p.audioRecorded);
   tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 2); });
   localStorage.setItem('tt_recoveryUnlocked', 'true');
@@ -3783,7 +3790,7 @@ function devSetTier1Score2() {
 }
 
 function devSetAllScore3() {
-  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
   playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
   localStorage.setItem('tt_recoveryUnlocked', 'true');
   localStorage.setItem('tt_vocabularyUnlocked', 'true');
@@ -3810,7 +3817,7 @@ function devResetAll() {
 
 function devShowScores() {
   const out = document.getElementById('devScoreOutput');
-  const playable = PHRASES.filter(p => p.meaning && getAudio(p.native));
+  const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
   const lines = playable.map(p => {
     const score = getScore(p.id);
     const tier = p.tier || '1';
