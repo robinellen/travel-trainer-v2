@@ -8,6 +8,7 @@ const PHRASES_TABLE = 'tbljYanxfDihWhaMs';
 const TRIGGER_TABLE = 'tbltyfoXkuoNdP03O';
 const EXPERIENCES_TABLE = 'Experiences';
 const SITUATIONS_TABLE = 'tbldojSHHVbgGTPjD';
+const LISTEN_CLIPS_TABLE = 'tbl8riiiNg48tDyWm';
 const HTML_FILE = path.join(__dirname, 'index.html');
 
 const LANG_CODE = { French: 'fr', Dutch: 'nl', German: 'de' };
@@ -133,6 +134,26 @@ function recordToSituation(record) {
   };
 }
 
+// ── Listen Clips ──
+
+function recordToListenClip(record) {
+  const f = record.fields;
+  return {
+    id: record.id,
+    frenchText: f['French Text'] || '',
+    englishTranslation: f['English Translation'] || '',
+    anchorPhrase: f['Anchor Phrase'] || '',
+    contextLabel: f['Context Label'] || '',
+    scenePrompt: f['Scene Prompt'] || '',
+    clipType: f['Clip Type'] || '',
+    language: f['Language'] || 'French',
+    fileName: f['File Name'] || '',
+    audioRecorded: f['Audio Recorded'] === true,
+    difficulty: f['Difficulty'] || '',
+    sortOrder: f['Sort Order'] || null,
+  };
+}
+
 // ── Experiences ──
 
 function recordToExperience(record) {
@@ -152,7 +173,7 @@ function recordToExperience(record) {
 
 // ── HTML update ──
 
-function updateHtmlFile(phrases, triggerPhrases, experiences, situations) {
+function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips) {
   let html = fs.readFileSync(HTML_FILE, 'utf8');
 
   // Replace PHRASES array
@@ -190,8 +211,17 @@ function updateHtmlFile(phrases, triggerPhrases, experiences, situations) {
     html = html.replace('const EXPERIENCES = ', situBlock + '\n\n' + 'const EXPERIENCES = ');
   }
 
+  // Replace or insert LISTEN_CLIPS array
+  const lcPattern = /const LISTEN_CLIPS = \[[\s\S]*?\];/;
+  const lcBlock = 'const LISTEN_CLIPS = ' + JSON.stringify(listenClips, null, 2) + ';';
+  if (lcPattern.test(html)) {
+    html = html.replace(lcPattern, lcBlock);
+  } else {
+    html = html.replace('const SITUATIONS = ', lcBlock + '\n\n' + 'const SITUATIONS = ');
+  }
+
   fs.writeFileSync(HTML_FILE, html, 'utf8');
-  console.log(`Updated index.html with ${phrases.length} phrases, ${triggerPhrases.length} trigger phrases, ${experiences.length} experiences, ${situations.length} situations`);
+  console.log(`Updated index.html with ${phrases.length} phrases, ${triggerPhrases.length} trigger phrases, ${experiences.length} experiences, ${situations.length} situations, ${listenClips.length} listen clips`);
 }
 
 function gitCommitAndPush() {
@@ -209,15 +239,16 @@ function gitCommitAndPush() {
 (async () => {
   console.log('Fetching records from Airtable...');
 
-  // Fetch all four tables in parallel
-  const [phraseRecords, triggerRecords, experienceRecords, situationRecords] = await Promise.all([
+  // Fetch all five tables in parallel
+  const [phraseRecords, triggerRecords, experienceRecords, situationRecords, listenClipRecords] = await Promise.all([
     fetchAllRecords(PHRASES_TABLE),
     fetchAllRecords(TRIGGER_TABLE),
     fetchAllRecords(EXPERIENCES_TABLE),
     fetchAllRecords(SITUATIONS_TABLE),
+    fetchAllRecords(LISTEN_CLIPS_TABLE),
   ]);
 
-  console.log(`Fetched ${phraseRecords.length} phrases, ${triggerRecords.length} trigger phrases, ${experienceRecords.length} experiences, ${situationRecords.length} situations`);
+  console.log(`Fetched ${phraseRecords.length} phrases, ${triggerRecords.length} trigger phrases, ${experienceRecords.length} experiences, ${situationRecords.length} situations, ${listenClipRecords.length} listen clips`);
 
   // Process phrases
   const allPhrases = phraseRecords.map(recordToPhrase);
@@ -232,6 +263,9 @@ function gitCommitAndPush() {
 
   // Process situations
   const situations = situationRecords.map(recordToSituation);
+
+  // Process listen clips
+  const listenClips = listenClipRecords.map(recordToListenClip);
 
   // Debug logging
   const recovery = phrases.filter(p => p.tier === 'Recovery');
@@ -253,6 +287,9 @@ function gitCommitAndPush() {
   console.log(`French situations (${frenchSituations.length})`);
   console.log(`Situations with recoveryAlsoValid (${situations.filter(s => s.recoveryAlsoValid).length})`);
 
-  updateHtmlFile(phrases, triggerPhrases, experiences, situations);
+  const frenchClips = listenClips.filter(c => c.language === 'French' && c.audioRecorded);
+  console.log(`French listen clips with audio (${frenchClips.length})`);
+
+  updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips);
   gitCommitAndPush();
 })();

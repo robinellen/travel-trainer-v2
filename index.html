@@ -849,7 +849,7 @@ body::after {
       <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
         <button class="btn-ghost" onclick="openExperience('At the Café')" style="flex:1; font-size:0.75rem;">Experiences</button>
         <button class="btn-ghost" onclick="startSituationSession()" style="flex:1; font-size:0.75rem;">Situations</button>
-        <button class="btn-ghost" onclick="startPractice('listen')" style="flex:1; font-size:0.75rem;">Listen</button>
+        <button class="btn-ghost" onclick="startListenMode()" style="flex:1; font-size:0.75rem;">Listen</button>
       </div>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">All phrases</button>
     </div>
@@ -1136,6 +1136,30 @@ body::after {
     <h2 class="serif" style="font-size:2rem; margin-bottom:0.5rem;" id="expCompleteHeading">Practice complete.</h2>
     <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:300px;" id="expCompleteMsg"></p>
     <button class="btn-primary" id="expCompleteBtn" onclick="goHome()">Home</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     LISTEN MODE SCREEN
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenListenMode">
+  <div style="display:flex; align-items:center; justify-content:space-between; padding:1rem 1.5rem 0;">
+    <button class="btn-back" onclick="exitListenMode()" aria-label="Back">←</button>
+    <div class="progress-bar" style="flex:1; margin:0 0.75rem;"><div class="progress-bar-fill" id="listenModeProgressFill" style="width:0%"></div></div>
+    <button id="listenModePauseBtn" onclick="toggleListenPause()" style="background:none; border:none; color:var(--text-dim); font-size:0.9rem; cursor:pointer; padding:0.25rem; line-height:1;">⏸</button>
+  </div>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+    <div style="font-size:0.58rem; letter-spacing:0.25em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.75rem;" id="listenModeContext"></div>
+    <div style="font-size:0.88rem; color:var(--text); line-height:1.6; max-width:300px; margin-bottom:1.5rem;" id="listenModeScene"></div>
+    <div id="listenModePulse" class="exp-pulse hidden">
+      <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:var(--text-dim);"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+    </div>
+    <div id="listenModeFrench" class="hidden" style="font-family:'Cormorant Garamond',serif; font-size:1.15rem; font-style:italic; color:var(--text); margin-top:1rem; line-height:1.4;"></div>
+    <div id="listenModeEnglish" class="hidden" style="font-size:0.78rem; color:var(--text-dim); margin-top:0.5rem; line-height:1.5;"></div>
+    <div id="listenModeLinks" class="hidden" style="display:flex; gap:1.25rem; margin-top:1rem;">
+      <button id="listenModeShowFrench" onclick="showListenFrench()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show French</button>
+      <button id="listenModeShowEnglish" onclick="showListenEnglish()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show English</button>
+    </div>
   </div>
 </div>
 
@@ -4111,6 +4135,7 @@ function nextBuildupStep() {
 // ═══════════════════════════════════════════════════════════════════
 
 function showScreen(id) {
+  console.log('[nav] showScreen:', id);
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
@@ -5320,7 +5345,7 @@ function onTierUnlockCard(card) {
     startSituationSession();
   } else if (card === 'listen') {
     // "Just listen" — start a listen-only session
-    startPractice('listen');
+    startListenMode();
   }
 }
 
@@ -6143,6 +6168,195 @@ function showExpPracticeComplete() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// LISTEN MODE
+// ═══════════════════════════════════════════════════════════════════
+
+let _listenClips = [];
+let _listenClipIdx = 0;
+let _listenPaused = false;
+let _listenTimer = null;
+
+function startListenMode() {
+  console.log('[listen] startListenMode called, LISTEN_CLIPS:', typeof LISTEN_CLIPS, Array.isArray(LISTEN_CLIPS) ? LISTEN_CLIPS.length : 'N/A');
+  if (typeof LISTEN_CLIPS === 'undefined' || !LISTEN_CLIPS.length) return;
+
+  const sessionCount = parseInt(localStorage.getItem('tt_listenSessionCount') || '0', 10);
+  const available = LISTEN_CLIPS.filter(c => c.language === 'French' && c.audioRecorded);
+
+  // Filter by difficulty based on session count
+  let clips;
+  if (sessionCount <= 2) {
+    const easy = available.filter(c => c.difficulty.startsWith('Easy'));
+    const medium = available.filter(c => c.difficulty.startsWith('Medium'));
+    clips = [...shuffle(easy), ...shuffle(medium)];
+  } else if (sessionCount <= 5) {
+    clips = shuffle(available);
+  } else {
+    clips = shuffle(available);
+  }
+
+  _listenClips = clips.slice(0, 9);
+  _listenClipIdx = 0;
+  _listenPaused = false;
+
+  showScreen('screenListenMode');
+  document.getElementById('listenModePauseBtn').textContent = '⏸';
+
+  // Coach mark on first visit
+  const coachKey = 'tt_seenListenModeCoachMark';
+  if (!localStorage.getItem(coachKey)) {
+    _onCoachMarkDismiss = () => playListenClip();
+    const shown = showCoachMark(coachKey);
+    if (!shown) {
+      _onCoachMarkDismiss = null;
+      playListenClip();
+    }
+  } else {
+    playListenClip();
+  }
+}
+
+function exitListenMode() {
+  clearTimeout(_listenTimer);
+  currentAudio?.pause();
+  currentAudio = null;
+  _listenPaused = false;
+  goHome();
+}
+
+function toggleListenPause() {
+  if (_listenPaused) {
+    _listenPaused = false;
+    document.getElementById('listenModePauseBtn').textContent = '⏸';
+    if (currentAudio && currentAudio.paused) {
+      currentAudio.play().catch(() => {});
+    } else {
+      // Resume from between-clip pause
+      playListenClip();
+    }
+  } else {
+    _listenPaused = true;
+    document.getElementById('listenModePauseBtn').textContent = '▶';
+    clearTimeout(_listenTimer);
+    if (currentAudio) currentAudio.pause();
+  }
+}
+
+function playListenClip() {
+  if (_listenPaused) return;
+  if (_listenClipIdx >= _listenClips.length) {
+    onListenModeComplete();
+    return;
+  }
+
+  const clip = _listenClips[_listenClipIdx];
+  const total = _listenClips.length;
+  const sessionCount = parseInt(localStorage.getItem('tt_listenSessionCount') || '0', 10);
+
+  document.getElementById('listenModeProgressFill').style.width = Math.round((_listenClipIdx / total) * 100) + '%';
+
+  // Reset state
+  document.getElementById('listenModePulse').classList.add('hidden');
+  document.getElementById('listenModeFrench').classList.add('hidden');
+  document.getElementById('listenModeEnglish').classList.add('hidden');
+  document.getElementById('listenModeLinks').classList.add('hidden');
+  document.getElementById('listenModeFrench').textContent = clip.frenchText;
+  document.getElementById('listenModeEnglish').textContent = clip.englishTranslation;
+
+  // State 1: Scene
+  document.getElementById('listenModeContext').textContent = (clip.contextLabel || '').toUpperCase();
+  document.getElementById('listenModeScene').textContent = clip.scenePrompt;
+
+  // Show/hide French link based on session count scaffolding
+  const showFrenchBtn = document.getElementById('listenModeShowFrench');
+  const showEnglishBtn = document.getElementById('listenModeShowEnglish');
+  showFrenchBtn.style.display = '';
+  showEnglishBtn.style.display = '';
+
+  // After 1 second, play audio
+  _listenTimer = setTimeout(() => {
+    if (_listenPaused) return;
+
+    // State 2: Audio plays
+    document.getElementById('listenModePulse').classList.remove('hidden');
+
+    const audioUrl = 'audio/listen-clips/' + clip.fileName;
+    const audio = new Audio(audioUrl);
+    audio.playbackRate = 1.0;
+    currentAudio = audio;
+
+    audio.onended = () => {
+      currentAudio = null;
+      if (_listenPaused) return;
+
+      // State 3: After audio
+      document.getElementById('listenModePulse').classList.add('hidden');
+
+      // Scaffolding: auto-show French in early sessions
+      if (sessionCount <= 2) {
+        document.getElementById('listenModeFrench').classList.remove('hidden');
+        showFrenchBtn.style.display = 'none';
+      }
+
+      // Show reveal links
+      document.getElementById('listenModeLinks').classList.remove('hidden');
+
+      // Advance after 2 seconds
+      _listenTimer = setTimeout(() => {
+        if (_listenPaused) return;
+        _listenClipIdx++;
+        playListenClip();
+      }, 2000);
+    };
+
+    audio.onerror = () => {
+      currentAudio = null;
+      _listenClipIdx++;
+      if (!_listenPaused) playListenClip();
+    };
+
+    audio.play().catch(() => {
+      currentAudio = null;
+      _listenClipIdx++;
+      if (!_listenPaused) playListenClip();
+    });
+  }, 1000);
+}
+
+function showListenFrench() {
+  document.getElementById('listenModeFrench').classList.remove('hidden');
+  document.getElementById('listenModeShowFrench').style.display = 'none';
+}
+
+function showListenEnglish() {
+  document.getElementById('listenModeEnglish').classList.remove('hidden');
+  document.getElementById('listenModeShowEnglish').style.display = 'none';
+}
+
+function onListenModeComplete() {
+  document.getElementById('listenModeProgressFill').style.width = '100%';
+  const count = parseInt(localStorage.getItem('tt_listenSessionCount') || '0', 10);
+  localStorage.setItem('tt_listenSessionCount', String(count + 1));
+
+  // Show completion in the listen screen itself
+  document.getElementById('listenModeContext').textContent = '';
+  document.getElementById('listenModeScene').textContent = '';
+  document.getElementById('listenModePulse').classList.add('hidden');
+  document.getElementById('listenModeFrench').classList.add('hidden');
+  document.getElementById('listenModeEnglish').classList.add('hidden');
+  document.getElementById('listenModeLinks').classList.add('hidden');
+
+  const container = document.querySelector('#screenListenMode .p-screen');
+  container.innerHTML = `
+    <div style="text-align:center;">
+      <div style="font-size:2rem; margin-bottom:1.5rem;">✦</div>
+      <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:300px;">That's it for now. The more French you hear, the less foreign it sounds.</p>
+      <button class="btn-primary" onclick="exitListenMode()">Done</button>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // COACH MARKS
 // ═══════════════════════════════════════════════════════════════════
 
@@ -6179,6 +6393,10 @@ const COACH_MARKS = {
   },
   tt_seenExperiencePracticeCoachMark: {
     text: "You\u2019ve heard the whole thing. Now let\u2019s take it apart.",
+    target: null,
+  },
+  tt_seenListenModeCoachMark: {
+    text: "This isn\u2019t a test. Just listen. You won\u2019t catch everything and that\u2019s fine.",
     target: null,
   },
 };
