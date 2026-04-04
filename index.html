@@ -840,13 +840,17 @@ body::after {
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">View phrases</button>
     </div>
 
-    <!-- STATE 3: Experiences available -->
+    <!-- STATE 3: Post-Foundation -->
     <div id="welcomeExperiences" class="hidden">
       <div id="tripCountdownExperiences" class="hidden" style="font-size:0.78rem; color:var(--text-mid); margin-bottom:1.25rem;"></div>
       <div id="experienceCapabilities" style="margin-bottom:1.25rem;"></div>
-      <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1.5rem;" id="experienceTiles"></div>
       <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Continue session →</button>
-      <button class="btn-ghost" onclick="startSituationSession()" style="margin-bottom:0.75rem;">Practice situations</button>
+      <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1rem;" id="experienceTiles"></div>
+      <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+        <button class="btn-ghost" onclick="openExperience('At the Café')" style="flex:1; font-size:0.75rem;">Experiences</button>
+        <button class="btn-ghost" onclick="startSituationSession()" style="flex:1; font-size:0.75rem;">Situations</button>
+        <button class="btn-ghost" onclick="startPractice('listen')" style="flex:1; font-size:0.75rem;">Listen</button>
+      </div>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">All phrases</button>
     </div>
 
@@ -879,11 +883,6 @@ body::after {
 
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
 
-    <!-- Exercise type label (hidden for speak exercises) -->
-    <div style="margin-bottom:1.25rem;" id="exTypeBadgeRow">
-      <span class="exercise-type-badge" id="exTypeBadge">Listen</span>
-      <span id="exLangBadge" style="margin-left:0.4rem;"></span>
-    </div>
 
     <!-- ── LISTEN / LEARN panel ── -->
     <div id="panelListen" class="hidden" style="flex:1; display:flex; flex-direction:column;">
@@ -1155,11 +1154,8 @@ body::after {
 
 
 <div class="screen" id="screenTierUnlock">
-  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:0;">
-    <div style="font-size:3rem; margin-bottom:1.5rem;">🗝️</div>
-    <h2 class="serif" style="font-size:2.2rem; margin-bottom:0.75rem;" id="tierUnlockHeading"></h2>
-    <p style="font-size:0.85rem; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:280px;" id="tierUnlockSub"></p>
-    <button class="btn-primary" onclick="onTierUnlockContinue()">Continue →</button>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:0;" id="tierUnlockContent">
+    <!-- Dynamically rendered -->
   </div>
 </div>
 
@@ -1203,6 +1199,9 @@ body::after {
 <script>
 'use strict';
 
+// Early declarations needed before function definitions
+let _onCoachMarkDismiss = null;
+
 // ═══════════════════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════════════════
@@ -1245,6 +1244,17 @@ const SITUATIONS = [
     "scoreRange": "Late (score 2+)"
   },
   {
+    "id": "rec17WZhgNDoHjjmK",
+    "scenario": "You and your travel companion sit down. The server looks over expecting your order.",
+    "contextLabel": "At the Café",
+    "phraseNative": "deux",
+    "englishHint": "say two coffees",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
     "id": "rec1LftO0BeefGCs0",
     "scenario": "The waiter described a dish and you caught none of it.",
     "contextLabel": "At the Restaurant",
@@ -1276,6 +1286,17 @@ const SITUATIONS = [
     "language": "French",
     "sortOrder": 3,
     "scoreRange": "Any"
+  },
+  {
+    "id": "rec3SL8ju0t8gWLWb",
+    "scenario": "You arrive with a friend. The host asks how many people.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "deux",
+    "englishHint": "say two",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
   },
   {
     "id": "rec44tdqfJILWITUI",
@@ -1316,6 +1337,17 @@ const SITUATIONS = [
     "contextLabel": "At the Café",
     "phraseNative": "L'addition, s'il vous plaît",
     "englishHint": "ask for the bill",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "rec5vRwS3HTkP5ZxP",
+    "scenario": "The server asks what you'd like. You want one coffee.",
+    "contextLabel": "At the Café",
+    "phraseNative": "un",
+    "englishHint": "say one",
     "recoveryAlsoValid": false,
     "language": "French",
     "sortOrder": 2,
@@ -1432,6 +1464,17 @@ const SITUATIONS = [
     "scoreRange": "Early (score 0-1)"
   },
   {
+    "id": "recEQfQ7oBrcHZO11",
+    "scenario": "Two of your group are already at the bar. The host wants to know the full table size.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "trois",
+    "englishHint": "say three",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
     "id": "recGZdT1E5w5GHokC",
     "scenario": "The waiter asks if you want anything else. You're good.",
     "contextLabel": "At the Café",
@@ -1452,6 +1495,17 @@ const SITUATIONS = [
     "language": "French",
     "sortOrder": 2,
     "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recLx2JWPXnj770TA",
+    "scenario": "You're meeting two friends for dinner. The host asks how many in your party.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "trois",
+    "englishHint": "say three",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
   },
   {
     "id": "recMs54q4ty2aAks8",
@@ -1498,6 +1552,17 @@ const SITUATIONS = [
     "scoreRange": "Late (score 2+)"
   },
   {
+    "id": "recPb3N67mTsaJpDr",
+    "scenario": "You've paid and are heading for the door. The person behind the counter says something as you leave.",
+    "contextLabel": "In a Shop",
+    "phraseNative": "Bonne journée",
+    "englishHint": "say it back",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
     "id": "recPxvxt2i7a4HL5P",
     "scenario": "The server sets your coffee down and says one word.",
     "contextLabel": "At the Café",
@@ -1529,6 +1594,17 @@ const SITUATIONS = [
     "language": "French",
     "sortOrder": 2,
     "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recS6uOYpFJlJ3bXQ",
+    "scenario": "Your group of four arrives. The host asks how many people need a table.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "quatre",
+    "englishHint": "say four",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
   },
   {
     "id": "recSMeTHlqNz43zCz",
@@ -1572,6 +1648,17 @@ const SITUATIONS = [
     "recoveryAlsoValid": false,
     "language": "French",
     "sortOrder": 9,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
+    "id": "recWSYGYVTvFSEgRX",
+    "scenario": "Three people at your table all want the same pastry from the display case. The server points at it waiting for a quantity.",
+    "contextLabel": "At the Café",
+    "phraseNative": "trois",
+    "englishHint": "say three",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 3,
     "scoreRange": "Late (score 2+)"
   },
   {
@@ -1630,6 +1717,17 @@ const SITUATIONS = [
     "scoreRange": "Late (score 2+)"
   },
   {
+    "id": "recbaD2UX39QsX4xD",
+    "scenario": "You're dining alone. The host looks up and asks how many.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "un",
+    "englishHint": "say one",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 1,
+    "scoreRange": "Early (score 0-1)"
+  },
+  {
     "id": "recbbrP7BEboJAtyv",
     "scenario": "Someone has been speaking French at you for thirty seconds. You've completely lost the thread.",
     "contextLabel": "Anywhere",
@@ -1685,6 +1783,17 @@ const SITUATIONS = [
     "scoreRange": "Early (score 0-1)"
   },
   {
+    "id": "recesYarGrjWDRf3J",
+    "scenario": "You called ahead for a reservation. The host confirms the party size.",
+    "contextLabel": "At the Restaurant",
+    "phraseNative": "quatre",
+    "englishHint": "confirm four",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
     "id": "recfSpZO0YejnECDW",
     "scenario": "It's evening. You've just arrived at the restaurant. The host turns to greet you.",
     "contextLabel": "At the Restaurant",
@@ -1729,6 +1838,17 @@ const SITUATIONS = [
     "scoreRange": "Any"
   },
   {
+    "id": "reciDTufmUXH6XynW",
+    "scenario": "You're at a market stall. The vendor holds up a piece of fruit and looks at you expectantly.",
+    "contextLabel": "At the Market",
+    "phraseNative": "quatre",
+    "englishHint": "say how many you want",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 3,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
     "id": "recjmNqDppFhl3MrW",
     "scenario": "You can see what you want on someone else's table but can't find it on the menu.",
     "contextLabel": "At the Restaurant",
@@ -1771,6 +1891,17 @@ const SITUATIONS = [
     "language": "French",
     "sortOrder": 1,
     "scoreRange": "Early (score 0-1)"
+  },
+  {
+    "id": "recnyhLdTe2ES04Lb",
+    "scenario": "You're leaving the café. The server who looked after you calls something out as you go.",
+    "contextLabel": "At the Café",
+    "phraseNative": "Bonne journée",
+    "englishHint": "wish them a good day back",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 2,
+    "scoreRange": "Late (score 2+)"
   },
   {
     "id": "recoJVtooPIprimFf",
@@ -1861,6 +1992,17 @@ const SITUATIONS = [
     "scoreRange": "Late (score 2+)"
   },
   {
+    "id": "recvTNiq21qkk24T2",
+    "scenario": "Something in the display case looks perfect. Your travel companion wants one too. The server is waiting.",
+    "contextLabel": "At the Café",
+    "phraseNative": "deux",
+    "englishHint": "say two",
+    "recoveryAlsoValid": false,
+    "language": "French",
+    "sortOrder": 3,
+    "scoreRange": "Late (score 2+)"
+  },
+  {
     "id": "recwSfPS7qu3LeRR6",
     "scenario": "You want to ask about a product but the shopkeeper is busy arranging stock.",
     "contextLabel": "In a Shop",
@@ -1881,9 +2023,9 @@ const EXPERIENCES = [
     "language": "French",
     "culturalNote": "Staff will approach you and that's normal, not pushy. A smile and je regarde (just looking) is all you need and they'll back off immediately. If you need to ask whether they have something, your phone is your friend: show a picture and ask.",
     "depthLevel": "Level 1 — Survive it",
-    "status": "Planned",
+    "status": "In progress",
     "region": "France",
-    "arc": ""
+    "arc": "You walk into a small shop. A boutique, a tabac, a boulangerie. It doesn't matter — the interaction follows the same pattern everywhere.\n\nIn France, saying bonjour when you enter a shop is not optional. It's a social contract. Walking in without greeting the person behind the counter is considered rude, not neutral. You acknowledge each other first. Then the transaction happens.\n\n[Claudia] \"Bonjour\"\n\n[Emile] \"Bonjour\"\n\nYou browse. After a moment, the person behind the counter comes over.\n\n[Claudia] \"Je peux vous aider?\"\n\nCan I help you? If you're just looking, je regarde is all you need — and they'll back off immediately. If you want something, this is your opening.\n\n[Emile] \"Je regarde\"\n\nYou find what you want. You bring it to the counter. You pay.\n\n[Claudia] \"Voilà votre monnaie\"\n\nYour change. Voilà again — it's the word for any moment when something is being handed over. Say merci back.\n\n[Emile] \"Merci\"\n\nYou head for the door.\n\n[Claudia] \"Bonne journée\"\n\nHave a good day. Say it back. Bonne journée or just merci, bonne journée — either works. This is the closing of the interaction, the same way bonjour opened it. The symmetry matters in France.\n\n[Emile] \"Merci, bonne journée\""
   },
   {
     "id": "recU1DH7dh9PNUz87",
@@ -1936,9 +2078,9 @@ const EXPERIENCES = [
     "language": "French",
     "culturalNote": "The bill won't come until you ask for it. That's not slow service, that's giving you space to linger. And don't stress about tipping. In France, leaving nothing is completely normal. Rounding up a euro or two is generous.",
     "depthLevel": "Level 1 — Survive it",
-    "status": "Planned",
+    "status": "In progress",
     "region": "France",
-    "arc": ""
+    "arc": "You arrive at the restaurant in the evening. Unlike a café, you don't seat yourself here — you wait at the entrance for the host.\n\n[Audia] \"Bonsoir\" — the host looks up as you approach\n\n[Emile] \"Bonsoir\"\n\nFrench restaurants take reservations seriously. If you have one, oui. If you don't, non — they'll either find you a table or let you know there isn't one. Either answer is fine.\n\n[Audia] \"Vous avez une réservation?\"\n\n[Emile] \"Non\"\n\n[Audia] \"Pour combien de personnes?\"\n\n[Emile] \"Deux\"\n\nThe host turns and starts walking. This is your cue — you're being shown to your table. You don't need to say anything here. Just follow.\n\n[Audia] \"Suivez-moi\"\n\nYou sit down. The menus arrive. A few minutes pass — no one will rush you. When the server comes to your table, they'll ask if you've chosen.\n\n[Hugo] \"Vous avez choisi?\"\n\n[Emile] \"Oui\"\n\nYou order. Time passes. Then your food arrives.\n\n[Hugo] \"Voilà\"\n\n[Emile] \"Merci\"\n\nThe server steps back before leaving.\n\n[Hugo] \"Bon appétit\"\n\nBon appétit is said by the person serving you — not typically between diners the way it might be in other cultures. A smile or a merci back is all that's needed.\n\nThe meal ends. The bill won't come on its own — in France, the server waits for you to ask. That's not slow service, it's giving you space to linger.\n\n[Emile] \"L'addition, s'il vous plaît\"\n\n[Hugo] \"Voilà l'addition\"\n\n[Emile] \"Merci\"\n\nService is included by law. Leaving nothing is completely normal. Rounding up a euro or two is appreciated but never expected. A large tip will seem unusual."
   },
   {
     "id": "recy2LslbmgtLwNqY",
@@ -2291,7 +2433,7 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "2",
+    "tier": "3",
     "sortOrder": null,
     "alwaysCapitalize": true,
     "emoji": "☕",
@@ -2433,6 +2575,29 @@ const PHRASES = [
     ]
   },
   {
+    "id": "recDhRJtnOqKfGP69",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "2",
+    "sortOrder": 33,
+    "alwaysCapitalize": false,
+    "emoji": "2️⃣",
+    "meaning": "two",
+    "meanings": [],
+    "native": "deux",
+    "romanization": "DUH",
+    "note": "The most useful number for travelers. Une table pour deux. Deux cafés. Deux personnes. You'll say this constantly.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "capabilityLabel": "",
+    "audioRecorded": false,
+    "situations": [],
+    "situationEarly": [],
+    "situationLate": [],
+    "responses": []
+  },
+  {
     "id": "recG8TeJbKgIzdJJE",
     "lang": "fr",
     "flag": "🇫🇷",
@@ -2491,6 +2656,29 @@ const PHRASES = [
       "Excusez-moi",
       "D'accord"
     ]
+  },
+  {
+    "id": "recKhNOhvcKCJG50T",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "2",
+    "sortOrder": 32,
+    "alwaysCapitalize": false,
+    "emoji": "1️⃣",
+    "meaning": "one",
+    "meanings": [],
+    "native": "un",
+    "romanization": "UHN",
+    "note": "The number you'll use most. Une table pour un, un café, un verre. The feminine form is une but un is fine for ordering almost anything.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "capabilityLabel": "",
+    "audioRecorded": false,
+    "situations": [],
+    "situationEarly": [],
+    "situationLate": [],
+    "responses": []
   },
   {
     "id": "recLLMzRcvHHeiwxb",
@@ -2640,7 +2828,7 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "2",
+    "tier": "3",
     "sortOrder": null,
     "alwaysCapitalize": false,
     "emoji": "🤲",
@@ -2733,7 +2921,7 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "2",
+    "tier": "3",
     "sortOrder": null,
     "alwaysCapitalize": false,
     "emoji": "💶",
@@ -2793,7 +2981,7 @@ const PHRASES = [
     "lang": "fr",
     "flag": "🇫🇷",
     "langLabel": "French",
-    "tier": "2",
+    "tier": "3",
     "sortOrder": null,
     "alwaysCapitalize": false,
     "emoji": "👀",
@@ -2849,6 +3037,29 @@ const PHRASES = [
     ]
   },
   {
+    "id": "reccNu7e1zqieUUd9",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "2",
+    "sortOrder": 36,
+    "alwaysCapitalize": true,
+    "emoji": "🌞",
+    "meaning": "Have a good day",
+    "meanings": [],
+    "native": "Bonne journée",
+    "romanization": "bun zhoor-NAY",
+    "note": "The closing phrase of almost every daytime transaction in France. Someone will say it as you leave a shop, a café, a pharmacy. Say it back. Merci, bonne journée is the natural full response. In the evening it becomes bonne soirée.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "capabilityLabel": "",
+    "audioRecorded": false,
+    "situations": [],
+    "situationEarly": [],
+    "situationLate": [],
+    "responses": []
+  },
+  {
     "id": "recdP6E3NN91CGC73",
     "lang": "fr",
     "flag": "🇫🇷",
@@ -2884,6 +3095,52 @@ const PHRASES = [
       "Bonsoir",
       "Au revoir"
     ]
+  },
+  {
+    "id": "recdiTjPLn8ChrWqh",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "2",
+    "sortOrder": 35,
+    "alwaysCapitalize": false,
+    "emoji": "4️⃣",
+    "meaning": "four",
+    "meanings": [],
+    "native": "quatre",
+    "romanization": "KAH-truh",
+    "note": "The RE at the end is almost swallowed — kah-truh, not kah-treh. Quatre personnes, quatre cafés.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "capabilityLabel": "",
+    "audioRecorded": false,
+    "situations": [],
+    "situationEarly": [],
+    "situationLate": [],
+    "responses": []
+  },
+  {
+    "id": "recdydPSuzsgsgLDD",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "2",
+    "sortOrder": 34,
+    "alwaysCapitalize": false,
+    "emoji": "3️⃣",
+    "meaning": "three",
+    "meanings": [],
+    "native": "trois",
+    "romanization": "TRWAH",
+    "note": "The S is silent. Trois sounds like trwah. Pour combien de personnes? Trois.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "capabilityLabel": "",
+    "audioRecorded": false,
+    "situations": [],
+    "situationEarly": [],
+    "situationLate": [],
+    "responses": []
   },
   {
     "id": "rece4Ti7FvUYBnDva",
@@ -3366,7 +3623,8 @@ function getActivePhrases() {
     const tier = p.tier || '1';
     if (tier === '1') return p.audioRecorded;
     if (tier === 'Recovery') return !!localStorage.getItem('tt_recoveryUnlocked');
-    if (tier === '2') return !!localStorage.getItem('tt_tier2Unlocked');
+    if (tier === '2') return !!localStorage.getItem('tt_recoveryUnlocked'); // Tier 2 unlocks with recovery
+    if (tier === '3') return !!localStorage.getItem('tt_tier3Unlocked');
     // Any other tier value (Vocabulary, Vocabulary — Pending Pack System, etc.) is excluded
     return false;
   });
@@ -3757,14 +4015,12 @@ function checkUnlocks() {
     }
   }
 
-  // Tier 2 unlocks when Recovery phrase is completed (score 1+) AND all Tier 1 at score 3+
-  if (!localStorage.getItem('tt_tier2Unlocked') && localStorage.getItem('tt_recoveryUnlocked')) {
-    if (
-      tier1.length && tier1.every(p => getScore(p.id) >= 3) &&
-      recovery.length && recovery.every(p => getScore(p.id) >= 1)
-    ) {
-      localStorage.setItem('tt_tier2Unlocked', 'true');
-      return 'tier2';
+  // Tier 3 unlocks when ALL Tier 2 phrases reach score 2+
+  if (!localStorage.getItem('tt_tier3Unlocked') && localStorage.getItem('tt_recoveryUnlocked')) {
+    const tier2 = playable.filter(p => p.tier === '2');
+    if (tier2.length && tier2.every(p => getScore(p.id) >= 2)) {
+      localStorage.setItem('tt_tier3Unlocked', 'true');
+      return 'tier3';
     }
   }
 
@@ -4026,7 +4282,6 @@ let _skipTimer = null;
 function renderCurrentExercise() {
   hidePanels();
   updateExerciseHeader();
-  document.getElementById('exTypeBadgeRow').classList.remove('hidden');
 
   // Reset universal skip
   document.getElementById('universalSkip').classList.add('hidden');
@@ -4046,21 +4301,6 @@ function renderCurrentExercise() {
     }, 5000);
   }
 
-
-  // Update badges
-  const typeLabels = {
-    listen: 'Listen', learn: 'Learn', speak: 'Speak',
-    situation: 'Situation',
-    situation: 'Situation',
-  };
-  document.getElementById('exTypeBadge').textContent = typeLabels[type] || type;
-
-  if (phrase) {
-    const badge = document.getElementById('exLangBadge');
-    badge.innerHTML = `<span class="lang-pill ${phrase.lang}">${phrase.flag} ${phrase.langLabel}</span>`;
-  } else {
-    document.getElementById('exLangBadge').innerHTML = '';
-  }
 
   // Route to correct panel
   if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
@@ -4321,6 +4561,14 @@ function playCurrentAudio() {
 let _revealPhrase = null;
 
 function showPhraseRevealScreen(phrase) {
+  // Only show vocab card once per phrase — skip if already seen
+  const vocabKey = 'tt_vocabSeen_' + phrase.id;
+  if (localStorage.getItem(vocabKey)) {
+    nextExercise();
+    return;
+  }
+  localStorage.setItem(vocabKey, 'true');
+
   _revealPhrase = phrase;
   document.getElementById('revealEmoji').textContent = phrase.emoji || '';
   document.getElementById('revealNative').textContent = displayNative(phrase, 'response');
@@ -4364,7 +4612,6 @@ let isListening = false;
 
 function renderSpeakPanel(phrase) {
   document.getElementById('panelSpeak').classList.remove('hidden');
-  document.getElementById('exTypeBadgeRow').classList.add('hidden');
   document.getElementById('micBtn').className = 'mic-btn';
   document.getElementById('micHint').textContent = 'Tap to speak';
   document.getElementById('heardText').textContent = '';
@@ -4399,10 +4646,17 @@ function renderSpeakPanel(phrase) {
   }
 
   // Play phrase first, then show helpers
-  audioEndedCallback = () => {
-    document.getElementById('speakHelpers').classList.remove('hidden');
+  let helpersShown = false;
+  const showHelpers = () => {
+    if (helpersShown) return;
+    helpersShown = true;
+    const el = document.getElementById('speakHelpers');
+    if (el) el.classList.remove('hidden');
   };
+  audioEndedCallback = showHelpers;
   setTimeout(() => playPhrase(phrase, null), 400);
+  // Safety: show helpers after 5s even if audio callback never fires
+  setTimeout(showHelpers, 5000);
 }
 
 let _currentSpeakPhrase = null;
@@ -4656,7 +4910,6 @@ function renderSituationPanel(phrase) {
   localStorage.setItem('tt_lastSituation_' + phrase.id, situ.id);
 
   document.getElementById('panelSituation').classList.remove('hidden');
-  document.getElementById('exTypeBadgeRow').classList.add('hidden');
   document.getElementById('situResult').className = 'result-bar';
   document.getElementById('situNextBtn').classList.add('hidden');
   document.getElementById('situReveal').classList.add('hidden');
@@ -4884,25 +5137,62 @@ function skipExercise() {
 
 
 function showTierUnlockScreen(type) {
-  const config = {
-    recovery: {
-      heading: 'You already know all the pieces.',
-      sub: 'Time to put them together.',
-    },
-    vocabulary: {
-      heading: 'Drink words unlocked',
-      sub: "You've earned some French to order with",
-    },
-    tier2: {
-      heading: 'Ordering phrases unlocked',
-      sub: 'Your French is getting real',
-    },
-  };
-  const c = config[type];
-  document.getElementById('tierUnlockHeading').textContent = c.heading;
-  document.getElementById('tierUnlockSub').textContent = c.sub;
+  const content = document.getElementById('tierUnlockContent');
   state.session._pendingUnlockType = type;
+
+  if (type === 'recovery') {
+    // Full transition screen with 3 cards
+    content.innerHTML = `
+      <div style="text-align:center; margin-bottom:2rem;">
+        <h2 class="serif" style="font-size:clamp(1.8rem, 6vw, 2.2rem); margin-bottom:0.75rem;">Your foundation is ready.</h2>
+        <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; max-width:300px; margin:0 auto;">You know enough to navigate France. Keep practicing with your daily session and now you can explore on your own terms too.</p>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1.5rem;">
+        <button onclick="onTierUnlockCard('experience')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; cursor:pointer; text-align:left; transition:all 0.15s; width:100%;" onmouseover="this.style.borderColor='var(--border-hi)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:0.82rem; color:var(--text); font-weight:400; margin-bottom:0.2rem;">Experiences</div>
+          <div style="font-size:0.7rem; color:var(--text-dim); line-height:1.5;">Walk through a full cafe, restaurant, or shop interaction</div>
+        </button>
+        <button onclick="onTierUnlockCard('situations')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; cursor:pointer; text-align:left; transition:all 0.15s; width:100%;" onmouseover="this.style.borderColor='var(--border-hi)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:0.82rem; color:var(--text); font-weight:400; margin-bottom:0.2rem;">Practice situations</div>
+          <div style="font-size:0.7rem; color:var(--text-dim); line-height:1.5;">Drill specific moments until they feel automatic</div>
+        </button>
+        <button onclick="onTierUnlockCard('listen')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1rem 1.1rem; cursor:pointer; text-align:left; transition:all 0.15s; width:100%;" onmouseover="this.style.borderColor='var(--border-hi)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:0.82rem; color:var(--text); font-weight:400; margin-bottom:0.2rem;">Just listen</div>
+          <div style="font-size:0.7rem; color:var(--text-dim); line-height:1.5;">Hear French in context. No pressure, no score.</div>
+        </button>
+      </div>
+      <button onclick="onTierUnlockContinue()" style="background:none;border:none;color:var(--text-dim);font-size:0.72rem;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0;letter-spacing:0.04em;transition:color 0.15s;width:100%;text-align:center;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Not now, keep practicing</button>
+    `;
+  } else if (type === 'tier3') {
+    // Subtle toast-style notification
+    content.innerHTML = `
+      <div style="text-align:center;">
+        <p style="font-size:0.85rem; color:var(--text); line-height:1.7; max-width:300px; margin:0 auto 2rem;">New phrases unlocked. <em style="font-family:'Cormorant Garamond',serif;">Je regarde</em>, <em style="font-family:'Cormorant Garamond',serif;">C'est combien</em>, and more are now in your sessions.</p>
+        <button class="btn-primary" onclick="onTierUnlockContinue()">Continue →</button>
+      </div>
+    `;
+  } else {
+    content.innerHTML = `
+      <div style="text-align:center;">
+        <h2 class="serif" style="font-size:2rem; margin-bottom:0.75rem;">New content unlocked</h2>
+        <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; max-width:280px; margin:0 auto 2rem;">Keep going.</p>
+        <button class="btn-primary" onclick="onTierUnlockContinue()">Continue →</button>
+      </div>
+    `;
+  }
+
   showScreen('screenTierUnlock');
+}
+
+function onTierUnlockCard(card) {
+  if (card === 'experience') {
+    openExperience('At the Café');
+  } else if (card === 'situations') {
+    startSituationSession();
+  } else if (card === 'listen') {
+    // "Just listen" — start a listen-only session
+    startPractice('listen');
+  }
 }
 
 function onTierUnlockContinue() {
@@ -5294,8 +5584,8 @@ function playNextBeat() {
       scrollBeatToCenter(container, el);
     });
     _expBeatIdx++;
-    // Cultural note: 5s pause, then 1.5s transition if next is dialogue
-    const pause = isNextDialogue ? 5000 + 1500 : 5000;
+    // All narrator beats: 5 second pause
+    const pause = 5000;
     _expPlayTimer = setTimeout(() => playNextBeat(), pause);
   } else {
     // Dialogue beat
@@ -5373,7 +5663,9 @@ function onExpWatchComplete() {
     localStorage.setItem('tt_cafe_l1_phase', 'practice');
     primary.textContent = 'Practice the pieces →';
     primary.onclick = () => startExpPractice();
-    secondary.style.display = 'none';
+    secondary.style.display = 'block';
+    secondary.textContent = 'Hear it again';
+    secondary.onclick = () => startExpWatch(3);
   }
 }
 
@@ -5449,10 +5741,14 @@ function renderTriggerExercise() {
 }
 
 // ── State 1: Listen ──
+function scenePromptHtml(tp) {
+  return `<div style="font-size:0.75rem; color:var(--text-dim); font-style:italic; margin-bottom:1.25rem; max-width:280px; line-height:1.6; align-self:center;">${tp.scenePrompt}</div>`;
+}
+
 function practiceStateListen(tp) {
   const content = document.getElementById('expPracticeContent');
   content.innerHTML = `
-    <div style="font-size:0.75rem; color:var(--text-dim); font-style:italic; margin-bottom:2rem; max-width:280px; line-height:1.6;">${tp.scenePrompt}</div>
+    ${scenePromptHtml(tp)}
     <div class="exp-pulse" id="expPulse">
       <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:var(--text-dim);"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
     </div>
@@ -5482,18 +5778,17 @@ function practiceStateListen(tp) {
 function practiceStateRespond(tp) {
   const content = document.getElementById('expPracticeContent');
 
-  // Find correct response from arc
   const exp = getCafeL1();
   const responsePhrases = exp?.arc ? findResponseForTrigger(tp, exp.arc) : [];
   const correctResponse = responsePhrases[0] || "Un café, s'il vous plaît";
   _expSpeakTarget = correctResponse;
 
-  // Build distractors from known tier 2 phrases
   const allResponses = PHRASES.filter(p => p.tier === '2' && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native)).map(p => p.native);
   const distractors = shuffle(allResponses.filter(r => r !== correctResponse)).slice(0, 3);
   const options = shuffle([correctResponse, ...distractors]);
 
   content.innerHTML = `
+    ${scenePromptHtml(tp)}
     <div style="font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-style:italic; color:var(--text-dim); opacity:0.6; margin-bottom:1.5rem;">${tp.triggerPhrase}</div>
     <div class="mc-options" id="expRespondOptions" style="width:100; max-width:340px;"></div>
   `;
@@ -5536,6 +5831,7 @@ function practiceStateReact(tp) {
   _expSpeakTarget = 'Merci';
 
   content.innerHTML = `
+    ${scenePromptHtml(tp)}
     <div style="font-family:'Cormorant Garamond',serif; font-size:1.1rem; font-style:italic; color:var(--text-dim); opacity:0.6; margin-bottom:1.5rem;">${tp.triggerPhrase}</div>
     <div style="font-size:0.78rem; color:var(--text-dim); margin-bottom:0.5rem;">The natural response is</div>
     <div style="font-family:'Cormorant Garamond',serif; font-size:1.6rem; font-style:italic; color:var(--text);">Merci</div>
@@ -5547,15 +5843,18 @@ function practiceStateReact(tp) {
 // ── State 3: Speak ──
 function practiceStateSpeak() {
   const target = _expSpeakTarget || 'Merci';
+  const tp = _expTriggers[_expTriggerIdx];
   const content = document.getElementById('expPracticeContent');
   const micSvg = '<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>';
   const targetEsc = target.replace(/'/g, "\\'");
 
   content.innerHTML = `
+    ${tp ? scenePromptHtml(tp) : ''}
     <div style="font-family:'Cormorant Garamond',serif; font-size:1.4rem; font-style:italic; color:var(--text); margin-bottom:1.5rem; cursor:pointer;" onclick="replayExpPhrase('${targetEsc}')">${target} <span style="font-size:0.7rem; opacity:0.4; vertical-align:middle;">&#9655;</span></div>
     <button class="mic-btn" id="expMicBtn">${micSvg}</button>
     <div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.6rem; letter-spacing:0.1em;" id="expMicHint">Your turn</div>
     <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem; margin-top:0.4rem;" id="expHeardText"></div>
+    <button onclick="advanceToNextTrigger()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;margin-top:0.75rem;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Skip this one</button>
   `;
 
   const btn = document.getElementById('expMicBtn');
@@ -5623,8 +5922,8 @@ function startExpMic(target) {
         document.getElementById('expMicHint').textContent = 'Try once more';
         setTimeout(() => startExpMic(target), 1200);
       } else {
-        document.getElementById('expMicHint').textContent = '';
-        setTimeout(() => advanceToNextTrigger(), 800);
+        // Show correct answer, play audio, then auto-advance
+        showExpCorrectAndAdvance(target);
       }
     }
   };
@@ -5637,7 +5936,7 @@ function startExpMic(target) {
       document.getElementById('expMicHint').textContent = 'Try once more';
       setTimeout(() => startExpMic(target), 1200);
     } else {
-      setTimeout(() => advanceToNextTrigger(), 800);
+      showExpCorrectAndAdvance(target);
     }
   };
   rec.onend = () => {
@@ -5646,6 +5945,26 @@ function startExpMic(target) {
     }
   };
   rec.start();
+}
+
+function showExpCorrectAndAdvance(target) {
+  // Show the correct phrase, play audio, auto-advance after 2s
+  const content = document.getElementById('expPracticeContent');
+  const tp = _expTriggers[_expTriggerIdx];
+  content.innerHTML = `
+    ${tp ? scenePromptHtml(tp) : ''}
+    <div style="font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-style:italic; color:var(--text); margin-bottom:0.5rem;">${target}</div>
+    <div style="font-size:0.72rem; color:var(--text-dim);">Here's what to say</div>
+  `;
+  const url = getAudio(target);
+  if (url) {
+    const audio = new Audio(url);
+    audio.playbackRate = 1.0;
+    currentAudio = audio;
+    audio.onended = () => { currentAudio = null; };
+    audio.play().catch(() => { currentAudio = null; });
+  }
+  setTimeout(() => advanceToNextTrigger(), 2000);
 }
 
 function advanceToNextTrigger() {
@@ -5779,8 +6098,6 @@ function showCoachMark(storageKey) {
   overlay.style.display = 'block';
   return true;
 }
-
-let _onCoachMarkDismiss = null;
 
 function dismissCoachMark(storageKey) {
   localStorage.setItem(storageKey, 'true');
@@ -5922,11 +6239,9 @@ function devSetAllScore3() {
   const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
   playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
   localStorage.setItem('tt_recoveryUnlocked', 'true');
-  localStorage.setItem('tt_vocabularyUnlocked', 'true');
-  localStorage.setItem('tt_tier2Unlocked', 'true');
+  localStorage.setItem('tt_tier3Unlocked', 'true');
   state.seenTierUnlock.recovery = true;
-  state.seenTierUnlock.vocabulary = true;
-  state.seenTierUnlock.tier2 = true;
+  state.seenTierUnlock.tier3 = true;
   saveState();
   updateWelcomeScreen();
   const active = getActivePhrases();
@@ -5973,7 +6288,7 @@ function devShowScores() {
   lines.push('');
   lines.push('Unlock flags: recovery=' + !!localStorage.getItem('tt_recoveryUnlocked')
     + ' vocabulary=' + !!localStorage.getItem('tt_vocabularyUnlocked')
-    + ' tier2=' + !!localStorage.getItem('tt_tier2Unlocked'));
+    + ' tier3=' + !!localStorage.getItem('tt_tier3Unlocked'));
   lines.push('seenTierUnlock: ' + JSON.stringify(state.seenTierUnlock));
   out.textContent = lines.join('\n');
   out.style.display = 'block';
