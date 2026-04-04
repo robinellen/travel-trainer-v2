@@ -721,6 +721,12 @@ body::after {
 .exp-beat-dialogue {
   padding: 0.5rem 0;
 }
+.exp-beat-dialogue.align-right {
+  text-align: right;
+}
+.exp-beat-dialogue.align-left {
+  text-align: left;
+}
 .exp-voice-label {
   font-size: 0.6rem;
   letter-spacing: 0.15em;
@@ -1165,6 +1171,7 @@ body::after {
     <button onclick="devSetTier1Score3()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all Tier 1 → score 3 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock Recovery)</span></button>
     <button onclick="devSetAllScore3()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all → score 3 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock everything)</span></button>
     <button onclick="devResetAll()" style="background:var(--card);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--red);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Reset everything <span style="color:var(--text-dim); font-size:0.68rem;">(clear all progress)</span></button>
+    <button onclick="devSkipToCafePass3()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Skip to café Pass 3 <span style="color:var(--text-dim); font-size:0.68rem;">(triggers on open)</span></button>
     <button onclick="devSkipToCafePractice()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Skip to café practice <span style="color:var(--text-dim); font-size:0.68rem;">(set pass 3)</span></button>
     <button onclick="devShowScores()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Show current scores</button>
     <pre id="devScoreOutput" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem; font-size:0.65rem; color:var(--text-dim); overflow-x:auto; max-height:40vh; overflow-y:auto; white-space:pre-wrap;"></pre>
@@ -4212,7 +4219,7 @@ function updateWelcomeScreen() {
   function getCafeStatus() {
     const pass = parseInt(localStorage.getItem('tt_cafe_l1_pass') || '0', 10);
     const phase = localStorage.getItem('tt_cafe_l1_phase') || '';
-    if (phase === 'complete_practice') return 'Run the scene';
+    if (phase === 'complete_practice') return '✓ Complete';
     if (pass >= 3 || phase === 'practice') return 'Practice ready';
     if (pass >= 1) return 'In progress';
     return 'Free';
@@ -4230,7 +4237,7 @@ function updateWelcomeScreen() {
     if (exp.free) {
       tile.style.cursor = 'pointer';
       tile.onclick = () => openExperience(exp.name);
-      const statusText = exp.status === 'Run the scene' ? '<span style="color:var(--text-dim);">Coming soon</span>' : exp.status;
+      const statusText = exp.status;
       tile.innerHTML = `<span style="font-size:1.2rem;">${exp.emoji}</span><span style="font-size:0.82rem; color:var(--text); flex:1;">${exp.name}</span><span style="font-size:0.65rem; color:var(--text-dim);">${statusText}</span>`;
     } else {
       tile.style.opacity = '0.35';
@@ -4294,9 +4301,7 @@ function parseArc(arcText) {
   for (const line of lines) {
     const dialogueMatch = line.match(/^\[([^\]]+)\]\s*"?([^"]+)"?\s*(?:—\s*(.+))?$/);
     if (dialogueMatch) {
-      const voice = dialogueMatch[1];
-      const french = dialogueMatch[2].trim();
-      beats.push({ type: 'dialogue', voice, french, stageDir: dialogueMatch[3] || '' });
+      beats.push({ type: 'dialogue', voice: dialogueMatch[1], french: dialogueMatch[2].trim(), stageDir: dialogueMatch[3] || '' });
     } else {
       beats.push({ type: 'narrator', text: line.trim() });
     }
@@ -4306,12 +4311,7 @@ function parseArc(arcText) {
 
 function getAudioForBeat(beat) {
   if (beat.type !== 'dialogue') return null;
-  // Emile lines: look up in AUDIO_MANIFEST via phrase native text
-  if (beat.voice === 'Emile') {
-    const url = getAudio(beat.french);
-    return url || null;
-  }
-  // Other voices: look up matching trigger phrase file
+  if (beat.voice === 'Emile') return getAudio(beat.french) || null;
   const tp = TRIGGER_PHRASES.find(t => t.triggerPhrase === beat.french);
   if (tp && tp.fileName) return 'audio/trigger-phrases/' + tp.fileName;
   return null;
@@ -4332,26 +4332,31 @@ function openExperience(expName) {
   const pass = parseInt(localStorage.getItem('tt_cafe_l1_pass') || '0', 10);
   const phase = localStorage.getItem('tt_cafe_l1_phase') || '';
 
-  if (phase === 'practice' || pass >= 3) {
+  if (phase === 'practice' || phase === 'complete_practice') {
     startExpPractice();
     return;
   }
+  if (pass >= 3) { startExpPractice(); return; }
 
-  // Determine which pass to show
-  if (pass === 0) {
-    startExpWatch(1);
-  } else if (pass === 1) {
-    startExpWatch(2);
-  } else if (pass === 2) {
-    // Check return visit (>1 hour since last visit)
+  if (pass === 0) { startExpWatch(1); return; }
+  if (pass === 1) { startExpWatch(2); return; }
+  if (pass === 2) {
     const lastVisit = parseInt(localStorage.getItem('tt_cafe_l1_last_visit') || '0', 10);
-    const hourAgo = Date.now() - 3600000;
-    if (lastVisit < hourAgo) {
+    if (Date.now() - lastVisit > 3600000) {
       startExpWatch(3);
     } else {
-      startExpWatch(2); // replay pass 2
+      // Not enough time — show "come back later"
+      showExpComeBackLater();
     }
   }
+}
+
+function showExpComeBackLater() {
+  document.getElementById('expCompleteHeading').textContent = 'Come back later to continue.';
+  document.getElementById('expCompleteMsg').textContent = "Give your brain a break. The next pass works best after some time away.";
+  document.getElementById('expCompleteBtn').textContent = 'Home';
+  document.getElementById('expCompleteBtn').onclick = () => goHome();
+  showScreen('screenExpComplete');
 }
 
 function exitExperience() {
@@ -4375,60 +4380,51 @@ function startExpWatch(pass) {
 
   showScreen('screenExpWatch');
 
-  // Fire coach marks
   if (pass === 1) showCoachMark('tt_seenExperiencePass1CoachMark');
   if (pass === 2) showCoachMark('tt_seenExperiencePass2CoachMark');
   if (pass === 3) showCoachMark('tt_seenExperiencePass3CoachMark');
 
-  // Start playback after a short delay
   setTimeout(() => playNextBeat(), 600);
 }
 
 function playNextBeat() {
-  if (_expBeatIdx >= _expBeats.length) {
-    onExpWatchComplete();
-    return;
-  }
+  if (_expBeatIdx >= _expBeats.length) { onExpWatchComplete(); return; }
 
   const beat = _expBeats[_expBeatIdx];
   const container = document.getElementById('expWatchBeats');
   const total = _expBeats.length;
 
-  // Update progress
   document.getElementById('expWatchProgressFill').style.width = Math.round((_expBeatIdx / total) * 100) + '%';
 
-  // Create beat element
   const el = document.createElement('div');
   el.className = 'exp-beat';
 
   if (beat.type === 'narrator') {
     if (_expPass >= 3) {
-      // Pass 3: show narrator as cultural note card
       el.innerHTML = `<div class="exp-beat-narrator cultural-note">${beat.text}</div>`;
     } else if (_expPass >= 2) {
-      // Pass 2: show narrator text
       el.innerHTML = `<div class="exp-beat-narrator">${beat.text}</div>`;
     }
-    // Pass 1: no text for narrators
+    // Pass 1: no visible content for narrators
     container.appendChild(el);
     requestAnimationFrame(() => el.classList.add('visible'));
     _expBeatIdx++;
-    _expPlayTimer = setTimeout(() => playNextBeat(), 1500);
+    _expPlayTimer = setTimeout(() => playNextBeat(), 2000);
   } else {
     // Dialogue beat
     if (_expPass >= 2) {
-      // Show French text in pass 2+
+      const align = beat.voice === 'Emile' ? 'align-right' : 'align-left';
       let html = '';
-      if (beat.voice !== 'Emile') {
-        html += `<div class="exp-voice-label">${beat.voice}</div>`;
-      } else {
+      if (beat.voice === 'Emile') {
         html += `<div class="exp-voice-label" style="color:var(--fr);">You</div>`;
+      } else {
+        html += `<div class="exp-voice-label">${beat.voice}</div>`;
       }
       html += `<div class="exp-french-text">${beat.french}</div>`;
-      if (beat.stageDir && _expPass >= 2) {
+      if (beat.stageDir) {
         html += `<div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.2rem; font-style:italic;">${beat.stageDir}</div>`;
       }
-      el.innerHTML = `<div class="exp-beat-dialogue">${html}</div>`;
+      el.innerHTML = `<div class="exp-beat-dialogue ${align}">${html}</div>`;
     }
     container.appendChild(el);
 
@@ -4436,37 +4432,23 @@ function playNextBeat() {
     if (audioUrl) {
       const audio = new Audio(audioUrl);
       currentAudio = audio;
-      audio.onended = () => {
+      const advance = () => {
         currentAudio = null;
         requestAnimationFrame(() => el.classList.add('visible'));
         _expBeatIdx++;
-        _expPlayTimer = setTimeout(() => playNextBeat(), 800);
+        _expPlayTimer = setTimeout(() => playNextBeat(), 500);
       };
-      audio.onerror = () => {
-        currentAudio = null;
-        requestAnimationFrame(() => el.classList.add('visible'));
-        _expBeatIdx++;
-        _expPlayTimer = setTimeout(() => playNextBeat(), 800);
-      };
-      // Show text as audio starts playing in pass 2+
-      if (_expPass >= 2) {
-        requestAnimationFrame(() => el.classList.add('visible'));
-      }
-      audio.play().catch(() => {
-        currentAudio = null;
-        requestAnimationFrame(() => el.classList.add('visible'));
-        _expBeatIdx++;
-        _expPlayTimer = setTimeout(() => playNextBeat(), 800);
-      });
+      audio.onended = advance;
+      audio.onerror = advance;
+      if (_expPass >= 2) requestAnimationFrame(() => el.classList.add('visible'));
+      audio.play().catch(advance);
     } else {
-      // No audio — just show and advance
       requestAnimationFrame(() => el.classList.add('visible'));
       _expBeatIdx++;
-      _expPlayTimer = setTimeout(() => playNextBeat(), 1200);
+      _expPlayTimer = setTimeout(() => playNextBeat(), 1000);
     }
   }
 
-  // Scroll to bottom
   container.scrollTop = container.scrollHeight;
 }
 
@@ -4478,6 +4460,7 @@ function onExpWatchComplete() {
   actions.style.display = 'block';
 
   if (_expPass === 1) {
+    localStorage.setItem('tt_cafe_l1_pass', '1');
     primary.textContent = 'Continue →';
     primary.onclick = () => startExpWatch(2);
     secondary.style.display = 'block';
@@ -4501,10 +4484,12 @@ function onExpWatchComplete() {
 }
 
 // ── Practice the Pieces ──
+// Steps: 0=scene+ready, 1=trigger plays+reveal, 2=recognition MC, 3=response MC (Respond) or natural reaction (React), 4=speak
 
 let _expTriggers = [];
 let _expTriggerIdx = 0;
-let _expPracticeStep = 0; // step within a trigger phrase exercise
+let _expPracticeStep = 0;
+let _expSpeakTarget = '';
 
 function startExpPractice() {
   _expTriggers = TRIGGER_PHRASES
@@ -4523,15 +4508,9 @@ function renderExpPracticeExercise() {
     showExpPracticeComplete();
     return;
   }
-
   const tp = _expTriggers[_expTriggerIdx];
-  const total = _expTriggers.length;
-  const content = document.getElementById('expPracticeContent');
-  content.innerHTML = '';
-
-  document.getElementById('expPracticeProgressFill').style.width = Math.round((_expTriggerIdx / total) * 100) + '%';
-  document.getElementById('expPracticeCount').textContent = (_expTriggerIdx + 1) + ' / ' + total;
-
+  document.getElementById('expPracticeProgressFill').style.width = Math.round((_expTriggerIdx / _expTriggers.length) * 100) + '%';
+  document.getElementById('expPracticeCount').textContent = (_expTriggerIdx + 1) + ' / ' + _expTriggers.length;
   _expPracticeStep = 0;
   renderPracticeStep(tp);
 }
@@ -4540,33 +4519,51 @@ function renderPracticeStep(tp) {
   const content = document.getElementById('expPracticeContent');
   content.innerHTML = '';
 
+  const micSvg = '<svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>';
+  const playSvg = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+
   if (_expPracticeStep === 0) {
-    // Step 1: Scene prompt + play trigger audio
+    // Step 1: Scene prompt with Ready button
     content.innerHTML = `
       <div class="exp-scene-prompt">
         <div class="exp-scene-label">The scene</div>
         <div class="exp-scene-text">${tp.scenePrompt}</div>
       </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin:1rem 0;">
-        <div class="play-circle" id="expTriggerCircle" onclick="playExpTrigger()">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <div style="font-size:0.72rem; color:var(--text-dim);">Hear what they say</div>
+      <div class="mt-auto" style="padding-top:1rem;">
+        <button class="btn-primary" onclick="_expPracticeStep=1;renderPracticeStep(TRIGGER_PHRASES.find(t=>t.id==='${tp.id}'))">Ready →</button>
       </div>
     `;
-    // Auto-play
-    setTimeout(() => playExpTrigger(() => {
-      _expPracticeStep = 1;
-      setTimeout(() => renderPracticeStep(tp), 600);
-    }), 500);
+
   } else if (_expPracticeStep === 1) {
-    // Step 2: "What's happening?" MC — signal + distractors
+    // Step 2: Play trigger audio, then reveal French + romanization
+    content.innerHTML = `
+      <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0.75rem;">
+        <div class="play-circle" id="expTriggerCircle">${playSvg}</div>
+        <div style="font-size:0.72rem; color:var(--text-dim);" id="expTriggerHint">Listening...</div>
+        <div id="expTriggerReveal" class="hidden" style="text-align:center; margin-top:1rem;">
+          <div class="exp-french-text" style="margin-bottom:0.3rem;">${tp.triggerPhrase}</div>
+          <div style="font-size:0.78rem; color:var(--text-dim);">${stripHtmlTags(tp.romanization || '')}</div>
+        </div>
+      </div>
+      <div class="mt-auto hidden" id="expTriggerNext" style="padding-top:1rem;">
+        <button class="btn-primary" onclick="_expPracticeStep=2;renderPracticeStep(TRIGGER_PHRASES.find(t=>t.id==='${tp.id}'))">Continue →</button>
+      </div>
+    `;
+    const circle = document.getElementById('expTriggerCircle');
+    circle.classList.add('playing');
+    playExpTrigger(() => {
+      circle.classList.remove('playing');
+      document.getElementById('expTriggerHint').textContent = 'Tap to hear again';
+      circle.onclick = () => playExpTrigger();
+      circle.style.cursor = 'pointer';
+      document.getElementById('expTriggerReveal').classList.remove('hidden');
+      document.getElementById('expTriggerNext').classList.remove('hidden');
+    });
+
+  } else if (_expPracticeStep === 2) {
+    // Step 3: Recognition MC — "What's happening?"
     const options = shuffle([tp.signal, ...tp.distractors.slice(0, 3)]);
     content.innerHTML = `
-      <div class="exp-scene-prompt">
-        <div class="exp-scene-label">The scene</div>
-        <div class="exp-scene-text">${tp.scenePrompt}</div>
-      </div>
       <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What's happening?</div>
       <div class="mc-options" id="expSignalOptions"></div>
     `;
@@ -4582,53 +4579,47 @@ function renderPracticeStep(tp) {
         container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
         const correct = opt === tp.signal;
         btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-        if (!correct) {
-          container.querySelectorAll('.mc-option').forEach(b => {
-            if (b.textContent === tp.signal) b.className = 'mc-option reveal';
-          });
-        }
-        _expPracticeStep = 2;
+        if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
+          if (b.textContent === tp.signal) b.className = 'mc-option reveal';
+        });
+        _expPracticeStep = 3;
         setTimeout(() => renderPracticeStep(tp), 800);
       };
       container.appendChild(btn);
     });
-  } else if (_expPracticeStep === 2) {
+
+  } else if (_expPracticeStep === 3) {
     if (tp.type === 'React') {
-      // React type: show confirmation + speak Merci
+      // React: show natural response + speak
       content.innerHTML = `
         <div style="text-align:center; margin-bottom:1.5rem;">
           <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.5rem;">${tp.signal}</div>
-          <div style="font-size:0.85rem; color:var(--text); line-height:1.6;">The natural response is <em>Merci</em></div>
+          <div style="font-size:0.85rem; color:var(--text); line-height:1.6;">The natural response is <em style="font-family:'Cormorant Garamond',serif; font-size:1.1rem;">Merci</em></div>
         </div>
         <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
-          <button class="mic-btn" id="expMicBtn" onclick="startExpMic('Merci')">
-            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>
-          </button>
+          <button class="mic-btn" id="expMicBtn" onclick="startExpMic('Merci')">${micSvg}</button>
           <div class="eyebrow" id="expMicHint">Say: Merci</div>
+          <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem;" id="expHeardText"></div>
         </div>
         <div class="mt-auto" style="padding-top:1rem;">
-          <button class="btn-primary" id="expPracticeNextBtn" onclick="nextExpTrigger()">Continue →</button>
+          <button class="btn-primary" onclick="nextExpTrigger()">Continue →</button>
         </div>
       `;
     } else {
-      // Respond type: show response phrase options
-      // Find the response phrase from the arc that matches this trigger
+      // Respond: response phrase selection
       const exp = getCafeL1();
-      const responsePhrases = exp ? (exp.arc ? findResponseForTrigger(tp, exp.arc) : []) : [];
+      const responsePhrases = exp?.arc ? findResponseForTrigger(tp, exp.arc) : [];
       const correctResponse = responsePhrases[0] || "Un café, s'il vous plaît";
 
-      // Build MC from response + other café response phrases
-      const allResponses = PHRASES.filter(p =>
-        p.tier === '2' && p.meaning && getAudio(p.native)
-      ).map(p => p.native);
-      const distractors = shuffle(allResponses.filter(r => r !== correctResponse)).slice(0, 3);
+      const allResponses = PHRASES.filter(p => p.tier === '2' && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native)).map(p => p.native);
+      const distractors = shuffle(allResponses.filter(r => r !== correctResponse)).slice(0, 2);
       const options = shuffle([correctResponse, ...distractors]);
 
       content.innerHTML = `
         <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What do you say?</div>
         <div class="mc-options" id="expResponseOptions"></div>
-        <div class="mt-auto" style="padding-top:1rem;">
-          <button class="btn-primary hidden" id="expPracticeNextBtn" onclick="advanceToSpeak('${correctResponse.replace(/'/g, "\\'")}')">Continue →</button>
+        <div class="mt-auto hidden" id="expResponseNext" style="padding-top:1rem;">
+          <button class="btn-primary" id="expResponseNextBtn">Continue →</button>
         </div>
       `;
       const container = document.getElementById('expResponseOptions');
@@ -4640,28 +4631,31 @@ function renderPracticeStep(tp) {
           container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
           const correct = opt === correctResponse;
           btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-          if (!correct) {
-            container.querySelectorAll('.mc-option').forEach(b => {
-              if (b.textContent === correctResponse) b.className = 'mc-option reveal';
-            });
-          }
-          document.getElementById('expPracticeNextBtn').classList.remove('hidden');
+          if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
+            if (b.textContent === correctResponse) b.className = 'mc-option reveal';
+          });
+          document.getElementById('expResponseNext').classList.remove('hidden');
+          document.getElementById('expResponseNextBtn').onclick = () => {
+            _expSpeakTarget = correctResponse;
+            _expPracticeStep = 4;
+            renderPracticeStep(tp);
+          };
         };
         container.appendChild(btn);
       });
     }
-  } else if (_expPracticeStep === 3) {
-    // Speak the response
+
+  } else if (_expPracticeStep === 4) {
+    // Step 5: Speak the response
     const target = _expSpeakTarget || 'Merci';
     content.innerHTML = `
-      <div style="text-align:center; margin-bottom:1.5rem;">
+      <div style="text-align:center; margin-bottom:0.75rem;">
+        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.5rem;">Now say it out loud.</div>
         <div style="font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-style:italic; color:var(--text);">${target}</div>
       </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
-        <button class="mic-btn" id="expMicBtn" onclick="startExpMic('${target.replace(/'/g, "\\'")}')">
-          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>
-        </button>
-        <div class="eyebrow" id="expMicHint">Say it out loud</div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
+        <button class="mic-btn" id="expMicBtn" onclick="startExpMic('${target.replace(/'/g, "\\'")}')">${micSvg}</button>
+        <div class="eyebrow" id="expMicHint">Tap to speak</div>
         <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem;" id="expHeardText"></div>
       </div>
       <div class="mt-auto" style="padding-top:1rem;">
@@ -4671,22 +4665,13 @@ function renderPracticeStep(tp) {
   }
 }
 
-let _expSpeakTarget = '';
-
-function advanceToSpeak(response) {
-  _expSpeakTarget = response;
-  _expPracticeStep = 3;
-  renderPracticeStep(_expTriggers[_expTriggerIdx]);
-}
-
 function findResponseForTrigger(tp, arcText) {
-  // Find the Emile line that follows this trigger phrase in the arc
   const lines = arcText.split('\n').filter(l => l.trim());
   for (let i = 0; i < lines.length - 1; i++) {
     if (lines[i].includes(tp.triggerPhrase)) {
       const next = lines[i + 1];
-      const match = next.match(/^\[Emile\]\s*"?(.+?)"?\s*$/);
-      if (match) return [match[1].replace(/^"|"$/g, '')];
+      const match = next.match(/^\[Emile\]\s*"?([^"]+)"?\s*$/);
+      if (match) return [match[1].trim()];
     }
   }
   return [];
@@ -4695,32 +4680,16 @@ function findResponseForTrigger(tp, arcText) {
 function playExpTrigger(onDone) {
   const tp = _expTriggers[_expTriggerIdx];
   if (!tp) return;
-  const circle = document.getElementById('expTriggerCircle');
-  if (circle) circle.classList.add('playing');
-
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-
   const audioUrl = tp.fileName ? 'audio/trigger-phrases/' + tp.fileName : null;
   if (audioUrl) {
     const audio = new Audio(audioUrl);
     currentAudio = audio;
-    audio.onended = () => {
-      currentAudio = null;
-      if (circle) circle.classList.remove('playing');
-      if (onDone) onDone();
-    };
-    audio.onerror = () => {
-      currentAudio = null;
-      if (circle) circle.classList.remove('playing');
-      if (onDone) onDone();
-    };
-    audio.play().catch(() => {
-      currentAudio = null;
-      if (circle) circle.classList.remove('playing');
-      if (onDone) onDone();
-    });
+    const done = () => { currentAudio = null; if (onDone) onDone(); };
+    audio.onended = done;
+    audio.onerror = done;
+    audio.play().catch(done);
   } else {
-    if (circle) circle.classList.remove('playing');
     if (onDone) setTimeout(onDone, 500);
   }
 }
@@ -4755,9 +4724,7 @@ function startExpMic(target) {
     document.getElementById('expMicHint').textContent = 'Try again';
   };
   rec.onend = () => {
-    if (!btn.classList.contains('correct')) {
-      btn.classList.remove('listening');
-    }
+    if (!btn.classList.contains('correct')) btn.classList.remove('listening');
   };
   rec.start();
 }
@@ -4770,8 +4737,8 @@ function nextExpTrigger() {
 
 function showExpPracticeComplete() {
   localStorage.setItem('tt_cafe_l1_phase', 'complete_practice');
-  document.getElementById('expCompleteHeading').textContent = 'Practice complete.';
-  document.getElementById('expCompleteMsg').textContent = "You've practiced the whole café exchange. Come back to run the full scene.";
+  document.getElementById('expCompleteHeading').textContent = 'You know the whole café exchange.';
+  document.getElementById('expCompleteMsg').textContent = "Walk in, order, pay, leave. You've got it.";
   document.getElementById('expCompleteBtn').textContent = 'Home';
   document.getElementById('expCompleteBtn').onclick = () => goHome();
   showScreen('screenExpComplete');
@@ -5037,6 +5004,15 @@ function devResetAll() {
   }
   keys.forEach(k => localStorage.removeItem(k));
   location.reload();
+}
+
+function devSkipToCafePass3() {
+  localStorage.setItem('tt_cafe_l1_pass', '2');
+  localStorage.setItem('tt_cafe_l1_last_visit', String(Date.now() - 7200000)); // 2 hours ago
+  localStorage.removeItem('tt_cafe_l1_phase');
+  console.log('[dev] Café set to pass 2 with old timestamp — Pass 3 will trigger on open');
+  closeDevPanel();
+  openExperience('At the Café');
 }
 
 function devSkipToCafePractice() {
