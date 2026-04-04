@@ -694,6 +694,66 @@ body::after {
   transition: all 0.15s;
 }
 .coach-dismiss:hover { border-color: var(--text-mid); color: var(--text); }
+
+/* ── EXPERIENCE SCREENS ───────────────────────────────────────── */
+.exp-beat {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  margin-bottom: 0.75rem;
+}
+.exp-beat.visible { opacity: 1; transform: translateY(0); }
+.exp-beat-narrator {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.65;
+  font-style: italic;
+  padding: 0.6rem 0;
+}
+.exp-beat-narrator.cultural-note {
+  background: var(--surface);
+  border-left: 2px solid var(--border-hi);
+  padding: 0.6rem 0.9rem;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-style: normal;
+  color: var(--text-dim);
+}
+.exp-beat-dialogue {
+  padding: 0.5rem 0;
+}
+.exp-voice-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.2rem;
+}
+.exp-french-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.4;
+}
+.exp-scene-prompt {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.25rem;
+}
+.exp-scene-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.4rem;
+}
+.exp-scene-text {
+  font-size: 0.85rem;
+  color: var(--text);
+  line-height: 1.6;
+}
 </style>
 </head>
 <body>
@@ -1023,6 +1083,48 @@ body::after {
   </div>
 
 <!-- ═══════════════════════════════════════════════════
+     EXPERIENCE: WATCH IT
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenExpWatch">
+  <div class="exercise-header">
+    <button class="btn-back" onclick="exitExperience()" aria-label="Back">←</button>
+    <div class="progress-bar"><div class="progress-bar-fill" id="expWatchProgressFill" style="width:0%"></div></div>
+    <div style="font-size:0.68rem; color:var(--text-dim); min-width:60px; text-align:right;" id="expWatchPassLabel">Pass 1</div>
+  </div>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch;">
+    <div id="expWatchBeats" style="flex:1; padding-bottom:1rem;"></div>
+  </div>
+  <div style="padding:0 1.5rem 1.5rem; display:none;" id="expWatchActions">
+    <button class="btn-primary" id="expWatchPrimaryBtn" style="margin-bottom:0.5rem;"></button>
+    <button class="btn-ghost" id="expWatchSecondaryBtn" style="display:none;"></button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     EXPERIENCE: PRACTICE THE PIECES
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenExpPractice">
+  <div class="exercise-header">
+    <button class="btn-back" onclick="exitExperience()" aria-label="Back">←</button>
+    <div class="progress-bar"><div class="progress-bar-fill" id="expPracticeProgressFill" style="width:0%"></div></div>
+    <div style="font-size:0.68rem; color:var(--text-dim); min-width:60px; text-align:right;" id="expPracticeCount"></div>
+  </div>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column;" id="expPracticeContent"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     EXPERIENCE: COMPLETE
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenExpComplete">
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:0;">
+    <div style="font-size:2.5rem; margin-bottom:1.5rem;">☕</div>
+    <h2 class="serif" style="font-size:2rem; margin-bottom:0.5rem;" id="expCompleteHeading">Practice complete.</h2>
+    <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:300px;" id="expCompleteMsg"></p>
+    <button class="btn-primary" id="expCompleteBtn" onclick="goHome()">Home</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
      COMPLETION SCREEN
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="screenComplete">
@@ -1063,6 +1165,7 @@ body::after {
     <button onclick="devSetTier1Score3()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all Tier 1 → score 3 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock Recovery)</span></button>
     <button onclick="devSetAllScore3()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Set all → score 3 <span style="color:var(--text-dim); font-size:0.68rem;">(unlock everything)</span></button>
     <button onclick="devResetAll()" style="background:var(--card);border:1px solid var(--red-border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--red);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Reset everything <span style="color:var(--text-dim); font-size:0.68rem;">(clear all progress)</span></button>
+    <button onclick="devSkipToCafePractice()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Skip to café practice <span style="color:var(--text-dim); font-size:0.68rem;">(set pass 3)</span></button>
     <button onclick="devShowScores()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:0.78rem;cursor:pointer;text-align:left;">Show current scores</button>
     <pre id="devScoreOutput" style="display:none; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem; font-size:0.65rem; color:var(--text-dim); overflow-x:auto; max-height:40vh; overflow-y:auto; white-space:pre-wrap;"></pre>
   </div>
@@ -4101,10 +4204,19 @@ function updateWelcomeScreen() {
   const tiles = document.getElementById('experienceTiles');
   tiles.innerHTML = '';
 
+  function getCafeStatus() {
+    const pass = parseInt(localStorage.getItem('tt_cafe_l1_pass') || '0', 10);
+    const phase = localStorage.getItem('tt_cafe_l1_phase') || '';
+    if (phase === 'complete_practice') return 'Run the scene';
+    if (pass >= 3 || phase === 'practice') return 'Practice ready';
+    if (pass >= 1) return 'In progress';
+    return 'Free';
+  }
+
   const experiences = [
-    { name: 'At the Café', emoji: '☕', free: true },
-    { name: 'At the Restaurant', emoji: '🍽️', free: false },
-    { name: 'Out and About', emoji: '🚶', free: false },
+    { name: 'At the Café', emoji: '☕', free: true, status: getCafeStatus() },
+    { name: 'At the Restaurant', emoji: '🍽️', free: false, status: '' },
+    { name: 'Out and About', emoji: '🚶', free: false, status: '' },
   ];
 
   experiences.forEach(exp => {
@@ -4112,8 +4224,9 @@ function updateWelcomeScreen() {
     tile.style.cssText = 'display:flex; align-items:center; gap:0.75rem; padding:0.7rem 0; border-bottom:1px solid var(--border);';
     if (exp.free) {
       tile.style.cursor = 'pointer';
-      tile.onclick = () => startLesson();
-      tile.innerHTML = `<span style="font-size:1.2rem;">${exp.emoji}</span><span style="font-size:0.82rem; color:var(--text); flex:1;">${exp.name}</span><span style="font-size:0.65rem; color:var(--text-dim);">Free</span>`;
+      tile.onclick = () => openExperience(exp.name);
+      const statusText = exp.status === 'Run the scene' ? '<span style="color:var(--text-dim);">Coming soon</span>' : exp.status;
+      tile.innerHTML = `<span style="font-size:1.2rem;">${exp.emoji}</span><span style="font-size:0.82rem; color:var(--text); flex:1;">${exp.name}</span><span style="font-size:0.65rem; color:var(--text-dim);">${statusText}</span>`;
     } else {
       tile.style.opacity = '0.35';
       tile.innerHTML = `<span style="font-size:1.2rem;">${exp.emoji}</span><span style="font-size:0.82rem; color:var(--text); flex:1;">${exp.name}</span><span style="font-size:0.65rem; color:var(--text-dim);">🔒</span>`;
@@ -4162,6 +4275,501 @@ function renderCapabilities(container) {
 // Keep backward-compatible alias
 function updateWelcomeProgress() {
   updateWelcomeScreen();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EXPERIENCE SYSTEM
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Arc parser ──
+function parseArc(arcText) {
+  if (!arcText) return [];
+  const lines = arcText.split('\n').filter(l => l.trim());
+  const beats = [];
+  for (const line of lines) {
+    const dialogueMatch = line.match(/^\[([^\]]+)\]\s*"?([^"]+)"?\s*(?:—\s*(.+))?$/);
+    if (dialogueMatch) {
+      const voice = dialogueMatch[1];
+      const french = dialogueMatch[2].trim();
+      beats.push({ type: 'dialogue', voice, french, stageDir: dialogueMatch[3] || '' });
+    } else {
+      beats.push({ type: 'narrator', text: line.trim() });
+    }
+  }
+  return beats;
+}
+
+function getAudioForBeat(beat) {
+  if (beat.type !== 'dialogue') return null;
+  // Emile lines: look up in AUDIO_MANIFEST via phrase native text
+  if (beat.voice === 'Emile') {
+    const url = getAudio(beat.french);
+    return url || null;
+  }
+  // Other voices: look up matching trigger phrase file
+  const tp = TRIGGER_PHRASES.find(t => t.triggerPhrase === beat.french);
+  if (tp && tp.fileName) return 'audio/trigger-phrases/' + tp.fileName;
+  return null;
+}
+
+// ── Watch It state ──
+let _expBeats = [];
+let _expBeatIdx = 0;
+let _expPass = 1;
+let _expPlayTimer = null;
+
+function getCafeL1() {
+  return EXPERIENCES.find(e => e.name === 'At the Café' && e.depthLevel === 'Level 1 — Survive it');
+}
+
+function openExperience(expName) {
+  if (expName !== 'At the Café') return;
+  const pass = parseInt(localStorage.getItem('tt_cafe_l1_pass') || '0', 10);
+  const phase = localStorage.getItem('tt_cafe_l1_phase') || '';
+
+  if (phase === 'practice' || pass >= 3) {
+    startExpPractice();
+    return;
+  }
+
+  // Determine which pass to show
+  if (pass === 0) {
+    startExpWatch(1);
+  } else if (pass === 1) {
+    startExpWatch(2);
+  } else if (pass === 2) {
+    // Check return visit (>1 hour since last visit)
+    const lastVisit = parseInt(localStorage.getItem('tt_cafe_l1_last_visit') || '0', 10);
+    const hourAgo = Date.now() - 3600000;
+    if (lastVisit < hourAgo) {
+      startExpWatch(3);
+    } else {
+      startExpWatch(2); // replay pass 2
+    }
+  }
+}
+
+function exitExperience() {
+  clearTimeout(_expPlayTimer);
+  currentAudio?.pause();
+  window.speechSynthesis?.cancel();
+  goHome();
+}
+
+function startExpWatch(pass) {
+  _expPass = pass;
+  const exp = getCafeL1();
+  if (!exp) return;
+  _expBeats = parseArc(exp.arc);
+  _expBeatIdx = 0;
+
+  document.getElementById('expWatchPassLabel').textContent = 'Pass ' + pass;
+  document.getElementById('expWatchProgressFill').style.width = '0%';
+  document.getElementById('expWatchActions').style.display = 'none';
+  document.getElementById('expWatchBeats').innerHTML = '';
+
+  showScreen('screenExpWatch');
+
+  // Fire coach marks
+  if (pass === 1) showCoachMark('tt_seenExperiencePass1CoachMark');
+  if (pass === 2) showCoachMark('tt_seenExperiencePass2CoachMark');
+  if (pass === 3) showCoachMark('tt_seenExperiencePass3CoachMark');
+
+  // Start playback after a short delay
+  setTimeout(() => playNextBeat(), 600);
+}
+
+function playNextBeat() {
+  if (_expBeatIdx >= _expBeats.length) {
+    onExpWatchComplete();
+    return;
+  }
+
+  const beat = _expBeats[_expBeatIdx];
+  const container = document.getElementById('expWatchBeats');
+  const total = _expBeats.length;
+
+  // Update progress
+  document.getElementById('expWatchProgressFill').style.width = Math.round((_expBeatIdx / total) * 100) + '%';
+
+  // Create beat element
+  const el = document.createElement('div');
+  el.className = 'exp-beat';
+
+  if (beat.type === 'narrator') {
+    if (_expPass >= 3) {
+      // Pass 3: show narrator as cultural note card
+      el.innerHTML = `<div class="exp-beat-narrator cultural-note">${beat.text}</div>`;
+    } else if (_expPass >= 2) {
+      // Pass 2: show narrator text
+      el.innerHTML = `<div class="exp-beat-narrator">${beat.text}</div>`;
+    }
+    // Pass 1: no text for narrators
+    container.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('visible'));
+    _expBeatIdx++;
+    _expPlayTimer = setTimeout(() => playNextBeat(), 1500);
+  } else {
+    // Dialogue beat
+    if (_expPass >= 2) {
+      // Show French text in pass 2+
+      let html = '';
+      if (beat.voice !== 'Emile') {
+        html += `<div class="exp-voice-label">${beat.voice}</div>`;
+      } else {
+        html += `<div class="exp-voice-label" style="color:var(--fr);">You</div>`;
+      }
+      html += `<div class="exp-french-text">${beat.french}</div>`;
+      if (beat.stageDir && _expPass >= 2) {
+        html += `<div style="font-size:0.68rem; color:var(--text-dim); margin-top:0.2rem; font-style:italic;">${beat.stageDir}</div>`;
+      }
+      el.innerHTML = `<div class="exp-beat-dialogue">${html}</div>`;
+    }
+    container.appendChild(el);
+
+    const audioUrl = getAudioForBeat(beat);
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      currentAudio = audio;
+      audio.onended = () => {
+        currentAudio = null;
+        requestAnimationFrame(() => el.classList.add('visible'));
+        _expBeatIdx++;
+        _expPlayTimer = setTimeout(() => playNextBeat(), 800);
+      };
+      audio.onerror = () => {
+        currentAudio = null;
+        requestAnimationFrame(() => el.classList.add('visible'));
+        _expBeatIdx++;
+        _expPlayTimer = setTimeout(() => playNextBeat(), 800);
+      };
+      // Show text as audio starts playing in pass 2+
+      if (_expPass >= 2) {
+        requestAnimationFrame(() => el.classList.add('visible'));
+      }
+      audio.play().catch(() => {
+        currentAudio = null;
+        requestAnimationFrame(() => el.classList.add('visible'));
+        _expBeatIdx++;
+        _expPlayTimer = setTimeout(() => playNextBeat(), 800);
+      });
+    } else {
+      // No audio — just show and advance
+      requestAnimationFrame(() => el.classList.add('visible'));
+      _expBeatIdx++;
+      _expPlayTimer = setTimeout(() => playNextBeat(), 1200);
+    }
+  }
+
+  // Scroll to bottom
+  container.scrollTop = container.scrollHeight;
+}
+
+function onExpWatchComplete() {
+  document.getElementById('expWatchProgressFill').style.width = '100%';
+  const actions = document.getElementById('expWatchActions');
+  const primary = document.getElementById('expWatchPrimaryBtn');
+  const secondary = document.getElementById('expWatchSecondaryBtn');
+  actions.style.display = 'block';
+
+  if (_expPass === 1) {
+    primary.textContent = 'Continue →';
+    primary.onclick = () => startExpWatch(2);
+    secondary.style.display = 'block';
+    secondary.textContent = 'Play again';
+    secondary.onclick = () => startExpWatch(1);
+  } else if (_expPass === 2) {
+    localStorage.setItem('tt_cafe_l1_pass', '2');
+    localStorage.setItem('tt_cafe_l1_last_visit', String(Date.now()));
+    primary.textContent = 'Done for now';
+    primary.onclick = () => goHome();
+    secondary.style.display = 'block';
+    secondary.textContent = 'Play again';
+    secondary.onclick = () => startExpWatch(2);
+  } else if (_expPass === 3) {
+    localStorage.setItem('tt_cafe_l1_pass', '3');
+    localStorage.setItem('tt_cafe_l1_phase', 'practice');
+    primary.textContent = 'Practice the pieces →';
+    primary.onclick = () => startExpPractice();
+    secondary.style.display = 'none';
+  }
+}
+
+// ── Practice the Pieces ──
+
+let _expTriggers = [];
+let _expTriggerIdx = 0;
+let _expPracticeStep = 0; // step within a trigger phrase exercise
+
+function startExpPractice() {
+  _expTriggers = TRIGGER_PHRASES
+    .filter(t => t.experience === 'At the Café' && t.depthLevel === 'Level 1 — Survive it')
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+  _expTriggerIdx = 0;
+  _expPracticeStep = 0;
+
+  showScreen('screenExpPractice');
+  showCoachMark('tt_seenExperiencePracticeCoachMark');
+  renderExpPracticeExercise();
+}
+
+function renderExpPracticeExercise() {
+  if (_expTriggerIdx >= _expTriggers.length) {
+    showExpPracticeComplete();
+    return;
+  }
+
+  const tp = _expTriggers[_expTriggerIdx];
+  const total = _expTriggers.length;
+  const content = document.getElementById('expPracticeContent');
+  content.innerHTML = '';
+
+  document.getElementById('expPracticeProgressFill').style.width = Math.round((_expTriggerIdx / total) * 100) + '%';
+  document.getElementById('expPracticeCount').textContent = (_expTriggerIdx + 1) + ' / ' + total;
+
+  _expPracticeStep = 0;
+  renderPracticeStep(tp);
+}
+
+function renderPracticeStep(tp) {
+  const content = document.getElementById('expPracticeContent');
+  content.innerHTML = '';
+
+  if (_expPracticeStep === 0) {
+    // Step 1: Scene prompt + play trigger audio
+    content.innerHTML = `
+      <div class="exp-scene-prompt">
+        <div class="exp-scene-label">The scene</div>
+        <div class="exp-scene-text">${tp.scenePrompt}</div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.75rem; margin:1rem 0;">
+        <div class="play-circle" id="expTriggerCircle" onclick="playExpTrigger()">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div style="font-size:0.72rem; color:var(--text-dim);">Hear what they say</div>
+      </div>
+    `;
+    // Auto-play
+    setTimeout(() => playExpTrigger(() => {
+      _expPracticeStep = 1;
+      setTimeout(() => renderPracticeStep(tp), 600);
+    }), 500);
+  } else if (_expPracticeStep === 1) {
+    // Step 2: "What's happening?" MC — signal + distractors
+    const options = shuffle([tp.signal, ...tp.distractors.slice(0, 3)]);
+    content.innerHTML = `
+      <div class="exp-scene-prompt">
+        <div class="exp-scene-label">The scene</div>
+        <div class="exp-scene-text">${tp.scenePrompt}</div>
+      </div>
+      <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What's happening?</div>
+      <div class="mc-options" id="expSignalOptions"></div>
+    `;
+    const container = document.getElementById('expSignalOptions');
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'mc-option';
+      btn.style.fontStyle = 'normal';
+      btn.style.fontFamily = "'Lexend', sans-serif";
+      btn.style.fontSize = '0.78rem';
+      btn.textContent = opt;
+      btn.onclick = () => {
+        container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
+        const correct = opt === tp.signal;
+        btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
+        if (!correct) {
+          container.querySelectorAll('.mc-option').forEach(b => {
+            if (b.textContent === tp.signal) b.className = 'mc-option reveal';
+          });
+        }
+        _expPracticeStep = 2;
+        setTimeout(() => renderPracticeStep(tp), 800);
+      };
+      container.appendChild(btn);
+    });
+  } else if (_expPracticeStep === 2) {
+    if (tp.type === 'React') {
+      // React type: show confirmation + speak Merci
+      content.innerHTML = `
+        <div style="text-align:center; margin-bottom:1.5rem;">
+          <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.5rem;">${tp.signal}</div>
+          <div style="font-size:0.85rem; color:var(--text); line-height:1.6;">The natural response is <em>Merci</em></div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+          <button class="mic-btn" id="expMicBtn" onclick="startExpMic('Merci')">
+            <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>
+          </button>
+          <div class="eyebrow" id="expMicHint">Say: Merci</div>
+        </div>
+        <div class="mt-auto" style="padding-top:1rem;">
+          <button class="btn-primary" id="expPracticeNextBtn" onclick="nextExpTrigger()">Continue →</button>
+        </div>
+      `;
+    } else {
+      // Respond type: show response phrase options
+      // Find the response phrase from the arc that matches this trigger
+      const exp = getCafeL1();
+      const responsePhrases = exp ? (exp.arc ? findResponseForTrigger(tp, exp.arc) : []) : [];
+      const correctResponse = responsePhrases[0] || "Un café, s'il vous plaît";
+
+      // Build MC from response + other café response phrases
+      const allResponses = PHRASES.filter(p =>
+        p.tier === '2' && p.meaning && getAudio(p.native)
+      ).map(p => p.native);
+      const distractors = shuffle(allResponses.filter(r => r !== correctResponse)).slice(0, 3);
+      const options = shuffle([correctResponse, ...distractors]);
+
+      content.innerHTML = `
+        <div style="font-size:0.72rem; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What do you say?</div>
+        <div class="mc-options" id="expResponseOptions"></div>
+        <div class="mt-auto" style="padding-top:1rem;">
+          <button class="btn-primary hidden" id="expPracticeNextBtn" onclick="advanceToSpeak('${correctResponse.replace(/'/g, "\\'")}')">Continue →</button>
+        </div>
+      `;
+      const container = document.getElementById('expResponseOptions');
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'mc-option';
+        btn.textContent = opt;
+        btn.onclick = () => {
+          container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
+          const correct = opt === correctResponse;
+          btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
+          if (!correct) {
+            container.querySelectorAll('.mc-option').forEach(b => {
+              if (b.textContent === correctResponse) b.className = 'mc-option reveal';
+            });
+          }
+          document.getElementById('expPracticeNextBtn').classList.remove('hidden');
+        };
+        container.appendChild(btn);
+      });
+    }
+  } else if (_expPracticeStep === 3) {
+    // Speak the response
+    const target = _expSpeakTarget || 'Merci';
+    content.innerHTML = `
+      <div style="text-align:center; margin-bottom:1.5rem;">
+        <div style="font-family:'Cormorant Garamond',serif; font-size:1.3rem; font-style:italic; color:var(--text);">${target}</div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+        <button class="mic-btn" id="expMicBtn" onclick="startExpMic('${target.replace(/'/g, "\\'")}')">
+          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>
+        </button>
+        <div class="eyebrow" id="expMicHint">Say it out loud</div>
+        <div style="font-size:0.78rem; color:var(--text-mid); font-style:italic; min-height:1.2rem;" id="expHeardText"></div>
+      </div>
+      <div class="mt-auto" style="padding-top:1rem;">
+        <button class="btn-primary" onclick="nextExpTrigger()">Continue →</button>
+      </div>
+    `;
+  }
+}
+
+let _expSpeakTarget = '';
+
+function advanceToSpeak(response) {
+  _expSpeakTarget = response;
+  _expPracticeStep = 3;
+  renderPracticeStep(_expTriggers[_expTriggerIdx]);
+}
+
+function findResponseForTrigger(tp, arcText) {
+  // Find the Emile line that follows this trigger phrase in the arc
+  const lines = arcText.split('\n').filter(l => l.trim());
+  for (let i = 0; i < lines.length - 1; i++) {
+    if (lines[i].includes(tp.triggerPhrase)) {
+      const next = lines[i + 1];
+      const match = next.match(/^\[Emile\]\s*"?(.+?)"?\s*$/);
+      if (match) return [match[1].replace(/^"|"$/g, '')];
+    }
+  }
+  return [];
+}
+
+function playExpTrigger(onDone) {
+  const tp = _expTriggers[_expTriggerIdx];
+  if (!tp) return;
+  const circle = document.getElementById('expTriggerCircle');
+  if (circle) circle.classList.add('playing');
+
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+  const audioUrl = tp.fileName ? 'audio/trigger-phrases/' + tp.fileName : null;
+  if (audioUrl) {
+    const audio = new Audio(audioUrl);
+    currentAudio = audio;
+    audio.onended = () => {
+      currentAudio = null;
+      if (circle) circle.classList.remove('playing');
+      if (onDone) onDone();
+    };
+    audio.onerror = () => {
+      currentAudio = null;
+      if (circle) circle.classList.remove('playing');
+      if (onDone) onDone();
+    };
+    audio.play().catch(() => {
+      currentAudio = null;
+      if (circle) circle.classList.remove('playing');
+      if (onDone) onDone();
+    });
+  } else {
+    if (circle) circle.classList.remove('playing');
+    if (onDone) setTimeout(onDone, 500);
+  }
+}
+
+function startExpMic(target) {
+  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+    document.getElementById('expMicHint').textContent = 'Mic not supported';
+    return;
+  }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const rec = new SR();
+  rec.lang = 'fr-FR';
+  rec.continuous = false;
+  rec.interimResults = true;
+
+  const btn = document.getElementById('expMicBtn');
+  btn.classList.add('listening');
+  document.getElementById('expMicHint').textContent = 'Listening...';
+
+  rec.onresult = (event) => {
+    const transcript = Array.from(event.results).map(r => r[0].transcript).join('').toLowerCase().trim();
+    const heard = document.getElementById('expHeardText');
+    if (heard) heard.textContent = '"' + transcript + '"';
+    if (event.results[0].isFinal) {
+      btn.classList.remove('listening');
+      btn.classList.add('correct');
+      document.getElementById('expMicHint').textContent = 'Nice!';
+    }
+  };
+  rec.onerror = () => {
+    btn.classList.remove('listening');
+    document.getElementById('expMicHint').textContent = 'Try again';
+  };
+  rec.onend = () => {
+    if (!btn.classList.contains('correct')) {
+      btn.classList.remove('listening');
+    }
+  };
+  rec.start();
+}
+
+function nextExpTrigger() {
+  _expTriggerIdx++;
+  _expPracticeStep = 0;
+  renderExpPracticeExercise();
+}
+
+function showExpPracticeComplete() {
+  localStorage.setItem('tt_cafe_l1_phase', 'complete_practice');
+  document.getElementById('expCompleteHeading').textContent = 'Practice complete.';
+  document.getElementById('expCompleteMsg').textContent = "You've practiced the whole café exchange. Come back to run the full scene.";
+  document.getElementById('expCompleteBtn').textContent = 'Home';
+  document.getElementById('expCompleteBtn').onclick = () => goHome();
+  showScreen('screenExpComplete');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -4415,6 +5023,14 @@ function devResetAll() {
   }
   keys.forEach(k => localStorage.removeItem(k));
   location.reload();
+}
+
+function devSkipToCafePractice() {
+  localStorage.setItem('tt_cafe_l1_pass', '3');
+  localStorage.setItem('tt_cafe_l1_phase', 'practice');
+  console.log('[dev] Café set to pass 3, phase=practice');
+  closeDevPanel();
+  openExperience('At the Café');
 }
 
 function devShowScores() {
