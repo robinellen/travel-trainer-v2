@@ -1209,6 +1209,135 @@ let _onCoachMarkDismiss = null;
 let AUDIO_MANIFEST = {};
 fetch('audio/manifest.json').then(r => r.json()).then(m => { AUDIO_MANIFEST = m; }).catch(() => {});
 
+const LISTEN_CLIPS = [
+  {
+    "id": "recGLHdUQMXy9NAyH",
+    "frenchText": "Oui bien sûr, je vous apporte ça tout de suite.",
+    "englishTranslation": "Yes of course, I'll bring that right away.",
+    "anchorPhrase": "L'addition, s'il vous plaît",
+    "contextLabel": "At the Restaurant",
+    "scenePrompt": "You asked for the bill and the server nods.",
+    "clipType": "Response to user",
+    "language": "French",
+    "fileName": "LC7_French.mp3",
+    "audioRecorded": true,
+    "difficulty": "Hard — mostly unfamiliar",
+    "sortOrder": 7
+  },
+  {
+    "id": "recINI3d8stvt4Spz",
+    "frenchText": "Voilà votre café. Bonne dégustation!",
+    "englishTranslation": "Here's your coffee. Enjoy!",
+    "anchorPhrase": "Un café, s'il vous plaît",
+    "contextLabel": "At the Café",
+    "scenePrompt": "The server sets your coffee down in front of you.",
+    "clipType": "Response to user",
+    "language": "French",
+    "fileName": "LC6_French.mp3",
+    "audioRecorded": true,
+    "difficulty": "Medium — some unfamiliar words",
+    "sortOrder": 6
+  },
+  {
+    "id": "recOFDDSYtWAzYkHp",
+    "frenchText": "Bonjour, vous désirez?",
+    "englishTranslation": "Hello, what would you like?",
+    "anchorPhrase": "Bonjour",
+    "contextLabel": "At the Café",
+    "scenePrompt": "Someone behind the counter looks up as you walk in.",
+    "clipType": "Response to user",
+    "language": "French",
+    "fileName": "LC1_French.mp3",
+    "audioRecorded": true,
+    "difficulty": "Easy — mostly known phrases",
+    "sortOrder": 1
+  },
+  {
+    "id": "recRGzwhXiOqonJGN",
+    "frenchText": "Bonjour! C'est quoi pour vous?",
+    "englishTranslation": "Hi! What can I get you?",
+    "anchorPhrase": "Bonjour",
+    "contextLabel": "At the Café",
+    "scenePrompt": "A server at a busy café counter looks over.",
+    "clipType": "Response to user",
+    "language": "French",
+    "fileName": "LC3_French.mp3",
+    "audioRecorded": true,
+    "difficulty": "Medium — some unfamiliar words",
+    "sortOrder": 3
+  },
+  {
+    "id": "recbf55rWvPYdfCVr",
+    "frenchText": "C'est par là, au fond à gauche.",
+    "englishTranslation": "It's over there, at the back on the left.",
+    "anchorPhrase": "Les toilettes?",
+    "contextLabel": "At the Restaurant",
+    "scenePrompt": "You asked about the bathroom and the server points.",
+    "clipType": "Response to user",
+    "language": "French",
+    "fileName": "LC8_French.mp3",
+    "audioRecorded": true,
+    "difficulty": "Hard — mostly unfamiliar",
+    "sortOrder": 8
+  },
+  {
+    "id": "reciJc4uHXZ9AQ8tS",
+    "frenchText": "Avec plaisir!",
+    "englishTranslation": "With pleasure! / My pleasure!",
+    "anchorPhrase": "Merci",
+    "contextLabel": "At the Restaurant",
+    "scenePrompt": "You thanked the server and they respond with a smile.",
+    "clipType": "Response to user",
+    "language": "French",
+    "fileName": "LC5_French.mp3",
+    "audioRecorded": true,
+    "difficulty": "Easy — mostly known phrases",
+    "sortOrder": 5
+  },
+  {
+    "id": "recmAeZCAYITNilt4",
+    "frenchText": "De rien, bonne journée!",
+    "englishTranslation": "You're welcome, have a nice day!",
+    "anchorPhrase": "Merci",
+    "contextLabel": "In a Shop",
+    "scenePrompt": "You said merci and the shopkeeper responds as you turn to leave.",
+    "clipType": "Response to user",
+    "language": "French",
+    "fileName": "LC4_French.mp3",
+    "audioRecorded": true,
+    "difficulty": "Medium — some unfamiliar words",
+    "sortOrder": 4
+  },
+  {
+    "id": "recoyyBmjIoNuCPEY",
+    "frenchText": "Bonjour, je vous écoute.",
+    "englishTranslation": "Go ahead, I'm with you.",
+    "anchorPhrase": "Bonjour",
+    "contextLabel": "In a Shop",
+    "scenePrompt": "The person at the pharmacy counter looks up.",
+    "clipType": "Response to user",
+    "language": "French",
+    "fileName": "LC2_French.mp3",
+    "audioRecorded": true,
+    "difficulty": "Medium — some unfamiliar words",
+    "sortOrder": 2
+  },
+  {
+    "id": "recwV8bNDxuLAAeUv",
+    "frenchText": "Pas de souci, prenez votre temps.",
+    "englishTranslation": "No problem, take your time.",
+    "anchorPhrase": "Je comprends pas",
+    "contextLabel": "At the Restaurant",
+    "scenePrompt": "You said you didn't understand and the server responds kindly.",
+    "clipType": "Response to user",
+    "language": "French",
+    "fileName": "LC9_French.mp3",
+    "audioRecorded": true,
+    "difficulty": "Medium — some unfamiliar words",
+    "sortOrder": 9
+  }
+];
+
 const SITUATIONS = [
   {
     "id": "rec08IRkLfxr3Ozg6",
