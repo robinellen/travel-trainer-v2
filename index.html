@@ -5463,13 +5463,19 @@ function renderTripCountdown(containerId) {
   const trip = new Date(tripDate + 'T00:00:00');
   const days = Math.ceil((trip - today) / 86400000);
 
+  if (localStorage.getItem('tt_post_trip_dismissed')) {
+    el.classList.add('hidden');
+    return;
+  }
+
   if (days < 0) {
-    el.textContent = 'How did it go?';
-    el.style.cursor = 'pointer';
-    el.onclick = () => {
-      localStorage.removeItem('tt_trip_date');
-      updateWelcomeScreen();
-    };
+    el.innerHTML = `
+      <div style="margin-bottom:0.75rem;">How did it go?</div>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <button class="btn-ghost" onclick="localStorage.removeItem('tt_trip_date');showScreen('screenTripDate')" style="font-size:0.72rem; padding:0.5rem 0.75rem;">Plan another trip</button>
+        <button onclick="localStorage.setItem('tt_post_trip_dismissed','true');updateWelcomeScreen()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Keep practicing</button>
+      </div>
+    `;
   } else if (days === 0) {
     el.textContent = "Your trip is today. You're ready.";
   } else if (days <= 7) {
@@ -5495,9 +5501,10 @@ function updateWelcomeScreen() {
 
   if (homeState === 'foundation') {
     document.getElementById('welcomeFoundation').classList.remove('hidden');
-    const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
-    const seen = tier1.filter(p => getScore(p.id) >= 1).length;
-    const total = tier1.length;
+    const tier1All = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && p.sortOrder);
+    const tier1Playable = tier1All.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
+    const seen = tier1Playable.filter(p => getScore(p.id) >= 1).length;
+    const total = tier1All.length;
     document.getElementById('foundationProgress').textContent = `${seen} of ${total} phrases`;
 
     const activePhrases = getActivePhrases();
@@ -5688,18 +5695,21 @@ function startExpWatch(pass) {
   else if (pass === 2 && localStorage.getItem('tt_seenExperiencePass1CoachMark')) coachKey = 'tt_seenExperiencePass2CoachMark';
   else if (pass === 3 && localStorage.getItem('tt_seenExperiencePass2CoachMark')) coachKey = 'tt_seenExperiencePass3CoachMark';
 
-  // If coach mark shows, gate playback behind "Got it" dismissal.
-  // If coach mark was already seen or fails to show, start immediately.
-  if (coachKey) {
-    _onCoachMarkDismiss = () => setTimeout(() => playNextBeat(), 400);
-    const shown = showCoachMark(coachKey);
-    if (!shown) {
-      _onCoachMarkDismiss = null;
-      setTimeout(() => playNextBeat(), 600);
-    }
-  } else {
-    setTimeout(() => playNextBeat(), 600);
+  // Gate playback behind coach mark dismissal.
+  if (coachKey && !localStorage.getItem(coachKey)) {
+    console.log('[exp] Coach mark showing:', coachKey, '— audio GATED, waiting for Got it');
+    // Set callback BEFORE showing coach mark
+    _onCoachMarkDismiss = () => {
+      console.log('[exp] Got it tapped — starting playback now');
+      setTimeout(() => playNextBeat(), 400);
+    };
+    showCoachMark(coachKey);
+    // CRITICAL: return here so NO playback code runs after this point
+    return;
   }
+  // Coach mark already seen or not needed — start immediately
+  console.log('[exp] No coach mark needed — starting playback');
+  setTimeout(() => playNextBeat(), 600);
 }
 
 function fadeOlderBeats(container) {
@@ -5858,16 +5868,12 @@ function startExpPractice() {
   showScreen('screenExpPractice');
 
   const practiceKey = 'tt_seenExperiencePracticeCoachMark';
-  if (localStorage.getItem('tt_seenExperiencePass3CoachMark')) {
+  if (localStorage.getItem('tt_seenExperiencePass3CoachMark') && !localStorage.getItem(practiceKey)) {
     _onCoachMarkDismiss = () => renderTriggerExercise();
-    const shown = showCoachMark(practiceKey);
-    if (!shown) {
-      _onCoachMarkDismiss = null;
-      renderTriggerExercise();
-    }
-  } else {
-    renderTriggerExercise();
+    showCoachMark(practiceKey);
+    return; // Wait for Got it
   }
+  renderTriggerExercise();
 }
 
 function renderTriggerExercise() {
@@ -6214,15 +6220,12 @@ function startListenMode() {
   document.getElementById('listenModeComplete').classList.add('hidden');
   document.getElementById('listenModeProgressFill').style.width = '0%';
 
-  // Coach mark on first visit
+  // Coach mark on first visit — gate playback behind Got it
   const coachKey = 'tt_seenListenModeCoachMark';
   if (!localStorage.getItem(coachKey)) {
     _onCoachMarkDismiss = () => playListenClip();
-    const shown = showCoachMark(coachKey);
-    if (!shown) {
-      _onCoachMarkDismiss = null;
-      playListenClip();
-    }
+    showCoachMark(coachKey);
+    return; // Wait for Got it
   } else {
     playListenClip();
   }
