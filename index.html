@@ -1160,6 +1160,13 @@ body::after {
       <button id="listenModeShowFrench" onclick="showListenFrench()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show French</button>
       <button id="listenModeShowEnglish" onclick="showListenEnglish()" style="background:none;border:none;color:var(--text-dim);font-size:0.68rem;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show English</button>
     </div>
+    <div id="listenModeComplete" class="hidden" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; background:var(--bg); padding:1.5rem;">
+      <div>
+        <div style="font-size:2rem; margin-bottom:1.5rem;">✦</div>
+        <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:300px;">That's it for now. The more French you hear, the less foreign it sounds.</p>
+        <button class="btn-primary" onclick="exitListenMode()">Done</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -6175,6 +6182,7 @@ let _listenClips = [];
 let _listenClipIdx = 0;
 let _listenPaused = false;
 let _listenTimer = null;
+let _listenAdvanceTimer = null;
 
 function startListenMode() {
   console.log('[listen] startListenMode called, LISTEN_CLIPS:', typeof LISTEN_CLIPS, Array.isArray(LISTEN_CLIPS) ? LISTEN_CLIPS.length : 'N/A');
@@ -6198,9 +6206,13 @@ function startListenMode() {
   _listenClips = clips.slice(0, 9);
   _listenClipIdx = 0;
   _listenPaused = false;
+  clearTimeout(_listenTimer);
+  clearTimeout(_listenAdvanceTimer);
 
   showScreen('screenListenMode');
   document.getElementById('listenModePauseBtn').textContent = '⏸';
+  document.getElementById('listenModeComplete').classList.add('hidden');
+  document.getElementById('listenModeProgressFill').style.width = '0%';
 
   // Coach mark on first visit
   const coachKey = 'tt_seenListenModeCoachMark';
@@ -6218,6 +6230,7 @@ function startListenMode() {
 
 function exitListenMode() {
   clearTimeout(_listenTimer);
+  clearTimeout(_listenAdvanceTimer);
   currentAudio?.pause();
   currentAudio = null;
   _listenPaused = false;
@@ -6238,6 +6251,7 @@ function toggleListenPause() {
     _listenPaused = true;
     document.getElementById('listenModePauseBtn').textContent = '▶';
     clearTimeout(_listenTimer);
+    clearTimeout(_listenAdvanceTimer);
     if (currentAudio) currentAudio.pause();
   }
 }
@@ -6289,7 +6303,7 @@ function playListenClip() {
       currentAudio = null;
       if (_listenPaused) return;
 
-      // State 3: After audio
+      // State 3: After audio — hide pulse
       document.getElementById('listenModePulse').classList.add('hidden');
 
       // Scaffolding: auto-show French in early sessions
@@ -6298,15 +6312,18 @@ function playListenClip() {
         showFrenchBtn.style.display = 'none';
       }
 
-      // Show reveal links
-      document.getElementById('listenModeLinks').classList.remove('hidden');
-
-      // Advance after 2 seconds
+      // Show reveal links after 1500ms
       _listenTimer = setTimeout(() => {
         if (_listenPaused) return;
-        _listenClipIdx++;
-        playListenClip();
-      }, 2000);
+        document.getElementById('listenModeLinks').classList.remove('hidden');
+
+        // Advance after 4000ms
+        _listenAdvanceTimer = setTimeout(() => {
+          if (_listenPaused) return;
+          _listenClipIdx++;
+          playListenClip();
+        }, 4000);
+      }, 1500);
     };
 
     audio.onerror = () => {
@@ -6326,11 +6343,22 @@ function playListenClip() {
 function showListenFrench() {
   document.getElementById('listenModeFrench').classList.remove('hidden');
   document.getElementById('listenModeShowFrench').style.display = 'none';
+  resetListenAdvanceTimer();
 }
 
 function showListenEnglish() {
   document.getElementById('listenModeEnglish').classList.remove('hidden');
   document.getElementById('listenModeShowEnglish').style.display = 'none';
+  resetListenAdvanceTimer();
+}
+
+function resetListenAdvanceTimer() {
+  clearTimeout(_listenAdvanceTimer);
+  _listenAdvanceTimer = setTimeout(() => {
+    if (_listenPaused) return;
+    _listenClipIdx++;
+    playListenClip();
+  }, 2000);
 }
 
 function onListenModeComplete() {
@@ -6338,22 +6366,14 @@ function onListenModeComplete() {
   const count = parseInt(localStorage.getItem('tt_listenSessionCount') || '0', 10);
   localStorage.setItem('tt_listenSessionCount', String(count + 1));
 
-  // Show completion in the listen screen itself
+  // Show completion overlay
   document.getElementById('listenModeContext').textContent = '';
   document.getElementById('listenModeScene').textContent = '';
   document.getElementById('listenModePulse').classList.add('hidden');
   document.getElementById('listenModeFrench').classList.add('hidden');
   document.getElementById('listenModeEnglish').classList.add('hidden');
   document.getElementById('listenModeLinks').classList.add('hidden');
-
-  const container = document.querySelector('#screenListenMode .p-screen');
-  container.innerHTML = `
-    <div style="text-align:center;">
-      <div style="font-size:2rem; margin-bottom:1.5rem;">✦</div>
-      <p style="font-size:0.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:300px;">That's it for now. The more French you hear, the less foreign it sounds.</p>
-      <button class="btn-primary" onclick="exitListenMode()">Done</button>
-    </div>
-  `;
+  document.getElementById('listenModeComplete').classList.remove('hidden');
 }
 
 // ═══════════════════════════════════════════════════════════════════
