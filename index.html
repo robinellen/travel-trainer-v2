@@ -5008,22 +5008,36 @@ function checkSpeechMatch(heard, phrase) {
 
 function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, nextId) {
   const { correct: isGood, usedAlternative } = checkSpeechMatch(heard, phrase);
+  const retry = isCurrentRetry();
 
   const btn = document.getElementById(btnId);
   if (isGood) {
     btn.className = 'mic-btn correct';
-    document.getElementById(hintId).textContent = usedAlternative ? 'That works too.' : 'Nice!';
-    document.getElementById(resultId).className = 'result-bar correct visible';
-    document.getElementById(titleId).textContent = '✓ Got it';
-    document.getElementById(bodyId).textContent = phrase.native;
-    bumpScore(phrase.id, 3);
+    if (retry) {
+      document.getElementById(hintId).textContent = 'Got it.';
+      document.getElementById(resultId).className = 'result-bar correct visible';
+      document.getElementById(titleId).textContent = '✓ Got it';
+      document.getElementById(bodyId).textContent = phrase.native;
+      // No score change on retry
+    } else {
+      document.getElementById(hintId).textContent = usedAlternative ? 'That works too.' : 'Nice!';
+      document.getElementById(resultId).className = 'result-bar correct visible';
+      document.getElementById(titleId).textContent = '✓ Got it';
+      document.getElementById(bodyId).textContent = phrase.native;
+      bumpScore(phrase.id, 3);
+    }
   } else {
     btn.className = 'mic-btn';
     document.getElementById(hintId).textContent = '';
     document.getElementById(resultId).className = 'result-bar wrong visible';
     document.getElementById(titleId).textContent = phrase.native;
     document.getElementById(bodyId).textContent = getMeaning(phrase);
-    bumpScore(phrase.id, 2, false);
+    if (!retry) {
+      bumpScore(phrase.id, 2, false);
+      // Queue retry for later in the session
+      const item = getCurrentItem();
+      if (item) queueRetry(phrase.id, item.type);
+    }
     // Play the correct phrase audio as corrective feedback
     const url = getAudio(phrase.native);
     if (url) {
@@ -5288,18 +5302,28 @@ function evaluateSituSpeak(heard, phrase) {
     }
   }
 
+  const retry = isCurrentRetry();
+
   if (isCorrect) {
     btn.className = 'mic-btn correct';
-    document.getElementById('situMicHint').textContent = (usedAlternative || usedRecovery) ? 'That works too.' : 'Nice!';
-    document.getElementById('situResult').className = 'result-bar correct visible';
-    if (usedRecovery) {
-      document.getElementById('situResultTitle').textContent = 'That works too.';
-      document.getElementById('situResultBody').textContent = 'The full recovery phrase is always a valid way out.';
-    } else {
+    if (retry) {
+      document.getElementById('situMicHint').textContent = 'Got it.';
+      document.getElementById('situResult').className = 'result-bar correct visible';
       document.getElementById('situResultTitle').textContent = '✓ Got it';
-      document.getElementById('situResultBody').textContent = usedAlternative ? 'That works too.' : phrase.native;
+      document.getElementById('situResultBody').textContent = phrase.native;
+      // No score change on retry
+    } else {
+      document.getElementById('situMicHint').textContent = (usedAlternative || usedRecovery) ? 'That works too.' : 'Nice!';
+      document.getElementById('situResult').className = 'result-bar correct visible';
+      if (usedRecovery) {
+        document.getElementById('situResultTitle').textContent = 'That works too.';
+        document.getElementById('situResultBody').textContent = 'The full recovery phrase is always a valid way out.';
+      } else {
+        document.getElementById('situResultTitle').textContent = '✓ Got it';
+        document.getElementById('situResultBody').textContent = usedAlternative ? 'That works too.' : phrase.native;
+      }
+      bumpScore(phrase.id, 3);
     }
-    bumpScore(phrase.id, 3);
     document.getElementById('situNextBtn').classList.remove('hidden');
     clearTimeout(_situHelpersTimer);
   } else if (!_situRetried) {
@@ -5324,7 +5348,12 @@ function evaluateSituSpeak(heard, phrase) {
     document.getElementById('situResult').className = 'result-bar wrong visible';
     document.getElementById('situResultTitle').textContent = phrase.native;
     document.getElementById('situResultBody').textContent = getMeaning(phrase);
-    bumpScore(phrase.id, 2, false);
+    if (!retry) {
+      bumpScore(phrase.id, 2, false);
+      // Queue retry for later in the session
+      const item = getCurrentItem();
+      if (item) queueRetry(phrase.id, item.type);
+    }
     const url = getAudio(phrase.native);
     if (url) {
       const audio = new Audio(url);
@@ -5341,6 +5370,19 @@ function evaluateSituSpeak(heard, phrase) {
 // ═══════════════════════════════════════════════════════════════════
 // SESSION FLOW
 // ═══════════════════════════════════════════════════════════════════
+
+function queueRetry(phraseId, type) {
+  const queue = state.session.queue;
+  const idx = state.session.index;
+  // Insert at least 2 positions after current index
+  const insertAt = Math.min(idx + 3, queue.length);
+  queue.splice(insertAt, 0, { phraseId, type, _isRetry: true });
+}
+
+function isCurrentRetry() {
+  const item = state.session.queue[state.session.index];
+  return item && item._isRetry;
+}
 
 function nextExercise() {
   currentAudio?.pause();
