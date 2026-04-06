@@ -4949,18 +4949,35 @@ function stopMic() {
   recognition?.stop();
 }
 
-function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, nextId) {
-  const target = phrase.native.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
+// Check if spoken text matches a target phrase (keyword matching)
+function matchesSpeech(heard, targetNative) {
+  const heardClean = heard.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
+  const target = targetNative.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
   const keywords = target.split(' ').filter(w => w.length > 2);
-  const heardClean = heard.replace(/[.,!?]/g, '');
   const matched = keywords.filter(kw => heardClean.includes(kw));
   const threshold = Math.max(1, Math.floor(keywords.length * 0.4));
-  const isGood = matched.length >= threshold;
+  return matched.length >= threshold;
+}
+
+// Check spoken text against primary phrase + alsoAccepted alternatives
+// Returns: { correct: bool, usedAlternative: bool }
+function checkSpeechMatch(heard, phrase) {
+  if (matchesSpeech(heard, phrase.native)) return { correct: true, usedAlternative: false };
+  if (phrase.alsoAccepted && phrase.alsoAccepted.length) {
+    for (const alt of phrase.alsoAccepted) {
+      if (matchesSpeech(heard, alt)) return { correct: true, usedAlternative: true };
+    }
+  }
+  return { correct: false, usedAlternative: false };
+}
+
+function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, nextId) {
+  const { correct: isGood, usedAlternative } = checkSpeechMatch(heard, phrase);
 
   const btn = document.getElementById(btnId);
   if (isGood) {
     btn.className = 'mic-btn correct';
-    document.getElementById(hintId).textContent = 'Nice!';
+    document.getElementById(hintId).textContent = usedAlternative ? 'That works too.' : 'Nice!';
     document.getElementById(resultId).className = 'result-bar correct visible';
     document.getElementById(titleId).textContent = '✓ Got it';
     document.getElementById(bodyId).textContent = phrase.native;
@@ -5223,41 +5240,29 @@ function evaluateSituSpeak(heard, phrase) {
   const btn = document.getElementById('situMicBtn');
   btn.classList.remove('listening');
 
-  const heardClean = heard.replace(/[.,!?]/g, '');
-
-  // Check primary phrase
-  const target = phrase.native.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
-  const keywords = target.split(' ').filter(w => w.length > 2);
-  const matched = keywords.filter(kw => heardClean.includes(kw));
-  const threshold = Math.max(1, Math.floor(keywords.length * 0.4));
-  let isCorrect = matched.length >= threshold;
+  // Check primary phrase + alsoAccepted alternatives
+  let { correct: isCorrect, usedAlternative } = checkSpeechMatch(heard, phrase);
   let usedRecovery = false;
 
   // Check recovery phrase if recoveryAlsoValid
   if (!isCorrect && _currentSituation && _currentSituation.recoveryAlsoValid) {
     const recoveryPhrase = PHRASES.find(p => p.tier === 'Recovery');
-    if (recoveryPhrase) {
-      const recTarget = recoveryPhrase.native.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
-      const recKeywords = recTarget.split(' ').filter(w => w.length > 2);
-      const recMatched = recKeywords.filter(kw => heardClean.includes(kw));
-      const recThreshold = Math.max(1, Math.floor(recKeywords.length * 0.3));
-      if (recMatched.length >= recThreshold) {
-        isCorrect = true;
-        usedRecovery = true;
-      }
+    if (recoveryPhrase && matchesSpeech(heard, recoveryPhrase.native)) {
+      isCorrect = true;
+      usedRecovery = true;
     }
   }
 
   if (isCorrect) {
     btn.className = 'mic-btn correct';
-    document.getElementById('situMicHint').textContent = 'Nice!';
+    document.getElementById('situMicHint').textContent = (usedAlternative || usedRecovery) ? 'That works too.' : 'Nice!';
     document.getElementById('situResult').className = 'result-bar correct visible';
     if (usedRecovery) {
       document.getElementById('situResultTitle').textContent = 'That works too.';
       document.getElementById('situResultBody').textContent = 'The full recovery phrase is always a valid way out.';
     } else {
       document.getElementById('situResultTitle').textContent = '✓ Got it';
-      document.getElementById('situResultBody').textContent = phrase.native;
+      document.getElementById('situResultBody').textContent = usedAlternative ? 'That works too.' : phrase.native;
     }
     bumpScore(phrase.id, 3);
     document.getElementById('situNextBtn').classList.remove('hidden');

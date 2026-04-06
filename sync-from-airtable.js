@@ -87,6 +87,7 @@ function recordToPhrase(record) {
     hasBuildup: f['Has Buildup'] === true,
     isBuildupChunk: f['Is Buildup Chunk'] === true,
     capabilityLabel: f['Capability Label'] || '',
+    alsoAccepted: parseArray(f['Also Accepted']),
     audioRecorded: f['Audio Recorded'] === true,
     situations: parseArray(f['Situations']),
     situationEarly: parseArray(f['Situation (Early)']),
