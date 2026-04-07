@@ -829,6 +829,7 @@ body::after {
       <div style="font-size:15px; color:var(--text-dim); margin-bottom:1rem;" id="foundationProgress">0 of 15 phrases</div>
       <div id="foundationCapabilities" style="margin-bottom:1.5rem;"></div>
       <button class="btn-primary" id="foundationBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
+      <button class="btn-ghost" onclick="openCultureNotes()" style="margin-bottom:0.75rem;">🌍 Know before you go</button>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">View phrases</button>
     </div>
 
@@ -843,6 +844,7 @@ body::after {
         <button class="btn-ghost" onclick="startSituationSession()" style="flex:1; font-size:15px;">Situations</button>
         <button class="btn-ghost" onclick="startListenMode()" style="flex:1; font-size:15px;">Listen</button>
       </div>
+      <button class="btn-ghost" onclick="openCultureNotes()" style="margin-bottom:0.75rem;">🌍 Know before you go</button>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">All phrases</button>
     </div>
 
@@ -1158,6 +1160,36 @@ body::after {
         <button class="btn-primary" onclick="exitListenMode()">Done</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     CULTURE NOTES LIST SCREEN
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenCultureNotes">
+  <div class="exercise-header">
+    <button class="btn-back" onclick="goHome()" aria-label="Back">←</button>
+    <div style="flex:1; font-size:17px; color:var(--text); padding-left:0.5rem;">Know before you go</div>
+  </div>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:1rem 1.5rem 2rem;">
+    <div id="cultureNotesList" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     CULTURE NOTE DETAIL SCREEN
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenCultureNoteDetail">
+  <div class="exercise-header">
+    <button class="btn-back" onclick="openCultureNotes()" aria-label="Back">←</button>
+    <div style="flex:1; font-size:13px; letter-spacing:0.18em; text-transform:uppercase; color:var(--text-dim); padding-left:0.5rem;" id="cultureNoteDetailCategory"></div>
+  </div>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:1.5rem;">
+    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem;">
+      <div style="font-size:2rem; line-height:1;" id="cultureNoteDetailEmoji"></div>
+      <h2 class="serif" style="font-size:clamp(1.6rem,5vw,2rem); line-height:1.2; font-weight:500;" id="cultureNoteDetailTitle"></h2>
+    </div>
+    <div id="cultureNoteDetailBody" style="font-size:17px; color:var(--text); line-height:1.65; padding-bottom:2rem;"></div>
   </div>
 </div>
 
@@ -6444,6 +6476,70 @@ let _listenClipIdx = 0;
 let _listenPaused = false;
 let _listenTimer = null;
 let _listenAdvanceTimer = null;
+
+// ═══════════════════════════════════════════════════════════════════
+// CULTURE NOTES
+// ═══════════════════════════════════════════════════════════════════
+
+function openCultureNotes() {
+  if (typeof CULTURE_NOTES === 'undefined') return;
+  // Filter by current language (only French for now)
+  const notes = CULTURE_NOTES
+    .filter(n => n.language === 'French')
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+
+  const list = document.getElementById('cultureNotesList');
+  list.innerHTML = '';
+
+  if (!notes.length) {
+    list.innerHTML = '<div style="text-align:center; color:var(--text-dim); font-size:15px; padding:2rem 0;">No notes yet.</div>';
+  } else {
+    notes.forEach(note => {
+      const card = document.createElement('div');
+      card.style.cssText = 'background:rgba(255,255,255,0.06); border-radius:16px; padding:1.1rem 1.25rem; cursor:pointer; transition:background 0.15s; display:flex; align-items:center; gap:1rem;';
+      card.onmouseover = () => { card.style.background = 'rgba(255,255,255,0.09)'; };
+      card.onmouseout = () => { card.style.background = 'rgba(255,255,255,0.06)'; };
+      card.onclick = () => openCultureNoteDetail(note.id);
+      card.innerHTML = `
+        <div style="font-size:32px; line-height:1; flex-shrink:0;">${note.emoji || ''}</div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:17px; color:var(--text); font-weight:500; line-height:1.3; margin-bottom:0.2rem;">${note.title}</div>
+          <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em;">${note.category}</div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  showScreen('screenCultureNotes');
+}
+
+function openCultureNoteDetail(noteId) {
+  if (typeof CULTURE_NOTES === 'undefined') return;
+  const note = CULTURE_NOTES.find(n => n.id === noteId);
+  if (!note) return;
+
+  document.getElementById('cultureNoteDetailCategory').textContent = note.category || '';
+  document.getElementById('cultureNoteDetailEmoji').textContent = note.emoji || '';
+  document.getElementById('cultureNoteDetailTitle').textContent = note.title || '';
+
+  // Render body as paragraphs split on double newline
+  const bodyEl = document.getElementById('cultureNoteDetailBody');
+  bodyEl.innerHTML = '';
+  const paragraphs = (note.body || '').split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+  paragraphs.forEach(text => {
+    const p = document.createElement('p');
+    p.style.cssText = 'margin-bottom:1rem;';
+    p.textContent = text;
+    bodyEl.appendChild(p);
+  });
+
+  // Reset scroll
+  const scrollContainer = bodyEl.parentElement;
+  if (scrollContainer) scrollContainer.scrollTop = 0;
+
+  showScreen('screenCultureNoteDetail');
+}
 
 function startListenMode() {
   console.log('[listen] startListenMode called, LISTEN_CLIPS:', typeof LISTEN_CLIPS, Array.isArray(LISTEN_CLIPS) ? LISTEN_CLIPS.length : 'N/A');

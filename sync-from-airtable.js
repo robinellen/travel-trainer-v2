@@ -9,6 +9,7 @@ const TRIGGER_TABLE = 'tbltyfoXkuoNdP03O';
 const EXPERIENCES_TABLE = 'Experiences';
 const SITUATIONS_TABLE = 'tbldojSHHVbgGTPjD';
 const LISTEN_CLIPS_TABLE = 'tbl8riiiNg48tDyWm';
+const CULTURE_NOTES_TABLE = 'tblmRuAFbE8SUmRuk';
 const HTML_FILE = path.join(__dirname, 'index.html');
 
 const LANG_CODE = { French: 'fr', Dutch: 'nl', German: 'de' };
@@ -155,6 +156,25 @@ function recordToListenClip(record) {
   };
 }
 
+// ── Culture Notes ──
+
+function recordToCultureNote(record) {
+  const f = record.fields;
+  const langRaw = f['Language'];
+  const langName = langRaw ? (typeof langRaw === 'object' ? langRaw.name : langRaw) : 'French';
+  const categoryRaw = f['Category'];
+  const category = categoryRaw ? (typeof categoryRaw === 'object' ? categoryRaw.name : categoryRaw) : '';
+  return {
+    id: record.id,
+    title: f['Title'] || '',
+    category,
+    body: f['Body'] || '',
+    language: langName,
+    emoji: f['Emoji'] || '',
+    sortOrder: f['Sort Order'] || null,
+  };
+}
+
 // ── Experiences ──
 
 function recordToExperience(record) {
@@ -174,7 +194,7 @@ function recordToExperience(record) {
 
 // ── HTML update ──
 
-function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips) {
+function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes) {
   let html = fs.readFileSync(HTML_FILE, 'utf8');
 
   // Replace PHRASES array
@@ -221,8 +241,17 @@ function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listen
     html = html.replace('const SITUATIONS = ', lcBlock + '\n\n' + 'const SITUATIONS = ');
   }
 
+  // Replace or insert CULTURE_NOTES array
+  const cnPattern = /const CULTURE_NOTES = \[[\s\S]*?\];/;
+  const cnBlock = 'const CULTURE_NOTES = ' + JSON.stringify(cultureNotes, null, 2) + ';';
+  if (cnPattern.test(html)) {
+    html = html.replace(cnPattern, cnBlock);
+  } else {
+    html = html.replace('const LISTEN_CLIPS = ', cnBlock + '\n\n' + 'const LISTEN_CLIPS = ');
+  }
+
   fs.writeFileSync(HTML_FILE, html, 'utf8');
-  console.log(`Updated index.html with ${phrases.length} phrases, ${triggerPhrases.length} trigger phrases, ${experiences.length} experiences, ${situations.length} situations, ${listenClips.length} listen clips`);
+  console.log(`Updated index.html with ${phrases.length} phrases, ${triggerPhrases.length} trigger phrases, ${experiences.length} experiences, ${situations.length} situations, ${listenClips.length} listen clips, ${cultureNotes.length} culture notes`);
 }
 
 function gitCommitAndPush() {
@@ -240,16 +269,17 @@ function gitCommitAndPush() {
 (async () => {
   console.log('Fetching records from Airtable...');
 
-  // Fetch all five tables in parallel
-  const [phraseRecords, triggerRecords, experienceRecords, situationRecords, listenClipRecords] = await Promise.all([
+  // Fetch all six tables in parallel
+  const [phraseRecords, triggerRecords, experienceRecords, situationRecords, listenClipRecords, cultureNoteRecords] = await Promise.all([
     fetchAllRecords(PHRASES_TABLE),
     fetchAllRecords(TRIGGER_TABLE),
     fetchAllRecords(EXPERIENCES_TABLE),
     fetchAllRecords(SITUATIONS_TABLE),
     fetchAllRecords(LISTEN_CLIPS_TABLE),
+    fetchAllRecords(CULTURE_NOTES_TABLE),
   ]);
 
-  console.log(`Fetched ${phraseRecords.length} phrases, ${triggerRecords.length} trigger phrases, ${experienceRecords.length} experiences, ${situationRecords.length} situations, ${listenClipRecords.length} listen clips`);
+  console.log(`Fetched ${phraseRecords.length} phrases, ${triggerRecords.length} trigger phrases, ${experienceRecords.length} experiences, ${situationRecords.length} situations, ${listenClipRecords.length} listen clips, ${cultureNoteRecords.length} culture notes`);
 
   // Process phrases
   const allPhrases = phraseRecords.map(recordToPhrase);
@@ -267,6 +297,11 @@ function gitCommitAndPush() {
 
   // Process listen clips
   const listenClips = listenClipRecords.map(recordToListenClip);
+
+  // Process culture notes
+  const cultureNotes = cultureNoteRecords
+    .map(recordToCultureNote)
+    .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
 
   // Debug logging
   const recovery = phrases.filter(p => p.tier === 'Recovery');
@@ -291,6 +326,10 @@ function gitCommitAndPush() {
   const frenchClips = listenClips.filter(c => c.language === 'French' && c.audioRecorded);
   console.log(`French listen clips with audio (${frenchClips.length})`);
 
-  updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips);
+  console.log(`Culture notes by language:`, Object.fromEntries(
+    Object.entries(cultureNotes.reduce((acc, n) => { acc[n.language] = (acc[n.language]||0)+1; return acc; }, {}))
+  ));
+
+  updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes);
   gitCommitAndPush();
 })();
