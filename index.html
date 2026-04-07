@@ -839,10 +839,13 @@ body::after {
       <div id="experienceCapabilities" style="margin-bottom:1.25rem;"></div>
       <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Continue session →</button>
       <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1rem;" id="experienceTiles"></div>
-      <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+      <div style="display:flex; gap:0.5rem; margin-bottom:0.5rem;">
         <button class="btn-ghost" onclick="openExperience('At the Café')" style="flex:1; font-size:15px;">Experiences</button>
         <button class="btn-ghost" onclick="startSituationSession()" style="flex:1; font-size:15px;">Situations</button>
+      </div>
+      <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
         <button class="btn-ghost" onclick="startListenMode()" style="flex:1; font-size:15px;">Listen</button>
+        <button class="btn-ghost" onclick="startTrainYourEar()" style="flex:1; font-size:15px;">Train your ear</button>
       </div>
       <button class="btn-ghost" onclick="openCultureNotes()" style="margin-bottom:0.75rem;">🌍 Know before you go</button>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">All phrases</button>
@@ -993,6 +996,30 @@ body::after {
       <div class="mt-auto" style="display:flex; flex-direction:column; gap:0.5rem; padding-top:1rem;">
         <button class="btn-primary hidden" id="situNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
         <button class="btn-skip" onclick="skipExercise()">Skip this one</button>
+      </div>
+    </div>
+
+
+    <!-- ── RECOGNITION panel (Train Your Ear style) ── -->
+    <div id="panelRecognition" class="hidden" style="flex:1; display:flex; flex-direction:column;">
+      <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+        <div style="font-size:15px; color:var(--text-mid); line-height:1.6; max-width:320px; margin:0 auto 0.5rem; font-style:italic;" id="recogContext"></div>
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
+        <div class="play-circle" id="recogCircle" onclick="replayRecognitionAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <div style="font-size:13px; color:var(--text-dim);" id="recogPlayHint">Listening...</div>
+      </div>
+      <div id="recogOptions" class="mc-options" style="margin-top:0.75rem;"></div>
+      <div id="recogReveal" class="hidden" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm);">
+        <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
+        <div id="recogSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
+        <div id="recogFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
+        <div id="recogMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5;"></div>
+      </div>
+      <div class="mt-auto">
+        <button class="btn-primary hidden" id="recogNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
       </div>
     </div>
 
@@ -1159,6 +1186,45 @@ body::after {
         <p style="font-size:15px; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:300px;">That's it for now. The more French you hear, the less foreign it sounds.</p>
         <button class="btn-primary" onclick="exitListenMode()">Done</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     TRAIN YOUR EAR (standalone recognition mode)
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenTrainEar">
+  <div class="exercise-header">
+    <button class="btn-back" onclick="exitTrainYourEar()" aria-label="Back">←</button>
+    <div style="flex:1; font-size:17px; color:var(--text); padding-left:0.5rem;">Train Your Ear</div>
+  </div>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
+    <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+      <div style="font-size:15px; color:var(--text-mid); line-height:1.6; max-width:320px; margin:0 auto 0.5rem; font-style:italic;" id="tyeContext"></div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
+      <div class="play-circle" id="tyeCircle" onclick="replayTyeAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </div>
+      <div style="font-size:13px; color:var(--text-dim);" id="tyePlayHint">Listening...</div>
+    </div>
+    <div id="tyeOptions" class="mc-options" style="margin-top:0.75rem;"></div>
+    <div id="tyeReveal" class="hidden" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm);">
+      <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
+      <div id="tyeSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
+      <div id="tyeFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
+      <div id="tyeMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5;"></div>
+    </div>
+    <div class="mt-auto">
+      <button class="btn-primary hidden" id="tyeNextBtn" onclick="advanceTrainYourEar()" style="margin-top:1.25rem;">Continue →</button>
+    </div>
+  </div>
+  <div id="tyeCompleteOverlay" class="hidden" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); padding:1.5rem;">
+    <div style="text-align:center; max-width:340px;">
+      <div style="font-size:2rem; margin-bottom:1.25rem;">✦</div>
+      <h2 class="serif" style="font-size:1.8rem; font-weight:500; margin-bottom:1rem;">That's ten.</h2>
+      <div id="tyeSummary" style="font-size:15px; color:var(--text-dim); line-height:1.7; margin-bottom:2rem;"></div>
+      <button class="btn-primary" onclick="exitTrainYourEar()">Done</button>
     </div>
   </div>
 </div>
@@ -2387,6 +2453,8 @@ const TRIGGER_PHRASES = [
     "id": "rec2VDtSrEjOYedTI",
     "triggerPhrase": "La même chose?",
     "signal": "They're asking if you'd like the same again",
+    "signalWord": "même",
+    "intent": "Same Again",
     "type": "Respond",
     "language": "French",
     "experience": "At the Café",
@@ -2397,12 +2465,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Sébastien"
   },
   {
     "id": "rec2YvZNgdRn7iwWM",
     "triggerPhrase": "L'ascenseur est à gauche.",
     "signal": "They're directing you to the elevator",
+    "signalWord": "ascenseur",
+    "intent": "Elevator Direction",
     "type": "Recognize",
     "language": "French",
     "experience": "At the Hotel",
@@ -2413,12 +2484,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "rec8a5rL2Bdw4KwE8",
     "triggerPhrase": "Vous avez choisi?",
     "signal": "They're ready for your order",
+    "signalWord": "",
+    "intent": "Order Taking",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2433,12 +2507,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T8_French_Hugo.mp3",
     "audioRecorded": true,
     "sortOrder": 5,
+    "difficulty": 5,
     "voice": "Hugo"
   },
   {
     "id": "rec8lGlbifed5CABs",
     "triggerPhrase": "Je peux vous aider?",
     "signal": "They're offering to help you",
+    "signalWord": "",
+    "intent": "Help Offer",
     "type": "Respond",
     "language": "French",
     "experience": "Out and About",
@@ -2453,12 +2530,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T13_French_Claudia.mp3",
     "audioRecorded": true,
     "sortOrder": 2,
+    "difficulty": 2,
     "voice": "Claudia"
   },
   {
     "id": "rec9uhDimyx6bSC9U",
     "triggerPhrase": "Vous avez une réservation?",
     "signal": "They're asking if you have a reservation",
+    "signalWord": "",
+    "intent": "Reservation Check",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2473,12 +2553,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T5_French_Audia.mp3",
     "audioRecorded": true,
     "sortOrder": 2,
+    "difficulty": 2,
     "voice": "Audia"
   },
   {
     "id": "recAJIVvdh7V17GQI",
     "triggerPhrase": "Le départ est à midi.",
     "signal": "They're telling you checkout is at noon",
+    "signalWord": "départ / midi",
+    "intent": "Checkout Time",
     "type": "Recognize",
     "language": "French",
     "experience": "At the Hotel",
@@ -2489,12 +2572,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "recBuhzogawAjdvL2",
     "triggerPhrase": "On n'a pas ça dans votre taille.",
     "signal": "They're telling you they don't have it in your size",
+    "signalWord": "pas / taille",
+    "intent": "Size Check",
     "type": "Recognize",
     "language": "French",
     "experience": "Out and About",
@@ -2505,12 +2591,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "recDDC2gIe8M9GnCq",
     "triggerPhrase": "Quelle taille?",
     "signal": "They're asking what size you are",
+    "signalWord": "taille",
+    "intent": "Size Check",
     "type": "Respond",
     "language": "French",
     "experience": "Out and About",
@@ -2521,12 +2610,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "recGVXtEg6OWm7G2L",
     "triggerPhrase": "Changement de voie.",
     "signal": "The platform for your train has changed",
+    "signalWord": "voie / changement",
+    "intent": "Platform Change",
     "type": "Recognize",
     "language": "French",
     "experience": "Getting Around",
@@ -2537,12 +2629,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Hugo"
   },
   {
     "id": "recGqcTaSPtdyfaCD",
     "triggerPhrase": "Un café?",
     "signal": "They're offering you a coffee",
+    "signalWord": "café",
+    "intent": "Coffee Offer",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2553,12 +2648,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Hugo"
   },
   {
     "id": "recIRHeoVkNksUG3T",
     "triggerPhrase": "C'est ensemble ou séparé?",
     "signal": "They're asking if you're paying together or separately",
+    "signalWord": "ensemble / séparé",
+    "intent": "Split Check",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2569,12 +2667,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Hugo"
   },
   {
     "id": "recL8aMr642aXlYfr",
     "triggerPhrase": "Voilà",
     "signal": "Something is being placed in front of you",
+    "signalWord": "",
+    "intent": "Item Delivery",
     "type": "React",
     "language": "French",
     "experience": "At the Café",
@@ -2589,12 +2690,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T3_French_Sebastien.mp3",
     "audioRecorded": true,
     "sortOrder": 3,
+    "difficulty": 3,
     "voice": "Sébastien"
   },
   {
     "id": "recMY1X9fS0dpTeMl",
     "triggerPhrase": "Pour combien de personnes?",
     "signal": "They're asking how many people are in your party",
+    "signalWord": "",
+    "intent": "Party Size",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2609,12 +2713,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T6_French_Audia.mp3",
     "audioRecorded": true,
     "sortOrder": 3,
+    "difficulty": 3,
     "voice": "Audia"
   },
   {
     "id": "recOWbqI0Elf1zL6m",
     "triggerPhrase": "Tout se passe bien?",
     "signal": "They're checking if everything is okay",
+    "signalWord": "bien",
+    "intent": "Wellbeing Check",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2625,12 +2732,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Hugo"
   },
   {
     "id": "recOsnKDnizCswXI3",
     "triggerPhrase": "Votre passeport, s'il vous plaît?",
     "signal": "They're asking to see your passport",
+    "signalWord": "passeport",
+    "intent": "Passport Request",
     "type": "React",
     "language": "French",
     "experience": "At the Hotel",
@@ -2641,12 +2751,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "recS3NlKp7ibzxZZH",
     "triggerPhrase": "Suivez-moi",
     "signal": "Follow them to your table",
+    "signalWord": "",
+    "intent": "Follow Me",
     "type": "Recognize",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2661,12 +2774,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T7_French_Audia.mp3",
     "audioRecorded": true,
     "sortOrder": 4,
+    "difficulty": 4,
     "voice": "Audia"
   },
   {
     "id": "recUCKlyR1pR7Dzfq",
     "triggerPhrase": "Voilà votre monnaie",
     "signal": "They're handing you your change",
+    "signalWord": "",
+    "intent": "Item Delivery",
     "type": "React",
     "language": "French",
     "experience": "Out and About",
@@ -2681,12 +2797,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T14_French_Claudia.mp3",
     "audioRecorded": true,
     "sortOrder": 3,
+    "difficulty": 3,
     "voice": "Claudia"
   },
   {
     "id": "reca2WXrd7M2WvPz0",
     "triggerPhrase": "Vos billets, s'il vous plaît.",
     "signal": "They're asking to see your ticket",
+    "signalWord": "billets",
+    "intent": "Ticket Check",
     "type": "React",
     "language": "French",
     "experience": "Getting Around",
@@ -2697,12 +2816,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Hugo"
   },
   {
     "id": "recaTbA5vZJwdaC9c",
     "triggerPhrase": "Vous parlez quelle langue?",
     "signal": "They're asking what language you speak",
+    "signalWord": "langue",
+    "intent": "Recovery Follow Up",
     "type": "Respond",
     "language": "French",
     "experience": "Recovery",
@@ -2713,12 +2835,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Audia"
   },
   {
     "id": "reccO1zysRFzjR6Qi",
     "triggerPhrase": "Vous voulez un sac?",
     "signal": "They're asking if you'd like a bag",
+    "signalWord": "sac",
+    "intent": "Bag Offer",
     "type": "Respond",
     "language": "French",
     "experience": "Out and About",
@@ -2729,12 +2854,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "reccY7o90lZykkp4W",
     "triggerPhrase": "Bonne journée",
     "signal": "They're wishing you a good day",
+    "signalWord": "",
+    "intent": "Farewell",
     "type": "React",
     "language": "French",
     "experience": "Out and About",
@@ -2749,12 +2877,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T15_French_Claudia.mp3",
     "audioRecorded": true,
     "sortOrder": 4,
+    "difficulty": 4,
     "voice": "Claudia"
   },
   {
     "id": "recdCw0n7yXTZn4qm",
     "triggerPhrase": "En terrasse ou à l'intérieur?",
     "signal": "They're asking if you want to sit inside or outside",
+    "signalWord": "terrasse / intérieur",
+    "intent": "Seating Preference",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2765,12 +2896,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Audia"
   },
   {
     "id": "recfo0HBzNzukxgyy",
     "triggerPhrase": "Bon appétit",
     "signal": "They're wishing you a good meal",
+    "signalWord": "",
+    "intent": "Meal Wish",
     "type": "React",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2785,12 +2919,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T10_French_Hugo.mp3",
     "audioRecorded": true,
     "sortOrder": 7,
+    "difficulty": 7,
     "voice": "Hugo"
   },
   {
     "id": "rechLFBvK4rLwTQVd",
     "triggerPhrase": "Carte ou espèces?",
     "signal": "They're asking if you're paying by card or cash",
+    "signalWord": "carte / espèces",
+    "intent": "Payment Method",
     "type": "Respond",
     "language": "French",
     "experience": "Out and About",
@@ -2801,12 +2938,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "recjnUwSDvri7WisX",
     "triggerPhrase": "Bonjour",
     "signal": "They're greeting you",
+    "signalWord": "",
+    "intent": "Greeting",
     "type": "React",
     "language": "French",
     "experience": "Out and About",
@@ -2821,12 +2961,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T12_French_Claudia.mp3",
     "audioRecorded": true,
     "sortOrder": 1,
+    "difficulty": 1,
     "voice": "Claudia"
   },
   {
     "id": "recmelWvVDA4i7751",
     "triggerPhrase": "Votre numéro de chambre?",
     "signal": "They're asking for your room number",
+    "signalWord": "numéro / chambre",
+    "intent": "Room Number",
     "type": "Respond",
     "language": "French",
     "experience": "At the Hotel",
@@ -2837,12 +2980,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "recmoOc5X8paFxvre",
     "triggerPhrase": "Vous désirez?",
     "signal": "They want your order",
+    "signalWord": "",
+    "intent": "Order Taking",
     "type": "Respond",
     "language": "French",
     "experience": "At the Café",
@@ -2857,12 +3003,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T1_French_Sebastien.mp3",
     "audioRecorded": true,
     "sortOrder": 1,
+    "difficulty": 1,
     "voice": "Sébastien"
   },
   {
     "id": "recoQDJhBZ1vrErI1",
     "triggerPhrase": "Et pour manger?",
     "signal": "They're asking what you'd like to eat",
+    "signalWord": "manger",
+    "intent": "Food Order",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2873,12 +3022,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Hugo"
   },
   {
     "id": "recpH2auf2EIPAp0h",
     "triggerPhrase": "C'est tout?",
     "signal": "They're asking if that's everything",
+    "signalWord": "",
+    "intent": "Order Confirmation",
     "type": "Respond",
     "language": "French",
     "experience": "At the Café",
@@ -2893,12 +3045,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T2_French_Sebastien.mp3",
     "audioRecorded": true,
     "sortOrder": 2,
+    "difficulty": 2,
     "voice": "Sébastien"
   },
   {
     "id": "recuaCIw771oLBoTp",
     "triggerPhrase": "Voilà l'addition",
     "signal": "The bill is being placed in front of you",
+    "signalWord": "",
+    "intent": "Bill Request",
     "type": "React",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2913,12 +3068,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T11_French_Hugo.mp3",
     "audioRecorded": true,
     "sortOrder": 8,
+    "difficulty": 8,
     "voice": "Hugo"
   },
   {
     "id": "recv90I5MBaUcDCQn",
     "triggerPhrase": "Vous désirez un dessert?",
     "signal": "They're asking if you'd like dessert",
+    "signalWord": "dessert",
+    "intent": "Dessert Offer",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2929,12 +3087,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Hugo"
   },
   {
     "id": "recvc2SNbnU9j4IpR",
     "triggerPhrase": "Le petit-déjeuner est de sept heures à dix heures.",
     "signal": "They're telling you when breakfast is served",
+    "signalWord": "petit-déjeuner",
+    "intent": "Breakfast Info",
     "type": "Recognize",
     "language": "French",
     "experience": "At the Hotel",
@@ -2945,12 +3106,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "recxRstLfzrqTJkhO",
     "triggerPhrase": "Votre nom, s'il vous plaît?",
     "signal": "They're asking for your name",
+    "signalWord": "nom",
+    "intent": "Name Request",
     "type": "Respond",
     "language": "French",
     "experience": "At the Hotel",
@@ -2961,12 +3125,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Claudia"
   },
   {
     "id": "recxyKmL5ARW13lOB",
     "triggerPhrase": "Bonsoir",
     "signal": "They're greeting you",
+    "signalWord": "",
+    "intent": "Greeting",
     "type": "React",
     "language": "French",
     "experience": "At the Restaurant",
@@ -2981,12 +3148,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T4_French_Audia.mp3",
     "audioRecorded": true,
     "sortOrder": 1,
+    "difficulty": 1,
     "voice": "Audia"
   },
   {
     "id": "recyV12tjMTV20m4p",
     "triggerPhrase": "Voilà",
     "signal": "Your food is being placed in front of you",
+    "signalWord": "",
+    "intent": "Item Delivery",
     "type": "React",
     "language": "French",
     "experience": "At the Restaurant",
@@ -3001,12 +3171,15 @@ const TRIGGER_PHRASES = [
     "fileName": "T9_French_Hugo.mp3",
     "audioRecorded": true,
     "sortOrder": 6,
+    "difficulty": 6,
     "voice": "Hugo"
   },
   {
     "id": "recymPOvY9LKfyG43",
     "triggerPhrase": "Vous voulez de l'eau plate, gazeuse, ou du robinet?",
     "signal": "They're asking what kind of water you want",
+    "signalWord": "plate / gazeuse / robinet",
+    "intent": "Water Preference",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -3017,12 +3190,15 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Hugo"
   },
   {
     "id": "reczQf1TZhEPO1pHR",
     "triggerPhrase": "Qu'est-ce que vous voulez boire?",
     "signal": "They're asking what you'd like to drink",
+    "signalWord": "boire",
+    "intent": "Order Taking",
     "type": "Respond",
     "language": "French",
     "experience": "At the Restaurant",
@@ -3033,7 +3209,8 @@ const TRIGGER_PHRASES = [
     "fileName": "",
     "audioRecorded": false,
     "sortOrder": null,
-    "voice": ""
+    "difficulty": 0,
+    "voice": "Hugo"
   }
 ];
 
@@ -3306,6 +3483,36 @@ const PHRASES = [
     ]
   },
   {
+    "id": "recJKbzCdJG0v4iIN",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "2",
+    "sortOrder": null,
+    "alwaysCapitalize": false,
+    "emoji": "🤏",
+    "meaning": "A little",
+    "meanings": [],
+    "native": "Un peu",
+    "romanization": "un PUH",
+    "note": "Un peu is a modifier that works with almost anything. Un peu de lait adds a little milk to your coffee. Un peu plus means a little more. Un peu moins means a little less. You don't need to know the word for what you're adjusting — just add un peu and point.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "capabilityLabel": "Modify any order without knowing specific vocabulary",
+    "alsoAccepted": [],
+    "audioRecorded": false,
+    "situations": [],
+    "situationEarly": [
+      "You want a little milk in your coffee but don't know the word for milk",
+      "Someone pours something and you want them to stop short of filling it"
+    ],
+    "situationLate": [
+      "You want a small amount of something",
+      "Modifying an order"
+    ],
+    "responses": []
+  },
+  {
     "id": "recKhNOhvcKCJG50T",
     "lang": "fr",
     "flag": "🇫🇷",
@@ -3436,6 +3643,36 @@ const PHRASES = [
     "situationLate": [
       "Need the bathroom",
       "Ask where it is"
+    ],
+    "responses": []
+  },
+  {
+    "id": "recP2sC11VGjTrHzf",
+    "lang": "fr",
+    "flag": "🇫🇷",
+    "langLabel": "French",
+    "tier": "2",
+    "sortOrder": null,
+    "alwaysCapitalize": false,
+    "emoji": "➕",
+    "meaning": "Another one, please",
+    "meanings": [],
+    "native": "Encore, s'il vous plaît",
+    "romanization": "on-KOR, seel voo PLAY",
+    "note": "Encore means again or another and it does all the work without you needing to name what you want. Your coffee is empty and you want another — encore s'il vous plaît. Your water is low — encore. Combined with a gesture toward your glass or plate, it's completely unambiguous and totally natural.",
+    "hasBuildup": false,
+    "isBuildupChunk": false,
+    "capabilityLabel": "Ask for another without knowing the word for what you ordered",
+    "alsoAccepted": [],
+    "audioRecorded": false,
+    "situations": [],
+    "situationEarly": [
+      "Your coffee cup is empty and you want another without having to re-order from scratch",
+      "Your water glass is low and the server is nearby"
+    ],
+    "situationLate": [
+      "Your glass is empty",
+      "You want the same thing again"
     ],
     "responses": []
   },
@@ -4753,8 +4990,8 @@ function buildPhraseTouches(phrase) {
   if (score === 0) return ['vocab_card', 'listen_meaning'];
   if (score === 1) return ['listen_meaning', 'listen_identify', 'speak'];
   if (score === 2) return ['speak', 'situation', 'speak'];
-  if (score === 3) return ['speak', 'speak', 'situation'];
-  return ['speak', 'situation']; // score 4+
+  if (score === 3) return ['speak', 'recognition', 'situation'];
+  return ['speak', 'recognition']; // score 4+
 }
 
 function setSessionLength(len) {
@@ -4965,6 +5202,300 @@ function resurfaceIfEligible(phraseId, type) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// RECOGNITION (Train Your Ear)
+// Trigger phrases the user must understand by ear, scored per Intent.
+// ═══════════════════════════════════════════════════════════════════
+
+function recogKey(intent) {
+  return 'tt_recog_' + String(intent || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function getRecognitionScore(intent) {
+  if (!intent) return 0;
+  return parseInt(localStorage.getItem(recogKey(intent)) || '0', 10) || 0;
+}
+
+function bumpRecognitionScore(intent) {
+  if (!intent) return;
+  const next = getRecognitionScore(intent) + 1;
+  localStorage.setItem(recogKey(intent), String(next));
+}
+
+function getCurrentLanguageName() {
+  // Trigger phrases store language as a string like "French". Match the user's trip language.
+  // Currently the app is French-only; default to French if no setting.
+  return localStorage.getItem('tt_language') || 'French';
+}
+
+function getRecognitionPool() {
+  if (typeof TRIGGER_PHRASES === 'undefined') return [];
+  const lang = getCurrentLanguageName();
+  return TRIGGER_PHRASES.filter(t =>
+    t.audioRecorded &&
+    t.signal &&
+    Array.isArray(t.distractors) && t.distractors.length >= 2 &&
+    (t.language === lang || (typeof t.language === 'object' && t.language?.name === lang))
+  );
+}
+
+// Pick the best variant within an intent group based on user's recognition score for that intent.
+// Lower recognition score → easier (lower difficulty) variant.
+function pickTriggerForIntent(intent) {
+  const pool = getRecognitionPool().filter(t => t.intent === intent);
+  if (!pool.length) return null;
+  const sorted = [...pool].sort((a, b) => (a.difficulty || 0) - (b.difficulty || 0));
+  const score = getRecognitionScore(intent);
+  // Map score to index in difficulty-sorted list. Cap at last variant.
+  const idx = Math.min(score, sorted.length - 1);
+  return sorted[idx];
+}
+
+// Pick a trigger across all intent groups, weighted toward intents with the lowest recognition score.
+// Used by Train Your Ear standalone mode and as a fallback inside sessions.
+function pickRandomTrigger(excludeIds = []) {
+  const pool = getRecognitionPool().filter(t => !excludeIds.includes(t.id));
+  if (!pool.length) return null;
+
+  // Group by intent, weight inversely by recognition score
+  const byIntent = {};
+  pool.forEach(t => {
+    if (!t.intent) return;
+    (byIntent[t.intent] = byIntent[t.intent] || []).push(t);
+  });
+  const intents = Object.keys(byIntent);
+  if (!intents.length) {
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  // Weighted pick: lower-score intents get higher weight
+  const weights = intents.map(i => 1 / (1 + getRecognitionScore(i)));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  let chosenIntent = intents[0];
+  for (let i = 0; i < intents.length; i++) {
+    r -= weights[i];
+    if (r <= 0) { chosenIntent = intents[i]; break; }
+  }
+  return pickTriggerForIntent(chosenIntent) || byIntent[chosenIntent][0];
+}
+
+// Renders a recognition exercise into a panel using element id prefixes.
+// prefix='recog' for the in-session panel, prefix='tye' for Train Your Ear standalone.
+// onAnswer(correct) is called after the user picks an option.
+// onContinue is wired to the Continue button.
+let _activeRecognitionTrigger = null;
+let _activeRecognitionAudio = null;
+
+function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
+  _activeRecognitionTrigger = trigger;
+
+  const ctxEl = document.getElementById(prefix + 'Context');
+  const optsEl = document.getElementById(prefix + 'Options');
+  const revealEl = document.getElementById(prefix + 'Reveal');
+  const signalEl = document.getElementById(prefix + 'SignalWord');
+  const fullEl = document.getElementById(prefix + 'FullPhrase');
+  const meaningEl = document.getElementById(prefix + 'Meaning');
+  const playHintEl = document.getElementById(prefix + 'PlayHint');
+  const nextBtn = document.getElementById(prefix + 'NextBtn');
+  const circle = document.getElementById(prefix + 'Circle');
+
+  ctxEl.textContent = trigger.scenePrompt || '';
+  revealEl.classList.add('hidden');
+  nextBtn.classList.add('hidden');
+  circle.classList.remove('playing');
+  optsEl.innerHTML = '';
+
+  // Build options: correct + 2 distractors, shuffled
+  const distractors = (trigger.distractors || []).slice(0, 2);
+  const choices = shuffle([
+    { text: trigger.signal, correct: true },
+    ...distractors.map(d => ({ text: d, correct: false })),
+  ]);
+
+  let answered = false;
+  choices.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-option';
+    btn.textContent = c.text;
+    btn.style.cssText = 'display:block; width:100%; text-align:left; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; margin-bottom:0.5rem; color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; line-height:1.4; cursor:pointer; transition:all 0.15s;';
+    btn.onclick = () => {
+      if (answered) return;
+      answered = true;
+      // Highlight chosen + correct
+      Array.from(optsEl.children).forEach(child => {
+        const childCorrect = child.dataset.correct === 'true';
+        child.style.cursor = 'default';
+        if (childCorrect) {
+          child.style.borderColor = '#4ade80';
+          child.style.background = 'rgba(74, 222, 128, 0.08)';
+        } else if (child === btn) {
+          child.style.borderColor = '#f87171';
+          child.style.background = 'rgba(248, 113, 113, 0.08)';
+        } else {
+          child.style.opacity = '0.4';
+        }
+      });
+      // Reveal signal word + full phrase + meaning
+      signalEl.textContent = trigger.signalWord || '';
+      fullEl.textContent = trigger.triggerPhrase || '';
+      meaningEl.textContent = trigger.signal || '';
+      revealEl.classList.remove('hidden');
+      nextBtn.classList.remove('hidden');
+      // Coach mark for the signal word reveal (first time only)
+      showCoachMark('tt_seenSignalWordCoachMark');
+      if (onAnswer) onAnswer(c.correct);
+    };
+    btn.dataset.correct = c.correct ? 'true' : 'false';
+    optsEl.appendChild(btn);
+  });
+
+  if (nextBtn) nextBtn.onclick = onContinue;
+
+  // Auto-play audio on screen load
+  playHintEl.textContent = 'Listening...';
+  playRecognitionAudio(trigger, circle, () => {
+    playHintEl.textContent = 'Tap to hear again';
+  });
+
+  // Coach mark for the very first recognition exercise
+  showCoachMark('tt_seenRecognitionCoachMark');
+}
+
+function playRecognitionAudio(trigger, circle, onEnded) {
+  if (_activeRecognitionAudio) {
+    try { _activeRecognitionAudio.pause(); } catch (e) {}
+    _activeRecognitionAudio = null;
+  }
+  const src = getAudio(trigger.fileName) || getAudio(trigger.triggerPhrase);
+  if (!src) {
+    if (onEnded) onEnded();
+    return;
+  }
+  const audio = new Audio(src);
+  audio.playbackRate = 1.0;
+  _activeRecognitionAudio = audio;
+  if (circle) circle.classList.add('playing');
+  audio.onended = () => {
+    if (circle) circle.classList.remove('playing');
+    _activeRecognitionAudio = null;
+    if (onEnded) onEnded();
+  };
+  audio.onerror = () => {
+    if (circle) circle.classList.remove('playing');
+    _activeRecognitionAudio = null;
+    if (onEnded) onEnded();
+  };
+  setTimeout(() => audio.play().catch(() => {
+    if (circle) circle.classList.remove('playing');
+    if (onEnded) onEnded();
+  }), 300);
+}
+
+function replayRecognitionAudio() {
+  if (!_activeRecognitionTrigger) return;
+  playRecognitionAudio(_activeRecognitionTrigger, document.getElementById('recogCircle'));
+}
+
+function replayTyeAudio() {
+  if (!_activeRecognitionTrigger) return;
+  playRecognitionAudio(_activeRecognitionTrigger, document.getElementById('tyeCircle'));
+}
+
+// In-session recognition exercise. Picks a trigger by intent if provided,
+// otherwise picks a low-score intent at random.
+function renderRecognitionPanel(_phrase) {
+  document.getElementById('panelRecognition').classList.remove('hidden');
+  const item = getCurrentItem();
+  let trigger = null;
+  if (item && item.intent) trigger = pickTriggerForIntent(item.intent);
+  if (!trigger) trigger = pickRandomTrigger();
+  if (!trigger) {
+    // No recognition content available — skip silently
+    nextExercise();
+    return;
+  }
+  renderRecognitionInto('recog', trigger, (correct) => {
+    if (correct) bumpRecognitionScore(trigger.intent);
+    bumpIfFinal(item?.phraseId, 1, correct);
+    if (!correct) resurfaceIfEligible(item?.phraseId, 'recognition');
+  }, () => {
+    nextExercise();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// TRAIN YOUR EAR (standalone mode)
+// ═══════════════════════════════════════════════════════════════════
+
+const TYE_SESSION_LENGTH = 10;
+let _tyeSession = null;
+
+function startTrainYourEar() {
+  const pool = getRecognitionPool();
+  if (!pool.length) {
+    alert('No recognition content available yet.');
+    return;
+  }
+  _tyeSession = {
+    index: 0,
+    correct: 0,
+    seenIds: [],
+    signalWords: [],
+  };
+  document.getElementById('tyeCompleteOverlay').classList.add('hidden');
+  showScreen('screenTrainEar');
+  renderNextTye();
+}
+
+function renderNextTye() {
+  if (!_tyeSession) return;
+  if (_tyeSession.index >= TYE_SESSION_LENGTH) {
+    showTyeComplete();
+    return;
+  }
+  const trigger = pickRandomTrigger(_tyeSession.seenIds);
+  if (!trigger) {
+    showTyeComplete();
+    return;
+  }
+  _tyeSession.seenIds.push(trigger.id);
+  renderRecognitionInto('tye', trigger, (correct) => {
+    if (correct) {
+      bumpRecognitionScore(trigger.intent);
+      _tyeSession.correct++;
+    }
+    if (trigger.signalWord) _tyeSession.signalWords.push(trigger.signalWord);
+  }, () => {
+    advanceTrainYourEar();
+  });
+}
+
+function advanceTrainYourEar() {
+  if (!_tyeSession) return;
+  _tyeSession.index++;
+  renderNextTye();
+}
+
+function showTyeComplete() {
+  if (!_tyeSession) return;
+  const overlay = document.getElementById('tyeCompleteOverlay');
+  const summary = document.getElementById('tyeSummary');
+  const wordsLine = _tyeSession.signalWords.length
+    ? `Words you heard: ${_tyeSession.signalWords.slice(0, 8).join(', ')}.`
+    : '';
+  summary.innerHTML = `${_tyeSession.correct} of ${TYE_SESSION_LENGTH} correct.<br><br>${wordsLine}`;
+  overlay.classList.remove('hidden');
+}
+
+function exitTrainYourEar() {
+  if (_activeRecognitionAudio) {
+    try { _activeRecognitionAudio.pause(); } catch (e) {}
+    _activeRecognitionAudio = null;
+  }
+  _tyeSession = null;
+  goHome();
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // EXERCISE RENDERING
 // ═══════════════════════════════════════════════════════════════════
 
@@ -4987,8 +5518,9 @@ function updateExerciseHeader() {
 }
 
 function hidePanels() {
-  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation'].forEach(id => {
-    document.getElementById(id).classList.add('hidden');
+  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelRecognition'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
   });
 }
 
@@ -5018,6 +5550,7 @@ function renderCurrentExercise() {
   else if (type === 'speak') renderSpeakPanel(phrase);
   else if (type === 'vocab_mc') renderVocabMC(phrase);
   else if (type === 'situation') renderSituationPanel(phrase);
+  else if (type === 'recognition') renderRecognitionPanel(phrase);
 }
 
 
@@ -7231,6 +7764,14 @@ const COACH_MARKS = {
   },
   tt_seenListenModeCoachMark: {
     text: "This isn\u2019t a test. Just listen. You won\u2019t catch everything and that\u2019s fine.",
+    target: null,
+  },
+  tt_seenRecognitionCoachMark: {
+    text: "You don\u2019t need to understand the whole sentence, just the one word that tells you what\u2019s being asked. That\u2019s what this is training.",
+    target: null,
+  },
+  tt_seenSignalWordCoachMark: {
+    text: "That\u2019s the word to listen for, and the more you hear it in real sentences, the faster you\u2019ll catch it when it counts.",
     target: null,
   },
 };
