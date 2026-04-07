@@ -4987,7 +4987,11 @@ function buildPhraseTouches(phrase) {
   }
 
   const score = getScore(phrase.id);
-  if (score === 0) return ['vocab_card', 'listen_meaning'];
+  // Score 0: listen+pick meaning is the first touch. The vocab card reveal
+  // is chained as a follow-up of that same touch (see _followWithVocabCard
+  // in startSessionWithMode), never as a standalone queue item — that way
+  // a vocab card can never appear without audio preceding it in the session.
+  if (score === 0) return ['listen_meaning'];
   if (score === 1) return ['listen_meaning', 'listen_identify', 'speak'];
   if (score === 2) return ['speak', 'situation', 'speak'];
   if (score === 3) return ['speak', 'recognition', 'situation'];
@@ -5150,6 +5154,23 @@ function startSessionWithMode(mode) {
     Object.values(lastTouchIdxByPhrase).forEach(idx => {
       queue[idx]._isFinal = true;
     });
+
+    // For each score 0 phrase, mark its listen_meaning item so that the
+    // listen task chains directly into the vocab card reveal as a follow-up.
+    // The vocab card is never queued as a standalone item — it only appears
+    // immediately after the listen exercise that introduced the phrase.
+    const score0Ids = new Set(
+      selected.filter(p => getScore(p.id) === 0 && p.tier !== 'Recovery').map(p => p.id)
+    );
+    for (const item of queue) {
+      if (item.type === 'listen_meaning' && score0Ids.has(item.phraseId)) {
+        item._followWithVocabCard = true;
+      }
+    }
+    // Safety: drop any standalone vocab_card item that snuck into the queue.
+    for (let i = queue.length - 1; i >= 0; i--) {
+      if (queue[i].type === 'vocab_card') queue.splice(i, 1);
+    }
 
     // Anti-clustering: ensure no two consecutive items share a phrase id.
     // Single pass: if neighbors share, swap with next available item.
@@ -5747,10 +5768,20 @@ function showListenRevealAfterTask(isCorrect, phrase) {
   document.getElementById('listenTaskResultBody').textContent = phrase.native + ' — ' + getMeaning(phrase);
   // Score only changes on final touch
   bumpIfFinal(phrase.id, 2, isCorrect);
-  // Show Continue/Got it button — user taps to advance
+  // If this listen item is flagged to chain into the vocab card reveal
+  // (score 0 phrase, first encounter in this session), the Continue button
+  // shows the vocab card next instead of advancing to the next queue item.
+  const item = getCurrentItem();
+  const chainToVocab = item && item._followWithVocabCard;
   const btn = document.getElementById('listenNextBtn');
   btn.textContent = isCorrect ? 'Continue →' : 'Got it →';
-  btn.onclick = () => nextExercise();
+  btn.onclick = () => {
+    if (chainToVocab) {
+      showPhraseRevealScreen(phrase);
+    } else {
+      nextExercise();
+    }
+  };
   btn.classList.remove('hidden');
 }
 
