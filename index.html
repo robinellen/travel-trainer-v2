@@ -1197,12 +1197,17 @@ body::after {
      COMPLETION SCREEN
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="screenComplete">
-  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:0;">
-    <div style="font-size:2.5rem; margin-bottom:1.5rem;">✦</div>
-    <h2 class="serif" style="font-size:2.2rem; margin-bottom:0.5rem;">Session complete.</h2>
-    <p style="font-size:15px; color:var(--text-dim); line-height:1.7; margin-bottom:2.5rem; max-width:300px;" id="completionMsg"></p>
-    <button class="btn-primary" id="completePrimaryBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
-    <button class="btn-ghost" id="completeSecondaryBtn" onclick="goHome()">Home</button>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:stretch; padding:1.5rem; gap:0;">
+    <div style="max-width:400px; width:100%; margin:0 auto; text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:1rem;">✦</div>
+      <h2 class="serif" style="font-size:2rem; margin-bottom:1.25rem; font-weight:500;">Session complete.</h2>
+      <div id="completionGains" style="font-size:17px; color:var(--text); line-height:1.6; margin-bottom:1rem; text-align:left;"></div>
+      <div id="completionTrip" style="font-size:15px; color:var(--text-mid); line-height:1.6; margin-bottom:1rem; text-align:left;"></div>
+      <div id="completionDirection" style="font-size:15px; color:var(--text-dim); line-height:1.6; margin-bottom:2rem; text-align:left; font-style:italic;"></div>
+      <p style="font-size:15px; color:var(--text-dim); line-height:1.7; margin-bottom:2rem; max-width:300px; margin-left:auto; margin-right:auto;" id="completionMsg"></p>
+      <button class="btn-primary" id="completePrimaryBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
+      <button class="btn-ghost" id="completeSecondaryBtn" onclick="goHome()">Home</button>
+    </div>
   </div>
 </div>
 
@@ -4734,20 +4739,22 @@ function weightedPick(options) {
 }
 
 // Build a within-session arc for a phrase based on its current score and tier.
-function getPhraseArc(phrase) {
-  // Recovery: buildup on first encounter, then situation only
+// Build the touch sequence for a phrase based on its current score.
+// Returns an array of exercise types to serve in order within the session.
+function buildPhraseTouches(phrase) {
+  // Recovery phrase: buildup on first encounter (single touch), then situation
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
     if (score === 0) return ['listen']; // triggers buildup via checkAndStartBuildup
     return ['situation'];
   }
 
-  // Foundation (tier 1): strict score-based gating
   const score = getScore(phrase.id);
-  if (score === 0) return ['listen']; // listen + meaning match
-  if (score === 1) return ['listen']; // listen + meaning (60%) / identify (40%) handled by pickListenSubType
-  if (score === 2) return [weightedPick([['listen', 40], ['speak', 40], ['situation', 20]])];
-  return [weightedPick([['speak', 50], ['situation', 50]])];
+  if (score === 0) return ['vocab_card', 'listen_meaning'];
+  if (score === 1) return ['listen_meaning', 'listen_identify', 'speak'];
+  if (score === 2) return ['speak', 'situation', 'speak'];
+  if (score === 3) return ['speak', 'speak', 'situation'];
+  return ['speak', 'situation']; // score 4+
 }
 
 function setSessionLength(len) {
@@ -4834,109 +4841,127 @@ function startSessionWithMode(mode) {
   state.session.mode = mode;
   state.session.index = 0;
   state.session.pendingUnlock = null;
+  state.session._resurfaced = {};        // phraseId → true if already resurfaced this session
+  state.session._startScores = {};       // phraseId → score at session start
+  state.session._sessionPhrases = [];    // phrase ids in this session for win screen
 
   const activePhrases = getActivePhrases();
 
   if (mode === 'lesson') {
-    const SESSION_SIZE = state.sessionLength === 'long' ? 8 : 3;
+    const TARGET_NEW = 3;
+    const TARGET_REVIEW = 3;
     const seenCount = parseInt(localStorage.getItem('tt_seenPhraseCount') || '0', 10);
 
-    // Foundation phrases (tier 1) that have never been seen, in sortOrder
+    // Unseen Foundation phrases sorted by introduction order
     const unseenFoundation = activePhrases
       .filter(p => (p.tier || '1') === '1' && getScore(p.id) === 0)
       .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
 
-    // Already-seen phrases: split into due and not-due
+    // Already-seen phrases split by spaced repetition due status
     const seenPhrases = activePhrases.filter(p => getScore(p.id) >= 1);
     const due = shuffle(seenPhrases.filter(p => isPhrasedue(p.id)));
     const notDue = shuffle(seenPhrases.filter(p => !isPhrasedue(p.id)));
+    const reviewPool = [...due, ...notDue];
 
-    // New-user pacing: limit new introductions based on tt_seenPhraseCount
-    console.log('[session] seenCount:', seenCount, 'unseen:', unseenFoundation.length, 'seen:', seenPhrases.length);
-    let maxNew;
-    if (seenCount < 3) maxNew = 3 - seenCount; // First session: introduce up to 3 total
-    else if (seenCount < 6) maxNew = 1;         // Sessions 2-3: review + 1 new each
-    else maxNew = SESSION_SIZE;                  // Session 4+: normal pacing
+    // New-user pacing: limit new introductions for the first few sessions
+    let maxNew = TARGET_NEW;
+    if (seenCount < 3) maxNew = Math.min(TARGET_NEW, TARGET_NEW - seenCount + TARGET_NEW); // first session: up to 3
+    else if (seenCount < 6) maxNew = 1; // sessions 2-3: review + 1 new
 
-    const newToIntroduce = unseenFoundation.slice(0, maxNew);
-    const reviewPhrases = [...due, ...notDue];
+    if (seenCount === 0) maxNew = 3;
+    else if (seenCount < 3) maxNew = Math.max(1, TARGET_NEW - seenCount);
+    else if (seenCount < 6) maxNew = 1;
+    else maxNew = TARGET_NEW;
 
-    // Review first, then new introductions (new users review before seeing new)
-    let selected;
-    if (seenCount < 6) {
-      selected = [...reviewPhrases, ...newToIntroduce].slice(0, SESSION_SIZE);
-    } else {
-      // Normal mode: unseen foundation first (in sortOrder), then review
-      selected = [...newToIntroduce, ...reviewPhrases].slice(0, SESSION_SIZE);
-    }
+    const newPicks = unseenFoundation.slice(0, maxNew);
+    const reviewSlots = (TARGET_NEW + TARGET_REVIEW) - newPicks.length;
+    const reviewPicks = reviewPool.slice(0, reviewSlots);
 
-    // Track how many new introductions are in this session and their position
-    const newIds = new Set(newToIntroduce.map(p => p.id));
-    const newInSession = selected.filter(p => newIds.has(p.id)).length;
+    const selected = [...newPicks, ...reviewPicks];
+    state.session._sessionPhrases = selected.map(p => p.id);
+    selected.forEach(p => { state.session._startScores[p.id] = getScore(p.id); });
 
-    // Build per-wave pools
-    const arcs = selected.map(p => ({ id: p.id, arc: getPhraseArc(p) }));
-    const maxWaves = arcs.length ? Math.max(...arcs.map(a => a.arc.length)) : 0;
+    console.log('[session] new:', newPicks.length, 'review:', reviewPicks.length, 'total:', selected.length);
 
-    const pools = [];
-    for (let w = 0; w < maxWaves; w++) {
-      const pool = arcs
-        .filter(a => w < a.arc.length)
-        .map(a => ({ phraseId: a.id, type: a.arc[w] }));
-      pools.push(pool);
-    }
+    // Build per-phrase touch lists
+    const phraseTouches = selected.map(p => ({
+      phrase: p,
+      touches: buildPhraseTouches(p),
+    }));
 
-    // For early sessions (seenCount < 6): review phrases shuffled first, then new in sortOrder
-    // For normal sessions: new in sortOrder first, then review shuffled
-    for (let w = 0; w < pools.length; w++) {
-      if (w === 0 && newInSession > 0 && seenCount >= 6) {
-        // Normal mode: keep new introductions in sortOrder at front, shuffle rest
-        const ordered = pools[w].slice(0, newInSession);
-        const rest = shuffle(pools[w].slice(newInSession));
-        pools[w] = [...ordered, ...rest];
-      } else if (w === 0 && seenCount < 6) {
-        // Early pacing: review (shuffled) first, then new introductions in sortOrder at end
-        const reviewItems = pools[w].filter(item => !newIds.has(item.phraseId));
-        const newItems = pools[w].filter(item => newIds.has(item.phraseId));
-        pools[w] = [...shuffle(reviewItems), ...newItems];
-      } else {
-        pools[w] = shuffle(pools[w]);
-      }
-    }
+    // Round-robin interleave: take one touch from each phrase per pass,
+    // mark the LAST touch for each phrase as _isFinal so scoring fires there.
+    const queue = [];
+    const lastTouchIdxByPhrase = {};
+    const maxTouches = phraseTouches.reduce((m, pt) => Math.max(m, pt.touches.length), 0);
 
-    // Round-robin pull: take 1-2 items from each wave pool in rotation
-    const stepPattern = [2, 1, 2, 1, 1, 2];
-    let stepIdx = 0;
-    const wavePos = new Array(maxWaves).fill(0);
-    const rawQueue = [];
-
-    for (let iter = 0; iter < 30; iter++) {
-      let anyLeft = false;
-      for (let w = 0; w < maxWaves; w++) {
-        if (wavePos[w] >= pools[w].length) continue;
-        anyLeft = true;
-        const step = stepPattern[stepIdx % stepPattern.length];
-        stepIdx++;
-        const take = Math.min(step, pools[w].length - wavePos[w]);
-        for (let i = 0; i < take; i++) {
-          rawQueue.push(pools[w][wavePos[w]++]);
+    for (let pass = 0; pass < maxTouches; pass++) {
+      // Shuffle the order of phrases at each pass to avoid always-same ordering
+      const order = shuffle([...phraseTouches]);
+      for (const pt of order) {
+        if (pass < pt.touches.length) {
+          queue.push({
+            phraseId: pt.phrase.id,
+            type: pt.touches[pass],
+          });
+          lastTouchIdxByPhrase[pt.phrase.id] = queue.length - 1;
         }
       }
-      if (!anyLeft) break;
     }
 
-    // Cap exercises based on session size
-    const exerciseCap = SESSION_SIZE <= 3 ? 7 : 19;
-    rawQueue.splice(exerciseCap);
+    // Mark final touches
+    Object.values(lastTouchIdxByPhrase).forEach(idx => {
+      queue[idx]._isFinal = true;
+    });
 
-    state.session.queue = rawQueue;
+    // Anti-clustering: ensure no two consecutive items share a phrase id.
+    // Single pass: if neighbors share, swap with next available item.
+    for (let i = 1; i < queue.length; i++) {
+      if (queue[i].phraseId === queue[i - 1].phraseId) {
+        for (let j = i + 1; j < queue.length; j++) {
+          if (queue[j].phraseId !== queue[i - 1].phraseId &&
+              (i + 1 >= queue.length || queue[j].phraseId !== queue[i + 1]?.phraseId)) {
+            [queue[i], queue[j]] = [queue[j], queue[i]];
+            break;
+          }
+        }
+      }
+    }
+
+    state.session.queue = queue;
   } else {
     const pool = activePhrases;
-    state.session.queue = shuffle(pool).map(p => ({ phraseId: p.id, type: mode }));
+    state.session.queue = shuffle(pool).map(p => ({ phraseId: p.id, type: mode, _isFinal: true }));
   }
 
   showScreen('screenExercise');
   renderCurrentExercise();
+}
+
+// Score should only change on the final touch for a phrase in the session.
+// Correct on final touch increments score by 1. Incorrect does not change score.
+// Resurfaced retries never affect score.
+function bumpIfFinal(phraseId, _ignoredTo, correct = true) {
+  const item = state.session.queue[state.session.index];
+  if (!item) return;
+  if (item._isRetry) return;
+  if (!item._isFinal) return;
+  if (!correct) return;
+  const newScore = (getScore(phraseId) || 0) + 1;
+  bumpScore(phraseId, newScore, true);
+}
+
+// Resurface a failed exercise once per phrase per session, 2+ positions later.
+function resurfaceIfEligible(phraseId, type) {
+  const item = state.session.queue[state.session.index];
+  if (item && item._isRetry) return; // never resurface a retry
+  if (state.session._resurfaced[phraseId]) return; // already resurfaced once
+  state.session._resurfaced[phraseId] = true;
+  const queue = state.session.queue;
+  const idx = state.session.index;
+  // Insert at least 2 positions later (idx + 3 = next-next-next), capped to length
+  const insertAt = Math.min(idx + 3, queue.length);
+  queue.splice(insertAt, 0, { phraseId, type, _isRetry: true });
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -4984,7 +5009,12 @@ function renderCurrentExercise() {
 
 
   // Route to correct panel
-  if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
+  if (type === 'vocab_card') {
+    if (phrase) showPhraseRevealScreen(phrase);
+  }
+  else if (type === 'listen_meaning') renderListenPanel(phrase, 'listen', 'meaning');
+  else if (type === 'listen_identify') renderListenPanel(phrase, 'listen', 'identify');
+  else if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
   else if (type === 'speak') renderSpeakPanel(phrase);
   else if (type === 'vocab_mc') renderVocabMC(phrase);
   else if (type === 'situation') renderSituationPanel(phrase);
@@ -5106,7 +5136,7 @@ function onAudioEnded() {
   if (audioEndedCallback) { audioEndedCallback(); audioEndedCallback = null; }
 }
 
-function renderListenPanel(phrase, type) {
+function renderListenPanel(phrase, type, forcedSubType) {
   // Check if this phrase needs a buildup sequence first
   if (type === 'listen' && checkAndStartBuildup(phrase)) return;
 
@@ -5137,12 +5167,10 @@ function renderListenPanel(phrase, type) {
     emoji.classList.remove('hidden');
 
     if (type === 'learn') {
-      bumpScore(phrase.id, 1);
+      bumpIfFinal(phrase.id, 1);
       showPhraseRevealScreen(phrase);
     } else {
-      // Pick sub-type BEFORE bumping score so score-0 gets meaning match
-      const subType = pickListenSubType(phrase);
-      bumpScore(phrase.id, 1);
+      const subType = forcedSubType || pickListenSubType(phrase);
       renderListenTask(phrase, subType);
     }
   };
@@ -5178,11 +5206,12 @@ function showListenRevealAfterTask(isCorrect, phrase) {
   result.className = 'result-bar ' + (isCorrect ? 'correct visible' : 'wrong visible');
   document.getElementById('listenTaskResultTitle').textContent = isCorrect ? '✓ Correct' : '✗ Not quite';
   document.getElementById('listenTaskResultBody').textContent = phrase.native + ' — ' + getMeaning(phrase);
-  if (isCorrect) { bumpScore(phrase.id, 2); } else { bumpScore(phrase.id, 2, false); }
+  // Score only changes on final touch
+  bumpIfFinal(phrase.id, 2, isCorrect);
   // Show Continue/Got it button — user taps to advance
   const btn = document.getElementById('listenNextBtn');
   btn.textContent = isCorrect ? 'Continue →' : 'Got it →';
-  btn.onclick = () => showPhraseRevealScreen(phrase);
+  btn.onclick = () => nextExercise();
   btn.classList.remove('hidden');
 }
 
@@ -5477,7 +5506,8 @@ function checkSpeechMatch(heard, phrase) {
 
 function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, nextId) {
   const { correct: isGood, usedAlternative } = checkSpeechMatch(heard, phrase);
-  const retry = isCurrentRetry();
+  const item = getCurrentItem();
+  const retry = item && item._isRetry;
 
   const btn = document.getElementById(btnId);
   if (isGood) {
@@ -5487,13 +5517,12 @@ function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, 
       document.getElementById(resultId).className = 'result-bar correct visible';
       document.getElementById(titleId).textContent = '✓ Got it';
       document.getElementById(bodyId).textContent = phrase.native;
-      // No score change on retry
     } else {
       document.getElementById(hintId).textContent = usedAlternative ? 'That works too.' : 'Nice!';
       document.getElementById(resultId).className = 'result-bar correct visible';
       document.getElementById(titleId).textContent = '✓ Got it';
       document.getElementById(bodyId).textContent = phrase.native;
-      bumpScore(phrase.id, 3);
+      bumpIfFinal(phrase.id, (getScore(phrase.id) || 0) + 1, true);
     }
   } else {
     btn.className = 'mic-btn';
@@ -5502,10 +5531,8 @@ function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, 
     document.getElementById(titleId).textContent = phrase.native;
     document.getElementById(bodyId).textContent = getMeaning(phrase);
     if (!retry) {
-      bumpScore(phrase.id, 2, false);
-      // Queue retry for later in the session
-      const item = getCurrentItem();
-      if (item) queueRetry(phrase.id, item.type);
+      // Resurface the failed exercise mid-session for another attempt
+      resurfaceIfEligible(phrase.id, item ? item.type : 'speak');
     }
     // Play the correct phrase audio, then show Got it button
     const nextBtn = document.getElementById(nextId);
@@ -5622,10 +5649,10 @@ function showVocabRevealAfterTask(isCorrect, phrase) {
   result.className = 'result-bar ' + (isCorrect ? 'correct visible' : 'wrong visible');
   document.getElementById('vocabTaskResultTitle').textContent = isCorrect ? '✓ Correct' : '✗ Not quite';
   document.getElementById('vocabTaskResultBody').textContent = phrase.native + ' — ' + getMeaning(phrase);
-  if (isCorrect) { bumpScore(phrase.id, 2); } else { bumpScore(phrase.id, 2, false); }
+  bumpIfFinal(phrase.id, 2, isCorrect);
   const btn = document.getElementById('vocabNextBtn');
   btn.textContent = isCorrect ? 'Continue →' : 'Got it →';
-  btn.onclick = () => showPhraseRevealScreen(phrase);
+  btn.onclick = () => nextExercise();
   btn.classList.remove('hidden');
 }
 
@@ -5783,7 +5810,8 @@ function evaluateSituSpeak(heard, phrase) {
     }
   }
 
-  const retry = isCurrentRetry();
+  const item = getCurrentItem();
+  const retry = item && item._isRetry;
 
   if (isCorrect) {
     btn.className = 'mic-btn correct';
@@ -5792,7 +5820,6 @@ function evaluateSituSpeak(heard, phrase) {
       document.getElementById('situResult').className = 'result-bar correct visible';
       document.getElementById('situResultTitle').textContent = '✓ Got it';
       document.getElementById('situResultBody').textContent = phrase.native;
-      // No score change on retry
     } else {
       document.getElementById('situMicHint').textContent = (usedAlternative || usedRecovery) ? 'That works too.' : 'Nice!';
       document.getElementById('situResult').className = 'result-bar correct visible';
@@ -5803,7 +5830,7 @@ function evaluateSituSpeak(heard, phrase) {
         document.getElementById('situResultTitle').textContent = '✓ Got it';
         document.getElementById('situResultBody').textContent = usedAlternative ? 'That works too.' : phrase.native;
       }
-      bumpScore(phrase.id, 3);
+      bumpIfFinal(phrase.id, (getScore(phrase.id) || 0) + 1, true);
     }
     const situBtn = document.getElementById('situNextBtn');
     situBtn.textContent = 'Continue →';
@@ -5832,10 +5859,8 @@ function evaluateSituSpeak(heard, phrase) {
     document.getElementById('situResultTitle').textContent = phrase.native;
     document.getElementById('situResultBody').textContent = getMeaning(phrase);
     if (!retry) {
-      bumpScore(phrase.id, 2, false);
-      // Queue retry for later in the session
-      const item = getCurrentItem();
-      if (item) queueRetry(phrase.id, item.type);
+      // Resurface the failed exercise mid-session
+      resurfaceIfEligible(phrase.id, item ? item.type : 'situation');
     }
     const situBtn2 = document.getElementById('situNextBtn');
     situBtn2.textContent = 'Got it →';
@@ -6002,17 +6027,100 @@ function showCompletion() {
 
   showScreen('screenComplete');
 
+  // Build structured debrief: gains, trip tie, direction
+  const gainsEl = document.getElementById('completionGains');
+  const tripEl = document.getElementById('completionTrip');
+  const directionEl = document.getElementById('completionDirection');
+  if (gainsEl) gainsEl.innerHTML = '';
+  if (tripEl) tripEl.textContent = '';
+  if (directionEl) directionEl.textContent = '';
+
+  const startScores = state.session._startScores || {};
+  const sessionPhraseIds = state.session._sessionPhrases || [];
+  const moved = [];
+  const heldSteady = [];
+  sessionPhraseIds.forEach(pid => {
+    const phrase = PHRASES.find(p => p.id === pid);
+    if (!phrase) return;
+    const before = startScores[pid] ?? 0;
+    const after = getScore(pid);
+    if (after > before) moved.push({ phrase, before, after });
+    else heldSteady.push({ phrase, before, after });
+  });
+
+  function capabilityFor(phrase, after) {
+    const native = phrase.native || '';
+    if (after >= 4) return `${native} is automatic now.`;
+    if (after === 3) return `${native} is locked in.`;
+    if (after === 2) return `${native} is sticking.`;
+    if (after === 1) return `${native} is starting to land.`;
+    return `${native} is on the board.`;
+  }
+
+  if (state.session.mode !== 'situation_practice' && gainsEl) {
+    if (moved.length) {
+      moved.forEach(m => {
+        const line = document.createElement('div');
+        line.style.cssText = 'margin-bottom:0.4rem;';
+        line.textContent = capabilityFor(m.phrase, m.after);
+        gainsEl.appendChild(line);
+      });
+    } else {
+      const line = document.createElement('div');
+      line.textContent = "Nothing moved up this round. That's how it goes sometimes. The reps still count.";
+      gainsEl.appendChild(line);
+    }
+  }
+
+  // Trip countdown tie
+  if (tripEl && state.session.mode !== 'situation_practice') {
+    const tripDate = localStorage.getItem('tt_trip_date');
+    if (tripDate) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const trip = new Date(tripDate + 'T00:00:00');
+      const days = Math.ceil((trip - today) / 86400000);
+      const movedCount = moved.length;
+      if (days > 0) {
+        if (movedCount > 0) {
+          tripEl.textContent = `${days} day${days===1?'':'s'} out, and you just added ${movedCount} more phrase${movedCount===1?'':'s'} you can lean on.`;
+        } else {
+          tripEl.textContent = `${days} day${days===1?'':'s'} until your trip. Showing up is the work.`;
+        }
+      } else if (days === 0) {
+        tripEl.textContent = "Your trip is today. You're ready.";
+      }
+    }
+  }
+
+  // Direction for what comes next
+  if (directionEl && state.session.mode !== 'situation_practice') {
+    const activePhrases = getActivePhrases();
+    const dueCount = getDueCount(activePhrases);
+    const unseenFoundation = activePhrases.filter(p => (p.tier || '1') === '1' && getScore(p.id) === 0).length;
+    const lockedIn = PHRASES.filter(p => getScore(p.id) >= 3).length;
+
+    let direction = '';
+    if (unseenFoundation > 0) {
+      direction = `Next round brings in ${Math.min(3, unseenFoundation)} more from the foundation.`;
+    } else if (dueCount > 0) {
+      direction = `${dueCount} phrase${dueCount===1?'':'s'} coming back around when you're ready.`;
+    } else if (lockedIn >= 5) {
+      direction = `You've got a real handful locked in. The café experience is where this starts to feel useful.`;
+    } else {
+      direction = `Come back tomorrow and the spaced practice does the rest.`;
+    }
+    directionEl.textContent = direction;
+  }
+
   // Context-aware completion copy
   let msg;
   if (state.session.mode === 'situation_practice') {
     msg = "Good work. The more you practice these moments, the more automatic they become.";
   } else if (state.session._completedRecovery) {
-    msg = "The recovery phrase alone will carry you through most situations. Everything else is a bonus.";
+    msg = "";
     state.session._completedRecovery = false;
-  } else if (!localStorage.getItem('tt_recoveryUnlocked')) {
-    msg = "Each time you come back it gets a little easier. See you next time.";
   } else {
-    msg = "Good work. Come back when you're ready for the next round.";
+    msg = "";
   }
   document.getElementById('completionMsg').textContent = msg;
 
