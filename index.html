@@ -904,7 +904,7 @@ body::after {
 
       </div>
       <div class="mt-auto">
-        <button class="btn-primary hidden" id="listenNextBtn" onclick="nextExercise()">Continue →</button>
+        <button class="btn-primary hidden" id="listenNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
       </div>
     </div>
 
@@ -932,7 +932,7 @@ body::after {
         <div class="result-bar-body" id="speakResultBody"></div>
       </div>
       <div class="mt-auto" style="display:flex; flex-direction:column; gap:0.5rem; padding-top:1rem;">
-        <button class="btn-primary hidden" id="speakNextBtn" onclick="nextExercise()">Continue →</button>
+        <button class="btn-primary hidden" id="speakNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
         <button class="btn-skip" onclick="skipExercise()">Skip this one</button>
       </div>
     </div>
@@ -959,7 +959,7 @@ body::after {
         </div>
       </div>
       <div class="mt-auto">
-        <button class="btn-primary hidden" id="vocabNextBtn" onclick="nextExercise()">Continue →</button>
+        <button class="btn-primary hidden" id="vocabNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
       </div>
     </div>
 
@@ -989,7 +989,7 @@ body::after {
         <div class="result-bar-body" id="situResultBody"></div>
       </div>
       <div class="mt-auto" style="display:flex; flex-direction:column; gap:0.5rem; padding-top:1rem;">
-        <button class="btn-primary hidden" id="situNextBtn" onclick="nextExercise()">Continue →</button>
+        <button class="btn-primary hidden" id="situNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
         <button class="btn-skip" onclick="skipExercise()">Skip this one</button>
       </div>
     </div>
@@ -997,7 +997,7 @@ body::after {
 
     <!-- Universal skip fallback — appears after 5s of no interaction -->
     <div id="universalSkip" style="text-align:center; padding:0.5rem 0 0;">
-      <button class="btn-skip" onclick="skipExercise()" style="font-size:13px;">Skip this one →</button>
+      <button class="btn-skip" onclick="skipExercise()" style="font-size:13px;">Skip this one</button>
     </div>
   </div>
 </div>
@@ -4726,17 +4726,22 @@ function showListenRevealAfterTask(isCorrect, phrase) {
 }
 
 // ── Meaning task ──
+function lowercaseFirst(str) {
+  if (!str) return str;
+  return str.charAt(0).toLowerCase() + str.slice(1);
+}
+
 function renderListenMeaning(phrase) {
   document.getElementById('listenTaskMeaning').style.display = 'block';
   const distractors = getDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
-  const correctMeaning = getMeaning(phrase);
+  const correctMeaning = lowercaseFirst(getMeaning(phrase));
   const container = document.getElementById('listenMeaningOptions');
   container.innerHTML = '';
   options.forEach(opt => {
     const btn = document.createElement('button');
     btn.className = 'mc-option';
-    btn.textContent = opt.id === phrase.id ? correctMeaning : getMeaning(opt);
+    btn.textContent = opt.id === phrase.id ? correctMeaning : lowercaseFirst(getMeaning(opt));
     btn.onclick = () => {
       container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
       const correct = opt.id === phrase.id;
@@ -5132,11 +5137,11 @@ function renderVocabTask(phrase) {
   } else {
     // Meaning match
     document.querySelector('#vocabTaskMeaning > div:first-child').textContent = 'What does this mean?';
-    const correctVocabMeaning = getMeaning(phrase);
+    const correctVocabMeaning = lowercaseFirst(getMeaning(phrase));
     options.forEach(opt => {
       const btn = document.createElement('button');
       btn.className = 'mc-option';
-      btn.textContent = opt.id === phrase.id ? correctVocabMeaning : getMeaning(opt);
+      btn.textContent = opt.id === phrase.id ? correctVocabMeaning : lowercaseFirst(getMeaning(opt));
       btn.onclick = () => {
         container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
         const correct = opt.id === phrase.id;
