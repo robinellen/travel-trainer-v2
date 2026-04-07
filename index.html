@@ -5189,10 +5189,16 @@ function bumpIfFinal(phraseId, _ignoredTo, correct = true) {
 }
 
 // Resurface a failed exercise once per phrase per session, 2+ positions later.
+// Hard cap on total exercises per session — prevents runaway sessions when
+// resurfaced retries pile up. Enforced both at insert time and in advanceSession.
+const SESSION_HARD_CAP = 12;
+
 function resurfaceIfEligible(phraseId, type) {
   const item = state.session.queue[state.session.index];
   if (item && item._isRetry) return; // never resurface a retry
   if (state.session._resurfaced[phraseId]) return; // already resurfaced once
+  // Don't resurface if it would push us past the hard cap
+  if (state.session.queue.length >= SESSION_HARD_CAP) return;
   state.session._resurfaced[phraseId] = true;
   const queue = state.session.queue;
   const idx = state.session.index;
@@ -6451,6 +6457,12 @@ function nextExercise() {
 }
 
 function advanceSession() {
+  // Hard cap: end the session once SESSION_HARD_CAP exercises have been completed,
+  // even if resurfaced retries are still queued. Only enforced for lesson mode.
+  if (state.session.mode === 'lesson' && state.session.index >= SESSION_HARD_CAP) {
+    showCompletion();
+    return;
+  }
   if (state.session.index >= state.session.queue.length) {
     showCompletion();
     return;
