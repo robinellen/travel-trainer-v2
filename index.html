@@ -5850,7 +5850,10 @@ function startExpWatch(pass) {
 
   document.getElementById('expWatchProgressFill').style.width = '0%';
   document.getElementById('expWatchActions').style.display = 'none';
-  document.getElementById('expWatchBeats').innerHTML = '';
+  const beatsContainer = document.getElementById('expWatchBeats');
+  beatsContainer.innerHTML = '';
+  // Reset scroll position so the first beat starts visible at the top
+  if (beatsContainer.parentElement) beatsContainer.parentElement.scrollTop = 0;
 
   showScreen('screenExpWatch');
 
@@ -5890,7 +5893,11 @@ function fadeOlderBeats(container) {
 
 function scrollBeatToCenter(container, el) {
   const scrollParent = container.parentElement; // the .p-screen overflow container
-  const targetScroll = el.offsetTop - (window.innerHeight * 0.40);
+  // Calculate offset of el relative to scrollParent
+  const elRect = el.getBoundingClientRect();
+  const parentRect = scrollParent.getBoundingClientRect();
+  const currentOffsetInParent = (elRect.top - parentRect.top) + scrollParent.scrollTop;
+  const targetScroll = Math.max(0, currentOffsetInParent - (parentRect.height * 0.40));
   scrollParent.scrollTo({ top: targetScroll, behavior: 'smooth' });
 }
 
@@ -5908,9 +5915,10 @@ function playNextBeat() {
   el.className = 'exp-beat';
 
   if (beat.type === 'narrator') {
+    // Render narrator content for all passes — Pass 3 uses cultural-note style
     if (_expPass >= 3) {
       el.innerHTML = `<div class="exp-beat-narrator cultural-note">${beat.text}</div>`;
-    } else if (_expPass >= 2) {
+    } else {
       el.innerHTML = `<div class="exp-beat-narrator">${beat.text}</div>`;
     }
     container.appendChild(el);
@@ -5920,22 +5928,26 @@ function playNextBeat() {
       scrollBeatToCenter(container, el);
     });
     _expBeatIdx++;
-    // All narrator beats: 5 second pause
     const pause = 5000;
     _expPlayTimer = setTimeout(() => playNextBeat(), pause);
   } else {
-    // Dialogue beat
-    if (_expPass >= 2) {
-      const isUser = beat.voice === 'Emile';
-      const align = isUser ? 'align-right' : 'align-left';
-      const textStyle = isUser ? 'color:var(--text);' : 'color:var(--text); opacity:0.6;';
-      let html = `<div class="exp-french-text" style="${textStyle}">${beat.french}</div>`;
-      if (beat.stageDir) {
-        html += `<div style="font-size:13px; color:var(--text-dim); margin-top:0.2rem; font-style:italic;">${beat.stageDir}</div>`;
-      }
-      el.innerHTML = `<div class="exp-beat-dialogue ${align}">${html}</div>`;
+    // Dialogue beat — render French text for all passes
+    const isUser = beat.voice === 'Emile';
+    const align = isUser ? 'align-right' : 'align-left';
+    const textStyle = isUser ? 'color:var(--text);' : 'color:var(--text); opacity:0.6;';
+    let html = `<div class="exp-french-text" style="${textStyle}">${beat.french}</div>`;
+    if (beat.stageDir) {
+      html += `<div style="font-size:13px; color:var(--text-dim); margin-top:0.2rem; font-style:italic;">${beat.stageDir}</div>`;
     }
+    el.innerHTML = `<div class="exp-beat-dialogue ${align}">${html}</div>`;
     container.appendChild(el);
+
+    // Show text immediately, regardless of audio
+    requestAnimationFrame(() => {
+      el.classList.add('visible');
+      fadeOlderBeats(container);
+      scrollBeatToCenter(container, el);
+    });
 
     const audioUrl = getAudioForBeat(beat);
     if (audioUrl) {
@@ -5943,29 +5955,13 @@ function playNextBeat() {
       currentAudio = audio;
       const advance = () => {
         currentAudio = null;
-        requestAnimationFrame(() => {
-          el.classList.add('visible');
-          fadeOlderBeats(container);
-          scrollBeatToCenter(container, el);
-        });
         _expBeatIdx++;
         _expPlayTimer = setTimeout(() => playNextBeat(), 1200);
       };
       audio.onended = advance;
       audio.onerror = advance;
-      if (_expPass >= 2) {
-        requestAnimationFrame(() => {
-          el.classList.add('visible');
-          scrollBeatToCenter(container, el);
-        });
-      }
       audio.play().catch(advance);
     } else {
-      requestAnimationFrame(() => {
-        el.classList.add('visible');
-        fadeOlderBeats(container);
-        scrollBeatToCenter(container, el);
-      });
       _expBeatIdx++;
       _expPlayTimer = setTimeout(() => playNextBeat(), 1200);
     }
