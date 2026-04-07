@@ -101,12 +101,18 @@ function recordToPhrase(record) {
 
 function recordToTrigger(record) {
   const f = record.fields;
+  const langRaw = f['Language'];
+  const langName = langRaw ? (typeof langRaw === 'object' ? langRaw.name : langRaw) : 'French';
+  const intentRaw = f['Intent'];
+  const intentName = intentRaw ? (typeof intentRaw === 'object' ? intentRaw.name : intentRaw) : '';
   return {
     id: record.id,
     triggerPhrase: f['Trigger Phrase'] || '',
     signal: f['Signal'] || '',
+    signalWord: f['Signal Word'] || '',
+    intent: intentName,
     type: f['Type'] || '',
-    language: f['Language'] || 'French',
+    language: langName,
     experience: f['Experience'] || '',
     depthLevel: f['Depth Level'] || '',
     scenePrompt: f['Scene Prompt'] || '',
@@ -115,6 +121,7 @@ function recordToTrigger(record) {
     fileName: f['File Name'] || '',
     audioRecorded: f['Audio Recorded'] === true,
     sortOrder: f['Sort Order'] || null,
+    difficulty: f['Sort Order'] || 0,
     voice: f['Voice'] || '',
   };
 }
