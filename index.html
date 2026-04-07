@@ -1218,6 +1218,17 @@ body::after {
   <div id="vocabListContent" style="overflow-y:auto; padding:0 1.25rem 2.5rem; flex:1;"></div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════
+     PHRASE DETAIL OVERLAY (vocab card from list)
+═══════════════════════════════════════════════════ -->
+<div id="phraseDetailBackdrop" onclick="closePhraseDetail()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:210; opacity:0; transition:opacity 0.3s;"></div>
+<div id="phraseDetailPanel" onclick="event.stopPropagation()" style="display:none; position:fixed; bottom:0; left:0; right:0; max-height:85vh; background:var(--surface); border-radius:20px 20px 0 0; z-index:211; transform:translateY(100%); transition:transform 0.35s cubic-bezier(0.32,0.72,0,1); flex-direction:column;">
+  <div style="display:flex; justify-content:flex-end; padding:1rem 1rem 0;">
+    <button onclick="closePhraseDetail()" style="background:none;border:none;color:var(--text-dim);font-size:1.2rem;cursor:pointer;padding:0.25rem 0.5rem;line-height:1;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">✕</button>
+  </div>
+  <div id="phraseDetailContent" style="overflow-y:auto; padding:0 1.5rem 2rem;"></div>
+</div>
+
 <script>
 'use strict';
 
@@ -6695,6 +6706,117 @@ function closeVocabModal() {
   }, 350);
 }
 
+let _detailPhrase = null;
+
+function openPhraseDetail(phraseId) {
+  const phrase = PHRASES.find(p => p.id === phraseId);
+  if (!phrase) return;
+  _detailPhrase = phrase;
+
+  const isLocked = getScore(phrase.id) === 0;
+  const content = document.getElementById('phraseDetailContent');
+  const meanings = getAllMeanings(phrase);
+  const meaningsHtml = meanings.join('<br>');
+  const romanization = stripHtmlTags(phrase.romanization || '');
+  const note = phrase.note || '';
+
+  if (isLocked) {
+    content.innerHTML = `
+      <div style="background:rgba(255,255,255,0.06); border-radius:16px; padding:24px; text-align:center;">
+        <div style="font-size:2.5rem; line-height:1; margin-bottom:0.75rem; opacity:0.5;">${phrase.emoji || ''}</div>
+        <div style="font-family:'Cormorant Garamond',serif; font-size:30px; font-style:italic; font-weight:500; line-height:1.3; margin-bottom:1rem; opacity:0.5;">${displayNative(phrase, 'card')}</div>
+        <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em;">Keep going to unlock this.</div>
+      </div>
+    `;
+  } else {
+    content.innerHTML = `
+      <div style="background:rgba(255,255,255,0.06); border-radius:16px; padding:24px;">
+        <div style="text-align:center; margin-bottom:1rem;">
+          <div style="font-size:2.5rem; line-height:1; margin-bottom:0.75rem;">${phrase.emoji || ''}</div>
+          <div style="font-family:'Cormorant Garamond',serif; font-size:30px; font-style:italic; font-weight:500; line-height:1.3; margin-bottom:0.3rem;">${displayNative(phrase, 'card')}</div>
+          <div style="font-size:15px; color:var(--text-dim);">${romanization}</div>
+        </div>
+        <div style="font-size:13px; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.5rem; text-align:center;">${meaningsHtml}</div>
+        ${note ? `<div style="font-size:15px; color:var(--text-dim); line-height:1.5; margin-bottom:1rem;">${note}</div>` : ''}
+        <div style="display:flex; justify-content:center;">
+          <button onclick="playPhraseDetailAudio()" style="background:var(--card); border:1px solid var(--border); border-radius:2rem; padding:0.5rem 1.25rem; color:var(--text-dim); font-family:'Lexend',sans-serif; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
+            <svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:var(--text-dim);"><path d="M8 5v14l11-7z"/></svg>
+            Hear it again
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  const backdrop = document.getElementById('phraseDetailBackdrop');
+  const panel = document.getElementById('phraseDetailPanel');
+  backdrop.style.display = 'block';
+  panel.style.display = 'flex';
+  backdrop.offsetHeight; // force reflow
+  backdrop.style.opacity = '1';
+  panel.style.transform = 'translateY(0)';
+}
+
+function closePhraseDetail() {
+  const backdrop = document.getElementById('phraseDetailBackdrop');
+  const panel = document.getElementById('phraseDetailPanel');
+  backdrop.style.opacity = '0';
+  panel.style.transform = 'translateY(100%)';
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  setTimeout(() => {
+    backdrop.style.display = 'none';
+    panel.style.display = 'none';
+    _detailPhrase = null;
+  }, 350);
+}
+
+function playPhraseDetailAudio() {
+  if (!_detailPhrase) return;
+  const url = getAudio(_detailPhrase.native);
+  if (!url) return;
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  const audio = new Audio(url);
+  audio.playbackRate = 1.0;
+  currentAudio = audio;
+  audio.onended = () => { currentAudio = null; };
+  audio.onerror = () => { currentAudio = null; };
+  audio.play().catch(() => { currentAudio = null; });
+}
+
+// Swipe-down to dismiss for phrase detail panel
+(function setupPhraseDetailSwipe() {
+  let startY = null;
+  let currentY = null;
+  const panel = document.getElementById('phraseDetailPanel');
+  if (!panel) return;
+  panel.addEventListener('touchstart', (e) => {
+    if (panel.scrollTop > 0) return; // only swipe-dismiss from top
+    startY = e.touches[0].clientY;
+    currentY = startY;
+  }, { passive: true });
+  panel.addEventListener('touchmove', (e) => {
+    if (startY === null) return;
+    currentY = e.touches[0].clientY;
+    const delta = currentY - startY;
+    if (delta > 0) {
+      panel.style.transform = 'translateY(' + delta + 'px)';
+      panel.style.transition = 'none';
+    }
+  }, { passive: true });
+  panel.addEventListener('touchend', () => {
+    if (startY === null) return;
+    const delta = (currentY || startY) - startY;
+    panel.style.transition = 'transform 0.35s cubic-bezier(0.32,0.72,0,1)';
+    if (delta > 80) {
+      closePhraseDetail();
+    } else {
+      panel.style.transform = 'translateY(0)';
+    }
+    startY = null;
+    currentY = null;
+  });
+})();
+
 function renderVocabList() {
   const content = document.getElementById('vocabListContent');
   content.innerHTML = '';
@@ -6705,13 +6827,14 @@ function renderVocabList() {
 
   function makeRow(p, showMeaning) {
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; gap:0.75rem; padding:0.65rem 0; border-bottom:1px solid var(--border);'
+    row.style.cssText = 'display:flex; align-items:center; gap:0.75rem; padding:0.65rem 0; border-bottom:1px solid var(--border); cursor:pointer; transition:opacity 0.15s;'
       + (showMeaning ? '' : ' opacity:0.3;');
     const emojiSpan = `<span style="font-size:1.25rem; width:2rem; text-align:center; flex-shrink:0;">${p.emoji || ''}</span>`;
     const native = `<div style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; line-height:1.3;">${displayNative(p, 'card')}</div>`;
     const meanings = getAllMeanings(p);
     const meaning = showMeaning ? `<div style="font-size:13px; color:var(--text-dim); margin-top:0.15rem; line-height:1.5;">${meanings.join('<br>')}</div>` : '';
     row.innerHTML = `${emojiSpan}<div style="flex:1;">${native}${meaning}</div>`;
+    row.onclick = () => openPhraseDetail(p.id);
     return row;
   }
 
