@@ -4718,8 +4718,11 @@ function showListenRevealAfterTask(isCorrect, phrase) {
   document.getElementById('listenTaskResultTitle').textContent = isCorrect ? '✓ Correct' : '✗ Not quite';
   document.getElementById('listenTaskResultBody').textContent = phrase.native + ' — ' + getMeaning(phrase);
   if (isCorrect) { bumpScore(phrase.id, 2); } else { bumpScore(phrase.id, 2, false); }
-  // Transition to full-screen phrase reveal
-  setTimeout(() => showPhraseRevealScreen(phrase), 600);
+  // Show Continue/Got it button — user taps to advance
+  const btn = document.getElementById('listenNextBtn');
+  btn.textContent = isCorrect ? 'Continue →' : 'Got it →';
+  btn.onclick = () => showPhraseRevealScreen(phrase);
+  btn.classList.remove('hidden');
 }
 
 // ── Meaning task ──
@@ -5038,17 +5041,26 @@ function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, 
       const item = getCurrentItem();
       if (item) queueRetry(phrase.id, item.type);
     }
-    // Play the correct phrase audio as corrective feedback
+    // Play the correct phrase audio, then show Got it button
+    const nextBtn = document.getElementById(nextId);
+    nextBtn.textContent = 'Got it →';
     const url = getAudio(phrase.native);
     if (url) {
       const audio = new Audio(url);
       audio.playbackRate = 1.0;
       currentAudio = audio;
-      audio.onended = () => { currentAudio = null; };
-      audio.play().catch(() => { currentAudio = null; });
+      audio.onended = () => { currentAudio = null; nextBtn.classList.remove('hidden'); };
+      audio.onerror = () => { currentAudio = null; nextBtn.classList.remove('hidden'); };
+      audio.play().catch(() => { currentAudio = null; nextBtn.classList.remove('hidden'); });
+    } else {
+      nextBtn.classList.remove('hidden');
     }
+    return;
   }
-  document.getElementById(nextId).classList.remove('hidden');
+  // Correct — show Continue button immediately
+  const nextBtn = document.getElementById(nextId);
+  nextBtn.textContent = 'Continue →';
+  nextBtn.classList.remove('hidden');
 }
 
 // ── VOCAB ─────────────────────────────────────────────────────────
@@ -5145,7 +5157,10 @@ function showVocabRevealAfterTask(isCorrect, phrase) {
   document.getElementById('vocabTaskResultTitle').textContent = isCorrect ? '✓ Correct' : '✗ Not quite';
   document.getElementById('vocabTaskResultBody').textContent = phrase.native + ' — ' + getMeaning(phrase);
   if (isCorrect) { bumpScore(phrase.id, 2); } else { bumpScore(phrase.id, 2, false); }
-  setTimeout(() => showPhraseRevealScreen(phrase), 600);
+  const btn = document.getElementById('vocabNextBtn');
+  btn.textContent = isCorrect ? 'Continue →' : 'Got it →';
+  btn.onclick = () => showPhraseRevealScreen(phrase);
+  btn.classList.remove('hidden');
 }
 
 // ── SITUATION ────────────────────────────────────────────────────
@@ -5324,7 +5339,9 @@ function evaluateSituSpeak(heard, phrase) {
       }
       bumpScore(phrase.id, 3);
     }
-    document.getElementById('situNextBtn').classList.remove('hidden');
+    const situBtn = document.getElementById('situNextBtn');
+    situBtn.textContent = 'Continue →';
+    situBtn.classList.remove('hidden');
     clearTimeout(_situHelpersTimer);
   } else if (!_situRetried) {
     _situRetried = true;
@@ -5354,15 +5371,19 @@ function evaluateSituSpeak(heard, phrase) {
       const item = getCurrentItem();
       if (item) queueRetry(phrase.id, item.type);
     }
+    const situBtn2 = document.getElementById('situNextBtn');
+    situBtn2.textContent = 'Got it →';
     const url = getAudio(phrase.native);
     if (url) {
       const audio = new Audio(url);
       audio.playbackRate = 1.0;
       currentAudio = audio;
-      audio.onended = () => { currentAudio = null; };
-      audio.play().catch(() => { currentAudio = null; });
+      audio.onended = () => { currentAudio = null; situBtn2.classList.remove('hidden'); };
+      audio.onerror = () => { currentAudio = null; situBtn2.classList.remove('hidden'); };
+      audio.play().catch(() => { currentAudio = null; situBtn2.classList.remove('hidden'); });
+    } else {
+      situBtn2.classList.remove('hidden');
     }
-    document.getElementById('situNextBtn').classList.remove('hidden');
     clearTimeout(_situHelpersTimer);
   }
 }
@@ -6221,11 +6242,22 @@ function startExpMic(target) {
       if (pass) {
         btn.classList.add('correct');
         document.getElementById('expMicHint').textContent = 'Nice!';
-        // Track correct answer for advancement threshold
         if (_expTriggerIdx < _expTriggers.length) {
           incTriggerCorrect(_expTriggers[_expTriggerIdx].id);
         }
-        setTimeout(() => advanceToNextTrigger(), 1000);
+        // Check if this is a React type — auto-advance for quick reactions
+        const currentTp = _expTriggers[_expTriggerIdx];
+        if (currentTp && currentTp.type === 'React') {
+          setTimeout(() => advanceToNextTrigger(), 1000);
+        } else {
+          // Show Continue button for Respond type
+          const contBtn = document.createElement('button');
+          contBtn.className = 'btn-primary';
+          contBtn.textContent = 'Continue →';
+          contBtn.style.cssText = 'margin-top:1rem;';
+          contBtn.onclick = () => advanceToNextTrigger();
+          document.getElementById('expPracticeContent').appendChild(contBtn);
+        }
       } else if (!_expSpeakRetry) {
         _expSpeakRetry = true;
         document.getElementById('expMicHint').textContent = 'Try once more';
@@ -6257,23 +6289,26 @@ function startExpMic(target) {
 }
 
 function showExpCorrectAndAdvance(target) {
-  // Show the correct phrase, play audio, auto-advance after 2s
   const content = document.getElementById('expPracticeContent');
   const tp = _expTriggers[_expTriggerIdx];
   content.innerHTML = `
     ${tp ? scenePromptHtml(tp) : ''}
     <div style="font-family:'Cormorant Garamond',serif; font-size:26px; font-style:italic; color:var(--text); margin-bottom:0.5rem;">${target}</div>
-    <div style="font-size:13px; color:var(--text-dim);">Here's what to say</div>
+    <div style="font-size:13px; color:var(--text-dim); margin-bottom:1rem;">Here's what to say</div>
+    <button class="btn-primary hidden" id="expGotItBtn" onclick="advanceToNextTrigger()">Got it →</button>
   `;
+  const gotItBtn = document.getElementById('expGotItBtn');
   const url = getAudio(target);
   if (url) {
     const audio = new Audio(url);
     audio.playbackRate = 1.0;
     currentAudio = audio;
-    audio.onended = () => { currentAudio = null; };
-    audio.play().catch(() => { currentAudio = null; });
+    audio.onended = () => { currentAudio = null; gotItBtn.classList.remove('hidden'); };
+    audio.onerror = () => { currentAudio = null; gotItBtn.classList.remove('hidden'); };
+    audio.play().catch(() => { currentAudio = null; gotItBtn.classList.remove('hidden'); });
+  } else {
+    gotItBtn.classList.remove('hidden');
   }
-  setTimeout(() => advanceToNextTrigger(), 2000);
 }
 
 function advanceToNextTrigger() {
