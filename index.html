@@ -873,9 +873,19 @@ body::after {
 <div class="screen" id="screenExercise">
 
   <div class="exercise-header">
-    <button class="btn-back" onclick="goHome()" aria-label="Back">←</button>
+    <button class="btn-back" onclick="confirmLeaveSession()" aria-label="Leave session">✕</button>
     <div class="progress-bar"><div class="progress-bar-fill" id="exProgressFill" style="width:0%"></div></div>
     <div style="font-size:13px; color:var(--text-dim); min-width:40px; text-align:right;" id="exProgressCount"></div>
+  </div>
+
+  <!-- Leave session confirmation -->
+  <div id="leaveSessionBackdrop" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9000; display:flex; align-items:center; justify-content:center; padding:1.5rem;">
+    <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; max-width:340px; width:100%; text-align:center;">
+      <div style="font-size:17px; color:var(--text); line-height:1.5; margin-bottom:0.5rem;">Leave this session?</div>
+      <div style="font-size:15px; color:var(--text-dim); line-height:1.6; margin-bottom:1.5rem;">Your progress so far won't be saved.</div>
+      <button class="btn-primary" onclick="confirmLeaveDismiss()" style="margin-bottom:0.5rem;">Keep going</button>
+      <button class="btn-ghost" onclick="confirmLeaveExit()">Leave</button>
+    </div>
   </div>
 
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
@@ -4926,6 +4936,17 @@ function goHome() {
   updateWelcomeProgress();
 }
 
+function confirmLeaveSession() {
+  document.getElementById('leaveSessionBackdrop').classList.remove('hidden');
+}
+function confirmLeaveDismiss() {
+  document.getElementById('leaveSessionBackdrop').classList.add('hidden');
+}
+function confirmLeaveExit() {
+  document.getElementById('leaveSessionBackdrop').classList.add('hidden');
+  goHome();
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // UNLOCK LOGIC
 // ═══════════════════════════════════════════════════════════════════
@@ -4979,23 +5000,28 @@ function weightedPick(options) {
 // Build the touch sequence for a phrase based on its current score.
 // Returns an array of exercise types to serve in order within the session.
 function buildPhraseTouches(phrase) {
-  // Recovery phrase: buildup on first encounter (single touch), then situation
+  // Only two exercise types fire right now: listen_meaning and speak.
+  // The vocab card transition screen is chained as a follow-up of the
+  // listen_meaning touch on first encounter, not a separate queue item.
+  // All other exercise types (situation, listen_identify, recognition,
+  // speed drills, experience, listen clip, scene) are disabled until the
+  // session builder rebuild lands.
+
+  // Recovery phrase: buildup runs on first encounter via checkAndStartBuildup.
+  // Reviews use a single speak touch so situation does not fire.
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
-    if (score === 0) return ['listen']; // triggers buildup via checkAndStartBuildup
-    return ['situation'];
+    if (score === 0) return ['listen_meaning'];
+    return ['speak'];
   }
 
   const score = getScore(phrase.id);
-  // Score 0: listen+pick meaning is the first touch. The vocab card reveal
-  // is chained as a follow-up of that same touch (see _followWithVocabCard
-  // in startSessionWithMode), never as a standalone queue item — that way
-  // a vocab card can never appear without audio preceding it in the session.
+  // Score 0: one scored touch (listen + pick meaning), vocab card chains after.
   if (score === 0) return ['listen_meaning'];
-  if (score === 1) return ['listen_meaning', 'listen_identify', 'speak'];
-  if (score === 2) return ['speak', 'situation', 'speak'];
-  if (score === 3) return ['speak', 'recognition', 'situation'];
-  return ['speak', 'recognition']; // score 4+
+  // Score 1: listen warmup, then speak attempt.
+  if (score === 1) return ['listen_meaning', 'speak'];
+  // Score 2+: speak, then speak again.
+  return ['speak', 'speak'];
 }
 
 function setSessionLength(len) {
@@ -5089,10 +5115,6 @@ function startSessionWithMode(mode) {
   const activePhrases = getActivePhrases();
 
   if (mode === 'lesson') {
-    const TARGET_NEW = 3;
-    const TARGET_REVIEW = 3;
-    const seenCount = parseInt(localStorage.getItem('tt_seenPhraseCount') || '0', 10);
-
     // Unseen Foundation phrases sorted by introduction order
     const unseenFoundation = activePhrases
       .filter(p => (p.tier || '1') === '1' && getScore(p.id) === 0)
@@ -5104,19 +5126,23 @@ function startSessionWithMode(mode) {
     const notDue = shuffle(seenPhrases.filter(p => !isPhrasedue(p.id)));
     const reviewPool = [...due, ...notDue];
 
-    // New-user pacing: limit new introductions for the first few sessions
-    let maxNew = TARGET_NEW;
-    if (seenCount < 3) maxNew = Math.min(TARGET_NEW, TARGET_NEW - seenCount + TARGET_NEW); // first session: up to 3
-    else if (seenCount < 6) maxNew = 1; // sessions 2-3: review + 1 new
+    // Session 1 special case: first ever session has no review phrases.
+    // Introduce exactly 5 new phrases and end after their touches complete.
+    const isFirstSession = seenPhrases.length === 0;
 
-    if (seenCount === 0) maxNew = 3;
-    else if (seenCount < 3) maxNew = Math.max(1, TARGET_NEW - seenCount);
-    else if (seenCount < 6) maxNew = 1;
-    else maxNew = TARGET_NEW;
-
-    const newPicks = unseenFoundation.slice(0, maxNew);
-    const reviewSlots = (TARGET_NEW + TARGET_REVIEW) - newPicks.length;
-    const reviewPicks = reviewPool.slice(0, reviewSlots);
+    let newPicks, reviewPicks;
+    if (isFirstSession) {
+      newPicks = unseenFoundation.slice(0, 5);
+      reviewPicks = [];
+    } else {
+      // Sessions 2+: 3 new + 3 review. If fewer than 3 unseen remain,
+      // fill the gap with extra reviews.
+      const TARGET_NEW = 3;
+      const TARGET_REVIEW = 3;
+      newPicks = unseenFoundation.slice(0, TARGET_NEW);
+      const reviewSlots = (TARGET_NEW + TARGET_REVIEW) - newPicks.length;
+      reviewPicks = reviewPool.slice(0, reviewSlots);
+    }
 
     const selected = [...newPicks, ...reviewPicks];
     state.session._sessionPhrases = selected.map(p => p.id);
