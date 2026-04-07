@@ -1242,6 +1242,72 @@ let _onCoachMarkDismiss = null;
 let AUDIO_MANIFEST = {};
 fetch('audio/manifest.json').then(r => r.json()).then(m => { AUDIO_MANIFEST = m; }).catch(() => {});
 
+const CULTURE_NOTES = [
+  {
+    "id": "rechuLaUPIED69y5Q",
+    "title": "Tipping in France",
+    "category": "Tipping",
+    "body": "Service is legally included in every French restaurant bill — it's called service compris. You don't have to tip, and nobody expects you to.\n\nThat said, leaving a euro or two for good service at a sit-down restaurant is appreciated and increasingly common in tourist areas. At a café, rounding up by a euro is plenty. For exceptional service, 5-10% is generous.\n\nAt a bar, tipping is not expected at all. Taxi drivers don't require a tip but rounding up the fare is common.",
+    "language": "French",
+    "emoji": "💶",
+    "sortOrder": 1
+  },
+  {
+    "id": "recDkRKhg8OemJGQU",
+    "title": "Public bathrooms in France",
+    "category": "Bathrooms",
+    "body": "Free-standing public toilets (called sanisettes) are free in Paris and most large French cities. They're automated, self-cleaning, and available on many street corners.\n\nIn cafés and restaurants, the bathroom is generally for customers. If you want to use one without buying anything, order a coffee at the counter — it's the cheapest option and entirely normal.\n\nIn some older venues, especially outside cities, you may encounter squat toilets. They work — you just need to know what you're looking at.\n\nHighway rest stops sometimes charge a small fee (usually 50 cents to €1). Keep a coin or two handy if you're traveling by car.",
+    "language": "French",
+    "emoji": "🚻",
+    "sortOrder": 2
+  },
+  {
+    "id": "recJCiEHa00fnaTsx",
+    "title": "Saying bonjour",
+    "category": "Greetings",
+    "body": "In France, greeting someone before anything else is not optional — it's the baseline of polite interaction.\n\nWhen you enter a shop, a café, or any business, say bonjour before you do anything else. Before you ask a question. Before you point at something. Before you order. Bonjour first, always.\n\nNot saying it reads as rude, not shy. French people won't correct you, but it registers.\n\nWhen you leave, au revoir or bonne journée closes the interaction properly. The person behind the counter will often say it first — say it back.",
+    "language": "French",
+    "emoji": "👋",
+    "sortOrder": 3
+  },
+  {
+    "id": "recNOGrTYkpWGvlS4",
+    "title": "Ordering at a French café",
+    "category": "Café Etiquette",
+    "body": "In France, a café table is yours for as long as you want it. Nobody will rush you or hint that you should leave. Sitting for an hour over a single coffee is completely normal and expected.\n\nService is table service at most cafés — you sit down and wait for someone to come to you. Don't go to the counter unless it's a counter-service setup (like a boulangerie or quick coffee bar).\n\nTo get the server's attention, make eye contact and give a small nod, or say excusez-moi if they're nearby. Waving or snapping fingers is considered rude.\n\nPrices are sometimes higher at a table than at the counter (standing). This is legal and standard — it's called the two-tier pricing system.",
+    "language": "French",
+    "emoji": "☕",
+    "sortOrder": 4
+  },
+  {
+    "id": "recQiEYB01eKK1sG1",
+    "title": "Dining at a French restaurant",
+    "category": "Restaurant Customs",
+    "body": "French restaurants take their time and expect you to do the same. Lunch is typically 12–2pm, dinner from 7:30pm onward. Arriving outside these hours often means a closed kitchen.\n\nThe bill will not come until you ask for it. This isn't inattentiveness — leaving someone alone until they're ready to go is considered respectful. When you're ready, catch the server's eye and say l'addition, s'il vous plaît.\n\nSplitting the bill is less common in France than in some other countries. If you need to split, ask in advance — it's not always possible.\n\nBread is usually brought to the table and is free. Water is free if you ask for une carafe d'eau (tap water). Bottled water costs extra.",
+    "language": "French",
+    "emoji": "🍽️",
+    "sortOrder": 5
+  },
+  {
+    "id": "recw0VITsCo3W9Lg0",
+    "title": "Shopping and markets",
+    "category": "Shopping",
+    "body": "In French shops, don't touch produce at markets unless the vendor invites you to. The vendor picks what you're buying. Pointing and asking for a quantity is the right approach.\n\nHaggling is not a French custom in regular shops or markets. Prices are set. At flea markets (marchés aux puces) some negotiation is acceptable, but it's subtle — not the back-and-forth you might expect elsewhere.\n\nMost shops close on Sundays, especially outside of Paris and major tourist areas. Plan your shopping around this.\n\nSmall local shops often prefer cash. Card is widely accepted in cities but less reliable in rural areas or at small market stalls.",
+    "language": "French",
+    "emoji": "🛍️",
+    "sortOrder": 6
+  },
+  {
+    "id": "reco6fhc4Xq7SK35P",
+    "title": "Cash and cards in France",
+    "category": "Money",
+    "body": "France is largely card-friendly. Visa and Mastercard are accepted almost everywhere in cities. American Express is less reliable.\n\nSmall vendors, market stalls, and rural businesses may be cash only. It's worth keeping €20–30 in small bills and coins available.\n\nATMs (called distributeurs or DAB) are easy to find in cities and most towns. Your home bank may charge international fees — check before you go.\n\nChip-and-PIN is standard in France. Contactless payment (tap to pay) is widely available and increasingly the norm.",
+    "language": "French",
+    "emoji": "💳",
+    "sortOrder": 7
+  }
+];
+
 const LISTEN_CLIPS = [
   {
     "id": "recGLHdUQMXy9NAyH",
