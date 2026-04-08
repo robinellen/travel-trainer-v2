@@ -5360,10 +5360,12 @@ function getCurrentLanguageName() {
 function getRecognitionPool() {
   if (typeof TRIGGER_PHRASES === 'undefined') return [];
   const lang = getCurrentLanguageName();
+  // Distractors are generated dynamically from the pool itself, so we no
+  // longer require records to ship with a Distractors field. We do require
+  // an Intent so the record can serve as either correct answer or distractor.
   return TRIGGER_PHRASES.filter(t =>
     t.audioRecorded &&
-    t.signal &&
-    Array.isArray(t.distractors) && t.distractors.length >= 2 &&
+    t.intent &&
     (t.language === lang || (typeof t.language === 'object' && t.language?.name === lang))
   );
 }
@@ -5450,11 +5452,18 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   }
 
   // Build options: correct + 2 distractors, shuffled.
-  // The correct answer is the Intent topic label (e.g. "Party Size"), not the
-  // longer English meaning. Distractors come from the Distractors field which
-  // is already authored as short topic labels in the same shape.
-  const distractors = (trigger.distractors || []).slice(0, 2);
+  // The correct answer is the Intent topic label (e.g. "Party Size").
+  // Distractors are now generated dynamically from the fetched Trigger Phrases
+  // pool — two random Intent values from other records, excluding any record
+  // whose Intent matches the correct one. The Distractors field on the
+  // Airtable table has been deprecated and is no longer read.
   const correctLabel = trigger.intent || trigger.signal || '';
+  const otherIntents = Array.from(new Set(
+    getRecognitionPool()
+      .filter(t => t.intent && t.intent !== correctLabel)
+      .map(t => t.intent)
+  ));
+  const distractors = shuffle(otherIntents).slice(0, 2);
   const choices = shuffle([
     { text: correctLabel, correct: true },
     ...distractors.map(d => ({ text: d, correct: false })),
