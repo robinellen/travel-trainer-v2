@@ -5086,18 +5086,27 @@ function buildPhraseTouches(phrase) {
 
   // Score 0: one scored touch (listen + pick meaning), vocab card chains after.
   if (score === 0) return ['listen_meaning'];
-  // Score 1: listen warmup, then speak attempt.
-  if (score === 1) return ['listen_meaning', 'speak_from_french'];
-  // Score 2: speak, speak from English, speak again. Falls back to all-French
-  // if the phrase isn't eligible for speak from English.
+  // Score 1: listen + pick English, listen + pick French as the bridge to
+  // production, then speak from French.
+  if (score === 1) return ['listen_meaning', 'listen_pick_french', 'speak_from_french'];
+  // Score 2: listen + pick French as a written-form warm-up, then the speak
+  // progression. Falls back to a pure speak progression for phrases that
+  // can't fire speak from English.
   if (score === 2) {
     return eligibleSFE
-      ? ['speak_from_french', 'speak_from_english', 'speak_from_french']
-      : ['speak_from_french', 'speak_from_french'];
+      ? ['listen_pick_french', 'speak_from_english', 'speak_from_french']
+      : ['listen_pick_french', 'speak_from_french', 'speak_from_french'];
   }
-  // Score 3+: speak from English, then speak from French.
-  return eligibleSFE
-    ? ['speak_from_english', 'speak_from_french']
+  // Score 3+: speak from English, then speak from French. Listen + pick
+  // French still appears occasionally as a low-frequency warm-up touch.
+  const occasionalLPF = Math.random() < 0.25;
+  if (eligibleSFE) {
+    return occasionalLPF
+      ? ['listen_pick_french', 'speak_from_english', 'speak_from_french']
+      : ['speak_from_english', 'speak_from_french'];
+  }
+  return occasionalLPF
+    ? ['listen_pick_french', 'speak_from_french', 'speak_from_french']
     : ['speak_from_french', 'speak_from_french'];
 }
 
@@ -5703,7 +5712,7 @@ function renderCurrentExercise() {
     if (phrase) showPhraseRevealScreen(phrase);
   }
   else if (type === 'listen_meaning') renderListenPanel(phrase, 'listen', 'meaning');
-  else if (type === 'listen_identify') renderListenPanel(phrase, 'listen', 'identify');
+  else if (type === 'listen_pick_french' || type === 'listen_identify') renderListenPanel(phrase, 'listen', 'identify');
   else if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
   else if (type === 'speak' || type === 'speak_from_french') renderSpeakPanel(phrase, { fromEnglish: false });
   else if (type === 'speak_from_english') renderSpeakPanel(phrase, { fromEnglish: true });
@@ -5948,9 +5957,32 @@ function renderListenMeaning(phrase) {
 }
 
 // ── Identify written form task ──
+// Pick distractors for Listen and Pick - French. Prefers other Foundation
+// phrases with similar written length or matching first letter so the
+// exercise demands genuine reading attention rather than a guess from shape.
+function getListenPickFrenchDistractors(phrase, count) {
+  const all = getActivePhrases().filter(p =>
+    p.id !== phrase.id &&
+    p.tier !== 'Recovery' &&
+    (p.tier || '1') === '1' &&
+    p.native
+  );
+  const targetLen = phrase.native.length;
+  const targetFirst = phrase.native.charAt(0).toLowerCase();
+  const scored = all.map(p => {
+    const lenDiff = Math.abs(p.native.length - targetLen);
+    const firstMatch = p.native.charAt(0).toLowerCase() === targetFirst ? 0 : 1;
+    return { phrase: p, score: lenDiff + firstMatch * 4 };
+  });
+  scored.sort((a, b) => a.score - b.score);
+  // Take the top similarity bucket then shuffle within it for variety
+  const bucket = scored.slice(0, Math.max(count * 3, 6));
+  return shuffle(bucket).slice(0, count).map(s => s.phrase);
+}
+
 function renderListenIdentify(phrase) {
   document.getElementById('listenTaskIdentify').style.display = 'block';
-  const distractors = getDistractors(phrase, 3);
+  const distractors = getListenPickFrenchDistractors(phrase, 2);
   const options = shuffle([phrase, ...distractors]);
   const container = document.getElementById('listenIdentifyOptions');
   container.innerHTML = '';
