@@ -828,9 +828,7 @@ body::after {
       </div>
       <div style="font-size:15px; color:var(--text-dim); margin-bottom:1rem;" id="foundationProgress">0 of 15 phrases</div>
       <div id="foundationCapabilities" style="margin-bottom:1.5rem;"></div>
-      <button class="btn-primary" id="foundationBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Keep going →</button>
-      <button class="btn-ghost" onclick="openCultureNotes()" style="margin-bottom:0.75rem;">🌍 Know before you go</button>
-      <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">View phrases</button>
+      <button class="btn-primary" id="foundationBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Continue session →</button>
     </div>
 
     <!-- STATE 3: Post-Foundation -->
@@ -6737,38 +6735,30 @@ function showCompletion() {
   const startScores = state.session._startScores || {};
   const sessionPhraseIds = state.session._sessionPhrases || [];
   const moved = [];
-  const heldSteady = [];
   sessionPhraseIds.forEach(pid => {
-    const phrase = PHRASES.find(p => p.id === pid);
-    if (!phrase) return;
     const before = startScores[pid] ?? 0;
     const after = getScore(pid);
-    if (after > before) moved.push({ phrase, before, after });
-    else heldSteady.push({ phrase, before, after });
+    if (after > before) moved.push(pid);
   });
 
-  function capabilityFor(phrase, after) {
-    const native = phrase.native || '';
-    if (after >= 4) return `${native} is automatic now.`;
-    if (after === 3) return `${native} is locked in.`;
-    if (after === 2) return `${native} is sticking.`;
-    if (after === 1) return `${native} is starting to land.`;
-    return `${native} is on the board.`;
+  // Single milestone statement keyed off how many Foundation phrases
+  // are at score 1 or above (i.e. introduced and starting to take hold).
+  function foundationMilestone() {
+    const tier1 = PHRASES.filter(p => (p.tier || '1') === '1');
+    const seen = tier1.filter(p => getScore(p.id) >= 1).length;
+    if (seen >= 15) return "You have the Foundation and you're ready for what comes next.";
+    if (seen >= 13) return "Almost everything you need for Foundation is in place.";
+    if (seen >= 10) return "You can handle most basic moments without freezing.";
+    if (seen >= 7)  return "You can greet, thank, apologize, and get someone's attention.";
+    if (seen >= 4)  return "The social basics are starting to click.";
+    if (seen >= 1)  return "You made a start and something is taking root.";
+    return "";
   }
 
   if (state.session.mode !== 'situation_practice' && gainsEl) {
-    if (moved.length) {
-      moved.forEach(m => {
-        const line = document.createElement('div');
-        line.style.cssText = 'margin-bottom:0.4rem;';
-        line.textContent = capabilityFor(m.phrase, m.after);
-        gainsEl.appendChild(line);
-      });
-    } else {
-      const line = document.createElement('div');
-      line.textContent = "Nothing moved up this round. That's how it goes sometimes. The reps still count.";
-      gainsEl.appendChild(line);
-    }
+    const line = document.createElement('div');
+    line.textContent = foundationMilestone();
+    gainsEl.appendChild(line);
   }
 
   // Trip countdown tie
@@ -6778,7 +6768,7 @@ function showCompletion() {
       const today = new Date(); today.setHours(0,0,0,0);
       const trip = new Date(tripDate + 'T00:00:00');
       const days = Math.ceil((trip - today) / 86400000);
-      const movedCount = moved.length;
+      const movedCount = moved.length; // moved is now an array of phrase ids
       if (days > 0) {
         if (movedCount > 0) {
           tripEl.textContent = `${days} day${days===1?'':'s'} out, and you just added ${movedCount} more phrase${movedCount===1?'':'s'} you can lean on.`;
@@ -6849,9 +6839,12 @@ function showCompletion() {
 
 function getHomeState() {
   if (!hasAnyProgress()) return 'new';
-  const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
-  const allTier1Score3 = tier1.length > 0 && tier1.every(p => getScore(p.id) >= 3);
-  if (allTier1Score3 && localStorage.getItem('tt_recoveryUnlocked')) return 'experiences';
+  // Foundation is complete when every Foundation phrase is at score 2 or above.
+  // Until then, the home screen only shows trip countdown, stage label,
+  // capabilities, and Continue session — no Experiences/Situations/Listen/etc.
+  const tier1 = PHRASES.filter(p => (p.tier || '1') === '1');
+  const foundationComplete = tier1.length >= 15 && tier1.every(p => getScore(p.id) >= 2);
+  if (foundationComplete) return 'experiences';
   return 'foundation';
 }
 
