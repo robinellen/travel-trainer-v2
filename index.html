@@ -4999,29 +4999,53 @@ function weightedPick(options) {
 // Build a within-session arc for a phrase based on its current score and tier.
 // Build the touch sequence for a phrase based on its current score.
 // Returns an array of exercise types to serve in order within the session.
+// Phrases the user never initiates — only said back when prompted by someone
+// else. These are excluded from Speak from English exercises because the
+// English meaning alone wouldn't naturally elicit the French in real life.
+// TODO: replace with Direction field from Airtable once that lands.
+const SPEAK_FROM_ENGLISH_EXCLUDED_NATIVES = new Set([
+  'bonne journée',
+  'bon appétit',
+]);
+
+function isEligibleForSpeakFromEnglish(phrase) {
+  if (!phrase || !phrase.native) return false;
+  return !SPEAK_FROM_ENGLISH_EXCLUDED_NATIVES.has(phrase.native.toLowerCase());
+}
+
 function buildPhraseTouches(phrase) {
-  // Only two exercise types fire right now: listen_meaning and speak.
+  // Only three exercise types fire right now:
+  //   listen_meaning      (Listen and Pick - English)
+  //   speak_from_french   (audio plays, user repeats from memory)
+  //   speak_from_english  (English shown, no audio, user produces French)
   // The vocab card transition screen is chained as a follow-up of the
   // listen_meaning touch on first encounter, not a separate queue item.
-  // All other exercise types (situation, listen_identify, recognition,
-  // speed drills, experience, listen clip, scene) are disabled until the
-  // session builder rebuild lands.
 
   // Recovery phrase: buildup runs on first encounter via checkAndStartBuildup.
-  // Reviews use a single speak touch so situation does not fire.
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
     if (score === 0) return ['listen_meaning'];
-    return ['speak'];
+    return ['speak_from_french'];
   }
 
   const score = getScore(phrase.id);
+  const eligibleSFE = isEligibleForSpeakFromEnglish(phrase);
+
   // Score 0: one scored touch (listen + pick meaning), vocab card chains after.
   if (score === 0) return ['listen_meaning'];
   // Score 1: listen warmup, then speak attempt.
-  if (score === 1) return ['listen_meaning', 'speak'];
-  // Score 2+: speak, then speak again.
-  return ['speak', 'speak'];
+  if (score === 1) return ['listen_meaning', 'speak_from_french'];
+  // Score 2: speak, speak from English, speak again. Falls back to all-French
+  // if the phrase isn't eligible for speak from English.
+  if (score === 2) {
+    return eligibleSFE
+      ? ['speak_from_french', 'speak_from_english', 'speak_from_french']
+      : ['speak_from_french', 'speak_from_french'];
+  }
+  // Score 3+: speak from English, then speak from French.
+  return eligibleSFE
+    ? ['speak_from_english', 'speak_from_french']
+    : ['speak_from_french', 'speak_from_french'];
 }
 
 function setSessionLength(len) {
@@ -5589,7 +5613,7 @@ function renderCurrentExercise() {
   const type = item.type;
 
   // Show universal skip immediately for panels that don't have their own skip button
-  const hasOwnSkip = ['speak', 'situation'].includes(type);
+  const hasOwnSkip = ['speak', 'speak_from_french', 'speak_from_english', 'situation'].includes(type);
   document.getElementById('universalSkip').classList.toggle('hidden', hasOwnSkip);
 
 
@@ -5600,7 +5624,8 @@ function renderCurrentExercise() {
   else if (type === 'listen_meaning') renderListenPanel(phrase, 'listen', 'meaning');
   else if (type === 'listen_identify') renderListenPanel(phrase, 'listen', 'identify');
   else if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
-  else if (type === 'speak') renderSpeakPanel(phrase);
+  else if (type === 'speak' || type === 'speak_from_french') renderSpeakPanel(phrase, { fromEnglish: false });
+  else if (type === 'speak_from_english') renderSpeakPanel(phrase, { fromEnglish: true });
   else if (type === 'vocab_mc') renderVocabMC(phrase);
   else if (type === 'situation') renderSituationPanel(phrase);
   else if (type === 'recognition') renderRecognitionPanel(phrase);
@@ -5923,7 +5948,8 @@ function playRevealAudio() {
 let recognition = null;
 let isListening = false;
 
-function renderSpeakPanel(phrase) {
+function renderSpeakPanel(phrase, opts = {}) {
+  const fromEnglish = opts.fromEnglish === true;
   document.getElementById('panelSpeak').classList.remove('hidden');
   document.getElementById('micBtn').className = 'mic-btn';
   document.getElementById('micHint').textContent = 'Tap to speak';
@@ -5935,6 +5961,7 @@ function renderSpeakPanel(phrase) {
 
   // Store phrase ref for helper functions
   _currentSpeakPhrase = phrase;
+  _currentSpeakFromEnglish = fromEnglish;
 
   // Speak coach mark — first speaking exercise ever
   showCoachMark('tt_seenSpeakCoachMark');
@@ -5943,10 +5970,17 @@ function renderSpeakPanel(phrase) {
   document.getElementById('speakMeaning').textContent = getMeaning(phrase).toUpperCase();
   document.getElementById('speakRoman').textContent = stripHtmlTags(phrase.romanization || '');
 
-  // French text scaffolding by score
   const speakNative = document.getElementById('speakNative');
   const showPhraseBtn = document.getElementById('speakShowPhrase');
-  if (score <= 1) {
+
+  if (fromEnglish) {
+    // Speak from English: only the English meaning is visible. No French text,
+    // no romanization, no Show phrase link, no audio. The user produces the
+    // phrase from memory triggered solely by the English meaning.
+    document.getElementById('speakNativeText').textContent = '';
+    speakNative.classList.add('hidden');
+    showPhraseBtn.classList.add('hidden');
+  } else if (score <= 1) {
     // Score 0-1: French text visible automatically
     document.getElementById('speakNativeText').textContent = displayNative(phrase, 'card');
     speakNative.classList.remove('hidden');
@@ -5963,9 +5997,10 @@ function renderSpeakPanel(phrase) {
     showPhraseBtn.classList.add('hidden');
   }
 
-  // "Hear it slower" available at score 0-2 only, hidden at 3+
+  // "Hear it slower" available at score 0-2 only, hidden at 3+ and always
+  // hidden in speak-from-English (the whole point is no audio).
   const slowerBtn = document.getElementById('speakSlowerBtn');
-  slowerBtn.style.display = (score < 3 && getAudio(phrase.native)) ? '' : 'none';
+  slowerBtn.style.display = (!fromEnglish && score < 3 && getAudio(phrase.native)) ? '' : 'none';
 
   // Set recognition language
   if (window.SpeechRecognition || window.webkitSpeechRecognition) {
@@ -5977,21 +6012,32 @@ function renderSpeakPanel(phrase) {
     recognition.maxAlternatives = 3;
   }
 
-  // Play phrase first, then show helpers
-  let helpersShown = false;
-  const showHelpers = () => {
-    if (helpersShown) return;
-    helpersShown = true;
-    const el = document.getElementById('speakHelpers');
-    if (el) el.classList.remove('hidden');
-  };
-  audioEndedCallback = showHelpers;
-  setTimeout(() => playPhrase(phrase, null), 400);
-  // Safety: show helpers after 5s even if audio callback never fires
-  setTimeout(showHelpers, 5000);
+  if (fromEnglish) {
+    // No audio. Just show helpers (Show phrase / Pronunciation hidden anyway)
+    // and let the user tap the mic when ready. Brief pause keeps the mic from
+    // feeling like it pops in instantly.
+    setTimeout(() => {
+      const el = document.getElementById('speakHelpers');
+      if (el) el.classList.remove('hidden');
+    }, 400);
+  } else {
+    // Play phrase first, then show helpers
+    let helpersShown = false;
+    const showHelpers = () => {
+      if (helpersShown) return;
+      helpersShown = true;
+      const el = document.getElementById('speakHelpers');
+      if (el) el.classList.remove('hidden');
+    };
+    audioEndedCallback = showHelpers;
+    setTimeout(() => playPhrase(phrase, null), 400);
+    // Safety: show helpers after 5s even if audio callback never fires
+    setTimeout(showHelpers, 5000);
+  }
 }
 
 let _currentSpeakPhrase = null;
+let _currentSpeakFromEnglish = false;
 
 function hearSlower() {
   if (!_currentSpeakPhrase) return;
