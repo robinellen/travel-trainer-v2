@@ -843,7 +843,7 @@ body::after {
       </div>
       <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
         <button class="btn-ghost" onclick="startListenMode()" style="flex:1; font-size:15px;">Listen</button>
-        <button class="btn-ghost" onclick="startTrainYourEar()" style="flex:1; font-size:15px;">Train your ear</button>
+        <button class="btn-ghost" onclick="startRecognition()" style="flex:1; font-size:15px;">Recognition</button>
       </div>
       <button class="btn-ghost" onclick="openCultureNotes()" style="margin-bottom:0.75rem;">🌍 Know before you go</button>
       <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">All phrases</button>
@@ -1008,7 +1008,7 @@ body::after {
     </div>
 
 
-    <!-- ── RECOGNITION panel (Train Your Ear style) ── -->
+    <!-- ── RECOGNITION panel ── -->
     <div id="panelRecognition" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
         <div style="font-size:15px; color:var(--text-mid); line-height:1.6; max-width:320px; margin:0 auto 0.5rem; font-style:italic;" id="recogContext"></div>
@@ -1019,7 +1019,8 @@ body::after {
         </div>
         <div style="font-size:13px; color:var(--text-dim);" id="recogPlayHint">Listening...</div>
       </div>
-      <div id="recogOptions" class="mc-options" style="margin-top:0.75rem;"></div>
+      <div id="recogPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
+      <div id="recogOptions" class="mc-options"></div>
       <div id="recogReveal" class="hidden" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm);">
         <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
         <div id="recogSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
@@ -1199,40 +1200,41 @@ body::after {
 </div>
 
 <!-- ═══════════════════════════════════════════════════
-     TRAIN YOUR EAR (standalone recognition mode)
+     RECOGNITION (standalone screen)
 ═══════════════════════════════════════════════════ -->
-<div class="screen" id="screenTrainEar">
+<div class="screen" id="screenRecognition">
   <div class="exercise-header">
-    <button class="btn-back" onclick="exitTrainYourEar()" aria-label="Back">←</button>
-    <div style="flex:1; font-size:17px; color:var(--text); padding-left:0.5rem;">Train Your Ear</div>
+    <button class="btn-back" onclick="exitRecognitionStd()" aria-label="Back">←</button>
+    <div style="flex:1; font-size:17px; color:var(--text); padding-left:0.5rem;">Recognition</div>
   </div>
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
     <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
-      <div style="font-size:15px; color:var(--text-mid); line-height:1.6; max-width:320px; margin:0 auto 0.5rem; font-style:italic;" id="tyeContext"></div>
+      <div style="font-size:15px; color:var(--text-mid); line-height:1.6; max-width:320px; margin:0 auto 0.5rem; font-style:italic;" id="recogStdContext"></div>
     </div>
     <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
-      <div class="play-circle" id="tyeCircle" onclick="replayTyeAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+      <div class="play-circle" id="recogStdCircle" onclick="replayRecognitionStdAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </div>
-      <div style="font-size:13px; color:var(--text-dim);" id="tyePlayHint">Listening...</div>
+      <div style="font-size:13px; color:var(--text-dim);" id="recogStdPlayHint">Listening...</div>
     </div>
-    <div id="tyeOptions" class="mc-options" style="margin-top:0.75rem;"></div>
-    <div id="tyeReveal" class="hidden" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm);">
+    <div id="recogStdPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
+    <div id="recogStdOptions" class="mc-options"></div>
+    <div id="recogStdReveal" class="hidden" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm);">
       <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
-      <div id="tyeSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
-      <div id="tyeFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
-      <div id="tyeMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5;"></div>
+      <div id="recogStdSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
+      <div id="recogStdFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
+      <div id="recogStdMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5;"></div>
     </div>
     <div class="mt-auto">
-      <button class="btn-primary hidden" id="tyeNextBtn" onclick="advanceTrainYourEar()" style="margin-top:1.25rem;">Continue →</button>
+      <button class="btn-primary hidden" id="recogStdNextBtn" onclick="advanceRecognitionStd()" style="margin-top:1.25rem;">Continue →</button>
     </div>
   </div>
-  <div id="tyeCompleteOverlay" class="hidden" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); padding:1.5rem;">
+  <div id="recogStdCompleteOverlay" class="hidden" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); padding:1.5rem;">
     <div style="text-align:center; max-width:340px;">
       <div style="font-size:2rem; margin-bottom:1.25rem;">✦</div>
       <h2 class="serif" style="font-size:1.8rem; font-weight:500; margin-bottom:1rem;">That's ten.</h2>
-      <div id="tyeSummary" style="font-size:15px; color:var(--text-dim); line-height:1.7; margin-bottom:2rem;"></div>
-      <button class="btn-primary" onclick="exitTrainYourEar()">Done</button>
+      <div id="recogStdSummary" style="font-size:15px; color:var(--text-dim); line-height:1.7; margin-bottom:2rem;"></div>
+      <button class="btn-primary" onclick="exitRecognitionStd()">Done</button>
     </div>
   </div>
 </div>
@@ -5328,7 +5330,7 @@ function resurfaceIfEligible(phraseId, type) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// RECOGNITION (Train Your Ear)
+// RECOGNITION
 // Trigger phrases the user must understand by ear, scored per Intent.
 // ═══════════════════════════════════════════════════════════════════
 
@@ -5377,7 +5379,7 @@ function pickTriggerForIntent(intent) {
 }
 
 // Pick a trigger across all intent groups, weighted toward intents with the lowest recognition score.
-// Used by Train Your Ear standalone mode and as a fallback inside sessions.
+// Used by the standalone Recognition screen and as a fallback inside sessions.
 function pickRandomTrigger(excludeIds = []) {
   const pool = getRecognitionPool().filter(t => !excludeIds.includes(t.id));
   if (!pool.length) return null;
@@ -5405,7 +5407,7 @@ function pickRandomTrigger(excludeIds = []) {
 }
 
 // Renders a recognition exercise into a panel using element id prefixes.
-// prefix='recog' for the in-session panel, prefix='tye' for Train Your Ear standalone.
+// prefix='recog' for the in-session panel, prefix='recogStd' for the standalone Recognition screen.
 // onAnswer(correct) is called after the user picks an option.
 // onContinue is wired to the Continue button.
 let _activeRecognitionTrigger = null;
@@ -5415,6 +5417,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   _activeRecognitionTrigger = trigger;
 
   const ctxEl = document.getElementById(prefix + 'Context');
+  const promptEl = document.getElementById(prefix + 'Prompt');
   const optsEl = document.getElementById(prefix + 'Options');
   const revealEl = document.getElementById(prefix + 'Reveal');
   const signalEl = document.getElementById(prefix + 'SignalWord');
@@ -5430,10 +5433,28 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   circle.classList.remove('playing');
   optsEl.innerHTML = '';
 
-  // Build options: correct + 2 distractors, shuffled
+  // Tier-aware question prompt above the options.
+  // Tier 1 (recognition score 0-1): topic label options. Asks what the speaker is asking about.
+  // Tier 2 (score 2-3): Foundation phrase response options. Asks how the user would respond.
+  // Tier 3 (score 4+): mic opens, no prompt — the scene context handles framing.
+  if (promptEl) {
+    const recogScore = getRecognitionScore(trigger.intent);
+    let promptText = '';
+    if (recogScore <= 1) promptText = 'What are they asking about?';
+    else if (recogScore <= 3) promptText = 'How would you respond?';
+    else promptText = '';
+    promptEl.textContent = promptText;
+    promptEl.style.display = promptText ? '' : 'none';
+  }
+
+  // Build options: correct + 2 distractors, shuffled.
+  // The correct answer is the Intent topic label (e.g. "Party Size"), not the
+  // longer English meaning. Distractors come from the Distractors field which
+  // is already authored as short topic labels in the same shape.
   const distractors = (trigger.distractors || []).slice(0, 2);
+  const correctLabel = trigger.intent || trigger.signal || '';
   const choices = shuffle([
-    { text: trigger.signal, correct: true },
+    { text: correctLabel, correct: true },
     ...distractors.map(d => ({ text: d, correct: false })),
   ]);
 
@@ -5521,9 +5542,9 @@ function replayRecognitionAudio() {
   playRecognitionAudio(_activeRecognitionTrigger, document.getElementById('recogCircle'));
 }
 
-function replayTyeAudio() {
+function replayRecognitionStdAudio() {
   if (!_activeRecognitionTrigger) return;
-  playRecognitionAudio(_activeRecognitionTrigger, document.getElementById('tyeCircle'));
+  playRecognitionAudio(_activeRecognitionTrigger, document.getElementById('recogStdCircle'));
 }
 
 // In-session recognition exercise. Picks a trigger by intent if provided,
@@ -5549,75 +5570,75 @@ function renderRecognitionPanel(_phrase) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// TRAIN YOUR EAR (standalone mode)
+// RECOGNITION standalone mode
 // ═══════════════════════════════════════════════════════════════════
 
-const TYE_SESSION_LENGTH = 10;
-let _tyeSession = null;
+const RECOGNITION_SESSION_LENGTH = 10;
+let _recognitionStdSession = null;
 
-function startTrainYourEar() {
+function startRecognition() {
   const pool = getRecognitionPool();
   if (!pool.length) {
     alert('No recognition content available yet.');
     return;
   }
-  _tyeSession = {
+  _recognitionStdSession = {
     index: 0,
     correct: 0,
     seenIds: [],
     signalWords: [],
   };
-  document.getElementById('tyeCompleteOverlay').classList.add('hidden');
-  showScreen('screenTrainEar');
-  renderNextTye();
+  document.getElementById('recogStdCompleteOverlay').classList.add('hidden');
+  showScreen('screenRecognition');
+  renderNextRecognitionStd();
 }
 
-function renderNextTye() {
-  if (!_tyeSession) return;
-  if (_tyeSession.index >= TYE_SESSION_LENGTH) {
-    showTyeComplete();
+function renderNextRecognitionStd() {
+  if (!_recognitionStdSession) return;
+  if (_recognitionStdSession.index >= RECOGNITION_SESSION_LENGTH) {
+    showRecognitionStdComplete();
     return;
   }
-  const trigger = pickRandomTrigger(_tyeSession.seenIds);
+  const trigger = pickRandomTrigger(_recognitionStdSession.seenIds);
   if (!trigger) {
-    showTyeComplete();
+    showRecognitionStdComplete();
     return;
   }
-  _tyeSession.seenIds.push(trigger.id);
-  renderRecognitionInto('tye', trigger, (correct) => {
+  _recognitionStdSession.seenIds.push(trigger.id);
+  renderRecognitionInto('recogStd', trigger, (correct) => {
     if (correct) {
       bumpRecognitionScore(trigger.intent);
-      _tyeSession.correct++;
+      _recognitionStdSession.correct++;
     }
-    if (trigger.signalWord) _tyeSession.signalWords.push(trigger.signalWord);
+    if (trigger.signalWord) _recognitionStdSession.signalWords.push(trigger.signalWord);
   }, () => {
-    advanceTrainYourEar();
+    advanceRecognitionStd();
   });
 }
 
-function advanceTrainYourEar() {
-  if (!_tyeSession) return;
-  _tyeSession.index++;
-  renderNextTye();
+function advanceRecognitionStd() {
+  if (!_recognitionStdSession) return;
+  _recognitionStdSession.index++;
+  renderNextRecognitionStd();
 }
 
-function showTyeComplete() {
-  if (!_tyeSession) return;
-  const overlay = document.getElementById('tyeCompleteOverlay');
-  const summary = document.getElementById('tyeSummary');
-  const wordsLine = _tyeSession.signalWords.length
-    ? `Words you heard: ${_tyeSession.signalWords.slice(0, 8).join(', ')}.`
+function showRecognitionStdComplete() {
+  if (!_recognitionStdSession) return;
+  const overlay = document.getElementById('recogStdCompleteOverlay');
+  const summary = document.getElementById('recogStdSummary');
+  const wordsLine = _recognitionStdSession.signalWords.length
+    ? `Words you heard: ${_recognitionStdSession.signalWords.slice(0, 8).join(', ')}.`
     : '';
-  summary.innerHTML = `${_tyeSession.correct} of ${TYE_SESSION_LENGTH} correct.<br><br>${wordsLine}`;
+  summary.innerHTML = `${_recognitionStdSession.correct} of ${RECOGNITION_SESSION_LENGTH} correct.<br><br>${wordsLine}`;
   overlay.classList.remove('hidden');
 }
 
-function exitTrainYourEar() {
+function exitRecognitionStd() {
   if (_activeRecognitionAudio) {
     try { _activeRecognitionAudio.pause(); } catch (e) {}
     _activeRecognitionAudio = null;
   }
-  _tyeSession = null;
+  _recognitionStdSession = null;
   goHome();
 }
 
