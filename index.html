@@ -1023,6 +1023,7 @@ body::after {
         <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
         <div id="recogSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
         <div id="recogSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
+        <div id="recogSignalDefinition" style="font-size:13px; color:var(--text-dim); margin-bottom:0.4rem; display:none;"></div>
         <div id="recogFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
         <div id="recogMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5;"></div>
       </div>
@@ -1222,6 +1223,7 @@ body::after {
       <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
       <div id="recogStdSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
       <div id="recogStdSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
+      <div id="recogStdSignalDefinition" style="font-size:13px; color:var(--text-dim); margin-bottom:0.4rem; display:none;"></div>
       <div id="recogStdFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
       <div id="recogStdMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5;"></div>
     </div>
@@ -2505,7 +2507,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T35_French_Adina.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Adina"
@@ -2514,7 +2516,7 @@ const TRIGGER_PHRASES = [
     "id": "rec2YvZNgdRn7iwWM",
     "triggerPhrase": "L'ascenseur est à gauche.",
     "signal": "They're directing you to the elevator",
-    "signalWord": "ascenseur",
+    "signalWord": "ascenseur / gauche",
     "intent": "Elevator Direction",
     "type": "Recognize",
     "language": "French",
@@ -2524,7 +2526,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T34_French_Claudia.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -2600,7 +2602,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T33_French_Claudia.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -2619,7 +2621,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T26_French_Claudia.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -2638,7 +2640,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T25_French_Claudia.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -2657,7 +2659,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T24_French_Hugo.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Hugo"
@@ -2676,7 +2678,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T21_French_Hugo.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Hugo"
@@ -2695,7 +2697,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T22_French_Hugo.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Hugo"
@@ -2752,7 +2754,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T19_French_Hugo.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Hugo"
@@ -2770,8 +2772,8 @@ const TRIGGER_PHRASES = [
     "scenePrompt": "Check-in is nearly complete. The receptionist reaches across the desk.",
     "romanization": "",
     "distractors": [],
-    "fileName": "T31_French_Claudia.mp3",
-    "audioRecorded": true,
+    "fileName": "T32_French_Claudia.mp3",
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -2828,7 +2830,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T23_French_Hugo.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Hugo"
@@ -2847,7 +2849,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T37_French_Adina.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Adina"
@@ -2866,7 +2868,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T27_French_Claudia.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -2904,7 +2906,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T36_French_Adina.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Adina"
@@ -2942,7 +2944,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T28_French_Claudia.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -2980,7 +2982,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T30_French_Claudia.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -3018,7 +3020,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T18_French_Hugo.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Hugo"
@@ -3075,7 +3077,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T20_French_Hugo.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Hugo"
@@ -3093,8 +3095,8 @@ const TRIGGER_PHRASES = [
     "scenePrompt": "The receptionist is going over hotel information as you check in.",
     "romanization": "",
     "distractors": [],
-    "fileName": "T32_French_Claudia.mp3",
-    "audioRecorded": true,
+    "fileName": "T31_French_Claudia.mp3",
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -3113,7 +3115,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T29_French_Claudia.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Claudia"
@@ -3170,7 +3172,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T17_French_Hugo.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Hugo"
@@ -3189,7 +3191,7 @@ const TRIGGER_PHRASES = [
     "romanization": "",
     "distractors": [],
     "fileName": "T16_French_Hugo.mp3",
-    "audioRecorded": true,
+    "audioRecorded": false,
     "sortOrder": null,
     "difficulty": 0,
     "voice": "Hugo"
@@ -5430,8 +5432,13 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       });
       // Reveal signal word + full phrase + meaning
       signalEl.textContent = trigger.signalWord || '';
-      const isPhrase = (trigger.signalWord || '').includes(' ');
-      const labelText = isPhrase ? 'The phrase to listen for' : 'The word to listen for';
+      const defEl = document.getElementById(prefix + 'SignalDefinition');
+      if (defEl) {
+        defEl.textContent = trigger.signalDefinition || '';
+        defEl.style.display = trigger.signalDefinition ? '' : 'none';
+      }
+      const wordCount = (trigger.signalWord || '').split('/').length;
+      const labelText = wordCount > 1 ? 'The words to listen for' : 'The word to listen for';
       const labelEl = document.getElementById(prefix + 'SignalLabel');
       if (labelEl) labelEl.textContent = labelText;
       fullEl.textContent = trigger.triggerPhrase || '';
