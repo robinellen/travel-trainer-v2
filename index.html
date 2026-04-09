@@ -1021,7 +1021,7 @@ body::after {
       <div id="recogOptions" class="mc-options"></div>
       <div id="recogReveal" class="hidden" onclick="replayRecognitionAudio()" style="position:relative; margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
         <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-        <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
+        <div id="recogSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
         <div id="recogSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
         <div id="recogFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
         <div id="recogMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5;"></div>
@@ -1220,7 +1220,7 @@ body::after {
     <div id="recogStdOptions" class="mc-options"></div>
     <div id="recogStdReveal" class="hidden" onclick="replayRecognitionStdAudio()" style="position:relative; margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
       <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-      <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
+      <div id="recogStdSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
       <div id="recogStdSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
       <div id="recogStdFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
       <div id="recogStdMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5;"></div>
@@ -5399,7 +5399,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       .filter(t => t.intent && t.intent !== correctLabel)
       .map(t => t.intent)
   ));
-  const distractors = shuffle(otherIntents).slice(0, 2);
+  const distractors = shuffle(otherIntents).slice(0, 3);
   const choices = shuffle([
     { text: correctLabel, correct: true },
     ...distractors.map(d => ({ text: d, correct: false })),
@@ -5430,6 +5430,10 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       });
       // Reveal signal word + full phrase + meaning
       signalEl.textContent = trigger.signalWord || '';
+      const isPhrase = (trigger.signalWord || '').includes(' ');
+      const labelText = isPhrase ? 'The phrase to listen for' : 'The word to listen for';
+      const labelEl = document.getElementById(prefix + 'SignalLabel');
+      if (labelEl) labelEl.textContent = labelText;
       fullEl.textContent = trigger.triggerPhrase || '';
       meaningEl.textContent = trigger.signal || '';
       revealEl.classList.remove('hidden');
