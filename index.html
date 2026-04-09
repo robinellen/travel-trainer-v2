@@ -822,10 +822,7 @@ body::after {
     <!-- STATE 2: Mid-Foundation -->
     <div id="welcomeFoundation" class="hidden">
       <div id="tripCountdownFoundation" class="hidden" style="font-size:15px; color:var(--text-mid); margin-bottom:1.25rem;"></div>
-      <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:1.5rem;">
-        <span style="font-size:1.6rem;">🇫🇷</span>
-        <div class="eyebrow">Building Foundation</div>
-      </div>
+      <div id="foundationStageEyebrow" style="margin-bottom:1.5rem;"></div>
       <div style="font-size:15px; color:var(--text-dim); margin-bottom:1rem;" id="foundationProgress">0 of 15 phrases</div>
       <div id="foundationCapabilities" style="margin-bottom:1.5rem;"></div>
       <button class="btn-primary" id="foundationBtn" onclick="startLesson()" style="margin-bottom:0.75rem;">Continue session →</button>
@@ -834,6 +831,7 @@ body::after {
     <!-- STATE 3: Post-Foundation -->
     <div id="welcomeExperiences" class="hidden">
       <div id="tripCountdownExperiences" class="hidden" style="font-size:15px; color:var(--text-mid); margin-bottom:1.25rem;"></div>
+      <div id="experiencesStageEyebrow" style="margin-bottom:1.5rem;"></div>
       <div id="experienceCapabilities" style="margin-bottom:1.25rem;"></div>
       <button class="btn-primary" onclick="startLesson()" style="margin-bottom:0.75rem;">Continue session →</button>
       <div style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:1rem;" id="experienceTiles"></div>
@@ -5742,9 +5740,9 @@ function renderCurrentExercise() {
   const phrase = item.phraseId ? PHRASES.find(p => p.id === item.phraseId) : null;
   const type = item.type;
 
-  // Show universal skip immediately for panels that don't have their own skip button
-  const hasOwnSkip = ['speak', 'speak_from_french', 'speak_from_english', 'situation'].includes(type);
-  document.getElementById('universalSkip').classList.toggle('hidden', hasOwnSkip);
+  // Skip is restricted to speaking exercises only. Listen, vocab, and
+  // recognition exercises never show a skip button.
+  document.getElementById('universalSkip').classList.add('hidden');
 
 
   // Route to correct panel
@@ -6022,7 +6020,7 @@ function getListenPickFrenchDistractors(phrase, count) {
 
 function renderListenIdentify(phrase) {
   document.getElementById('listenTaskIdentify').style.display = 'block';
-  const distractors = getListenPickFrenchDistractors(phrase, 2);
+  const distractors = getListenPickFrenchDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
   const container = document.getElementById('listenIdentifyOptions');
   container.innerHTML = '';
@@ -6729,7 +6727,8 @@ function advanceSession() {
 
 function skipExercise() {
   stopMic();
-  bumpScore(getCurrentPhrase()?.id, 2); // at least attempted
+  // Skip must not change score in any direction. Score only changes when
+  // the user actually speaks.
   nextExercise();
 }
 
@@ -6951,6 +6950,63 @@ function getHomeState() {
   return 'foundation';
 }
 
+// ── STAGE LADDER ─────────────────────────────────────────────────
+// Five stages the user passes through. The current build only ever returns
+// 'ready', 'foundation', or 'voice'. The remaining two are placeholders that
+// will be reachable once Experiences progression and final readiness ship.
+const STAGES = [
+  { key: 'ready',          label: 'Ready to begin' },
+  { key: 'foundation',     label: 'Building Foundation' },
+  { key: 'voice',          label: 'Finding Your Voice' },
+  { key: 'fulltrip',       label: 'Full Trip Mode' },
+  { key: 'ready_traveler', label: 'Traveler Ready' },
+];
+
+function getCurrentStage() {
+  if (!hasAnyProgress() && !localStorage.getItem('tt_foundationComplete')) return 'ready';
+  if (!localStorage.getItem('tt_foundationComplete')) return 'foundation';
+  // Once Experiences progression and final readiness ship, this branch will
+  // start returning 'fulltrip' and 'ready_traveler'. Until then, the post
+  // Foundation home sits at 'voice'.
+  return 'voice';
+}
+
+function renderStageEyebrow(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const current = getCurrentStage();
+  const idx = STAGES.findIndex(s => s.key === current);
+  const currentLabel = idx >= 0 ? STAGES[idx].label : '';
+
+  // Stage label in the existing eyebrow style. Keep the flag glyph from the
+  // old hardcoded Building Foundation row so the home still feels grounded.
+  const labelRow = `
+    <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.6rem;">
+      <span style="font-size:1.6rem;">🇫🇷</span>
+      <div class="eyebrow">${currentLabel}</div>
+    </div>
+  `;
+
+  // Compact ladder: five short pills separated by middle dots, current full
+  // brightness, past stages mid, future stages dim. Display only.
+  const pills = STAGES.map((s, i) => {
+    let color;
+    if (i < idx) color = 'var(--text-mid)';
+    else if (i === idx) color = 'var(--text)';
+    else color = 'var(--text-dim)';
+    const weight = i === idx ? '500' : '400';
+    return `<span style="color:${color}; font-weight:${weight};">${s.label}</span>`;
+  }).join('<span style="color:var(--text-dim); margin:0 0.4rem;">·</span>');
+
+  const ladderRow = `
+    <div style="font-size:11px; letter-spacing:0.04em; line-height:1.5; display:flex; flex-wrap:wrap; align-items:center;">
+      ${pills}
+    </div>
+  `;
+
+  el.innerHTML = labelRow + ladderRow;
+}
+
 function selectLanguage(lang) {
   // Show trip date screen before first session
   showScreen('screenTripDate');
@@ -7032,6 +7088,7 @@ function updateWelcomeScreen() {
 
     renderCapabilities(document.getElementById('foundationCapabilities'));
     renderTripCountdown('tripCountdownFoundation');
+    renderStageEyebrow('foundationStageEyebrow');
     return;
   }
 
@@ -7040,6 +7097,7 @@ function updateWelcomeScreen() {
 
   renderCapabilities(document.getElementById('experienceCapabilities'));
   renderTripCountdown('tripCountdownExperiences');
+  renderStageEyebrow('experiencesStageEyebrow');
 
   const tiles = document.getElementById('experienceTiles');
   tiles.innerHTML = '';
@@ -8463,6 +8521,8 @@ function devShowScores() {
   lines.push('Unlock flags: recovery=' + !!localStorage.getItem('tt_recoveryUnlocked')
     + ' vocabulary=' + !!localStorage.getItem('tt_vocabularyUnlocked')
     + ' tier3=' + !!localStorage.getItem('tt_tier3Unlocked'));
+  lines.push('foundationComplete: ' + !!localStorage.getItem('tt_foundationComplete'));
+  lines.push('currentStage: ' + getCurrentStage());
   lines.push('seenTierUnlock: ' + JSON.stringify(state.seenTierUnlock));
   out.textContent = lines.join('\n');
   out.style.display = 'block';
