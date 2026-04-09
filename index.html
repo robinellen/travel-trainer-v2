@@ -1016,6 +1016,7 @@ body::after {
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
         <div style="font-size:13px; color:var(--text-dim);" id="recogPlayHint">Listening...</div>
+        <button id="recogSlowerBtn" onclick="hearRecognitionSlower()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;display:none;margin-top:0.25rem;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Hear it slower</button>
       </div>
       <div id="recogPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
       <div id="recogOptions" class="mc-options"></div>
@@ -1216,6 +1217,7 @@ body::after {
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </div>
       <div style="font-size:13px; color:var(--text-dim);" id="recogStdPlayHint">Listening...</div>
+      <button id="recogStdSlowerBtn" onclick="hearRecognitionSlower()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;display:none;margin-top:0.25rem;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Hear it slower</button>
     </div>
     <div id="recogStdPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
     <div id="recogStdOptions" class="mc-options"></div>
@@ -5370,6 +5372,8 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   const circle = document.getElementById(prefix + 'Circle');
 
   ctxEl.textContent = trigger.scenePrompt || '';
+  const recogScore = getRecognitionScore(trigger.intent);
+  if (ctxEl) ctxEl.style.display = recogScore <= 1 ? 'none' : '';
   revealEl.classList.add('hidden');
   nextBtn.classList.add('hidden');
   circle.classList.remove('playing');
@@ -5380,7 +5384,6 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   // Tier 2 (score 2-3): Foundation phrase response options. Asks how the user would respond.
   // Tier 3 (score 4+): mic opens, no prompt — the scene context handles framing.
   if (promptEl) {
-    const recogScore = getRecognitionScore(trigger.intent);
     let promptText = '';
     if (recogScore <= 1) promptText = 'What are they asking about?';
     else if (recogScore <= 3) promptText = 'How would you respond?';
@@ -5461,6 +5464,10 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     playHintEl.textContent = 'Tap to hear again';
   });
 
+  // Show "Hear it slower" at Tier 1-2 (score < 3), hide at Tier 3+
+  const slowerBtn = document.getElementById(prefix + 'SlowerBtn');
+  if (slowerBtn) slowerBtn.style.display = recogScore < 3 ? '' : 'none';
+
   // Coach mark for the very first recognition exercise
   showCoachMark('tt_seenRecognitionCoachMark');
 }
@@ -5507,6 +5514,24 @@ function replayRecognitionAudio() {
 function replayRecognitionStdAudio() {
   if (!_activeRecognitionTrigger) return;
   playRecognitionAudio(_activeRecognitionTrigger, document.getElementById('recogStdCircle'));
+}
+
+function hearRecognitionSlower() {
+  if (!_activeRecognitionTrigger || !_activeRecognitionTrigger.fileName) return;
+  const src = 'audio/trigger-phrases/' + _activeRecognitionTrigger.fileName;
+  if (_activeRecognitionAudio) {
+    try { _activeRecognitionAudio.pause(); } catch (e) {}
+    _activeRecognitionAudio = null;
+  }
+  const audio = new Audio(src);
+  audio.playbackRate = 0.65;
+  _activeRecognitionAudio = audio;
+  audio.onended = () => { _activeRecognitionAudio = null; };
+  audio.onerror = () => { _activeRecognitionAudio = null; };
+  audio.play().catch(() => {});
+  // Hide the button after use — matches the speak panel pattern
+  document.getElementById('recogSlowerBtn')?.style.setProperty('display', 'none');
+  document.getElementById('recogStdSlowerBtn')?.style.setProperty('display', 'none');
 }
 
 // In-session recognition exercise. Picks a trigger by intent if provided,
