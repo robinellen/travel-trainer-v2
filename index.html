@@ -8508,20 +8508,18 @@ function devJumpToStage(stage) {
     localStorage.setItem('tt_seenPhraseCount', String(tier1.length));
   }
 
-  // Stage 3: Stage 2 + recognition scores high enough for Experiences
+  // Stage 3: all Foundation at score 4 (getCurrentStage requires allAt3 + allAt4
+  // thresholds), recognition maxed so Experiences unlocks
   if (stage >= 3) {
-    tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
+    tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 4); });
     devSetAllRecognition(4);
   }
 
-  // Stage 4-5: all phrases to score 3+, all recognition maxed
+  // Stage 4-5: all phrases to score 5, all recognition maxed
   if (stage >= 4) {
-    playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
+    playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 5); });
     localStorage.setItem('tt_recoveryUnlocked', 'true');
     state.seenTierUnlock.recovery = true;
-  }
-  if (stage >= 5) {
-    playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 4); });
     localStorage.setItem('tt_allExperiencesComplete', 'true');
   }
 
@@ -8552,15 +8550,16 @@ function devSetTier1Score3() {
 
 function devSetAllScore3() {
   const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
-  playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
+  playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 4); });
   localStorage.setItem('tt_recoveryUnlocked', 'true');
   localStorage.setItem('tt_tier3Unlocked', 'true');
+  localStorage.setItem('tt_foundationComplete', 'true');
   state.seenTierUnlock.recovery = true;
   state.seenTierUnlock.tier3 = true;
   saveState();
   updateWelcomeScreen();
   const active = getActivePhrases();
-  console.log(`[dev] All set to score 3. All tiers unlocked. Active: ${active.length} total.`);
+  console.log(`[dev] All set to score 4. All tiers unlocked. Active: ${active.length} total.`);
   closeDevPanel();
 }
 
