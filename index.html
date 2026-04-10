@@ -139,6 +139,19 @@ body::after {
 }
 .btn-ghost:hover { border-color: var(--text-mid); color: var(--text); }
 
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-family: 'Lexend', sans-serif;
+  cursor: pointer;
+  padding: 0;
+  letter-spacing: 0.04em;
+  transition: color 0.15s;
+}
+.btn-text:hover { color: var(--text); }
+
 /* Back button */
 .btn-back {
   background: none;
@@ -844,7 +857,7 @@ body::after {
         <button class="btn-ghost" onclick="startRecognition()" style="flex:1; font-size:15px;">Recognition</button>
       </div>
       <button class="btn-ghost" onclick="openCultureNotes()" style="margin-bottom:0.75rem;">🌍 Know before you go</button>
-      <button onclick="openVocabModal()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">All phrases</button>
+      <button onclick="openVocabModal()" class="btn-text" style="padding:0.5rem 0 0">All phrases</button>
     </div>
 
   </div>
@@ -859,7 +872,7 @@ body::after {
     <p style="font-size:15px; color:var(--text-dim); line-height:1.6; margin-bottom:2rem; max-width:280px;">Knowing this helps us pace your practice.</p>
     <input type="date" id="tripDateInput" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; color:var(--text); font-family:'Lexend',sans-serif; font-size:17px; width:100%; margin-bottom:1rem; -webkit-appearance:none;">
     <button class="btn-primary" onclick="saveTripDate()" style="margin-bottom:0.75rem;">Set date →</button>
-    <button onclick="skipTripDate()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.25rem 0;letter-spacing:0.04em;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Skip for now</button>
+    <button onclick="skipTripDate()" class="btn-text" style="padding:0.25rem 0">Skip for now</button>
   </div>
 </div>
 
@@ -924,12 +937,12 @@ body::after {
       <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
         <div class="phrase-meaning-label" id="speakMeaning" style="margin-bottom:0.6rem;"></div>
         <div class="phrase-native" id="speakNative" style="margin-bottom:0.3rem; cursor:pointer;" onclick="replayAtNaturalSpeed()"><span id="speakNativeText"></span> <span style="font-size:13px; opacity:0.4; vertical-align:middle;">&#9655;</span></div>
-        <button id="speakShowPhrase" class="hidden" onclick="revealSpeakPhrase()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;margin-bottom:0.3rem;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show phrase</button>
+        <button id="speakShowPhrase" class="hidden btn-text" onclick="revealSpeakPhrase()" style="margin-bottom:0.3rem">Show phrase</button>
         <div class="phrase-romanization hidden" id="speakRoman"></div>
       </div>
       <div id="speakHelpers" class="hidden" style="display:flex; justify-content:center; gap:1.25rem; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
-        <button id="speakSlowerBtn" onclick="hearSlower()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Hear it slower</button>
-        <button id="speakPronounceBtn" onclick="showPronunciation()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">See pronunciation</button>
+        <button id="speakSlowerBtn" onclick="hearSlower()" class="btn-text">Hear it slower</button>
+        <button id="speakPronounceBtn" onclick="showPronunciation()" class="btn-text">See pronunciation</button>
       </div>
       <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
         <button class="mic-btn" id="micBtn" onclick="toggleMic()">
@@ -991,8 +1004,8 @@ body::after {
         <div class="eyebrow" id="situMicHint" style="letter-spacing:0.15em;"></div>
         <div style="font-size:15px; color:var(--text-mid); font-style:italic; min-height:1.2rem;" id="situHeardText"></div>
         <div id="situHelpers" class="hidden" style="display:flex; gap:1.25rem; margin-top:0.25rem;">
-          <button id="situHintBtn" onclick="showSituHint()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Give me a hint</button>
-          <button id="situShowMe" onclick="revealSituPhrase()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show me</button>
+          <button id="situHintBtn" onclick="showSituHint()" class="btn-text">Give me a hint</button>
+          <button id="situShowMe" onclick="revealSituPhrase()" class="btn-text">Show me</button>
         </div>
       </div>
       <div class="result-bar" id="situResult">
@@ -1016,7 +1029,7 @@ body::after {
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
         <div style="font-size:13px; color:var(--text-dim);" id="recogPlayHint">Listening...</div>
-        <button id="recogSlowerBtn" onclick="hearRecognitionSlower()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;display:none;margin-top:0.25rem;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Hear it slower</button>
+        <button id="recogSlowerBtn" onclick="hearRecognitionSlower()" class="btn-text" style="display:none;margin-top:0.25rem">Hear it slower</button>
       </div>
       <div id="recogPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
       <div id="recogOptions" class="mc-options"></div>
@@ -1119,7 +1132,7 @@ body::after {
         <div class="phrase-reveal" style="width:100%; display:none;" id="buildupChunkCard">
           <div class="phrase-native" id="buildupChunkText" style="font-size:28px; margin-bottom:0.5rem;"></div>
           <div style="font-size:15px; color:var(--text-dim); line-height:1.6;" id="buildupChunkHint"></div>
-          <button onclick="playBuildupChunk()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;margin-top:0.75rem;">↺ Hear again</button>
+          <button onclick="playBuildupChunk()" class="btn-text" style="margin-top:0.75rem">↺ Hear again</button>
         </div>
       </div>
       <div class="mt-auto">
@@ -1187,8 +1200,8 @@ body::after {
     <div id="listenModeFrench" class="hidden" style="font-family:'Cormorant Garamond',serif; font-size:22px; font-style:italic; color:var(--text); margin-top:1rem; line-height:1.4;"></div>
     <div id="listenModeEnglish" class="hidden" style="font-size:15px; color:var(--text-dim); margin-top:0.5rem; line-height:1.5;"></div>
     <div id="listenModeLinks" class="hidden" style="display:flex; gap:1.25rem; margin-top:1rem;">
-      <button id="listenModeShowFrench" onclick="showListenFrench()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show French</button>
-      <button id="listenModeShowEnglish" onclick="showListenEnglish()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show English</button>
+      <button id="listenModeShowFrench" onclick="showListenFrench()" class="btn-text">Show French</button>
+      <button id="listenModeShowEnglish" onclick="showListenEnglish()" class="btn-text">Show English</button>
     </div>
     <div id="listenModeComplete" class="hidden" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; background:var(--bg); padding:1.5rem;">
       <div>
@@ -1217,7 +1230,7 @@ body::after {
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </div>
       <div style="font-size:13px; color:var(--text-dim);" id="recogStdPlayHint">Listening...</div>
-      <button id="recogStdSlowerBtn" onclick="hearRecognitionSlower()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;display:none;margin-top:0.25rem;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Hear it slower</button>
+      <button id="recogStdSlowerBtn" onclick="hearRecognitionSlower()" class="btn-text" style="display:none;margin-top:0.25rem">Hear it slower</button>
     </div>
     <div id="recogStdPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
     <div id="recogStdOptions" class="mc-options"></div>
@@ -4907,7 +4920,7 @@ function nextBuildupStep() {
 // ═══════════════════════════════════════════════════════════════════
 
 function showScreen(id) {
-  console.log('[nav] showScreen:', id);
+  if (localStorage.getItem('tt_devMode')) console.log('[nav] showScreen:', id);
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
@@ -4969,32 +4982,16 @@ function checkUnlocks() {
 // SESSION BUILDING
 // ═══════════════════════════════════════════════════════════════════
 
-// Weighted random pick from [[type, weight], ...] pairs
-function weightedPick(options) {
-  const total = options.reduce((sum, [, w]) => sum + w, 0);
-  let rand = Math.random() * total;
-  for (const [type, weight] of options) {
-    rand -= weight;
-    if (rand <= 0) return type;
-  }
-  return options[0][0];
-}
-
 // Build a within-session arc for a phrase based on its current score and tier.
 // Build the touch sequence for a phrase based on its current score.
 // Returns an array of exercise types to serve in order within the session.
-// Phrases the user never initiates — only said back when prompted by someone
-// else. These are excluded from Speak from English exercises because the
-// English meaning alone wouldn't naturally elicit the French in real life.
-// TODO: replace with Direction field from Airtable once that lands.
-const SPEAK_FROM_ENGLISH_EXCLUDED_NATIVES = new Set([
-  'bonne journée',
-  'bon appétit',
-]);
-
 function isEligibleForSpeakFromEnglish(phrase) {
-  if (!phrase || !phrase.native) return false;
-  return !SPEAK_FROM_ENGLISH_EXCLUDED_NATIVES.has(phrase.native.toLowerCase());
+  if (!phrase) return false;
+  const dir = (phrase.direction || '').toLowerCase();
+  if (dir === 'they initiate you respond') return false;
+  // Fallback for phrases without direction tagged: use the old exclusion list
+  if (!dir) return !['bonne journée', 'bon appétit'].includes((phrase.native || '').toLowerCase());
+  return true;
 }
 
 function buildPhraseTouches(phrase) {
@@ -5039,11 +5036,6 @@ function buildPhraseTouches(phrase) {
   return occasionalLPF
     ? ['listen_pick_french', 'speak_from_french', 'speak_from_french']
     : ['speak_from_french', 'speak_from_french'];
-}
-
-function setSessionLength(len) {
-  state.sessionLength = len;
-  saveState();
 }
 
 function startLesson() {
@@ -5108,10 +5100,6 @@ function startSituationSession() {
   renderCurrentExercise();
 }
 
-function startPractice(mode) {
-  startSessionWithMode(mode);
-}
-
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -5165,7 +5153,7 @@ function startSessionWithMode(mode) {
     state.session._sessionPhrases = selected.map(p => p.id);
     selected.forEach(p => { state.session._startScores[p.id] = getScore(p.id); });
 
-    console.log('[session] new:', newPicks.length, 'review:', reviewPicks.length, 'total:', selected.length);
+    if (localStorage.getItem('tt_devMode')) console.log('[session] new:', newPicks.length, 'review:', reviewPicks.length, 'total:', selected.length);
 
     // Build per-phrase touch lists
     const phraseTouches = selected.map(p => ({
@@ -5683,7 +5671,6 @@ function renderCurrentExercise() {
   else if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
   else if (type === 'speak' || type === 'speak_from_french') renderSpeakPanel(phrase, { fromEnglish: false });
   else if (type === 'speak_from_english') renderSpeakPanel(phrase, { fromEnglish: true });
-  else if (type === 'vocab_mc') renderVocabMC(phrase);
   else if (type === 'situation') renderSituationPanel(phrase);
   else if (type === 'recognition') renderRecognitionPanel(phrase);
 }
@@ -6280,104 +6267,6 @@ function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, 
 
 // ── VOCAB ─────────────────────────────────────────────────────────
 
-let _vocabPhrase = null;
-
-function renderVocabMC(phrase) {
-  _vocabPhrase = phrase;
-  document.getElementById('panelVocab').classList.remove('hidden');
-  document.getElementById('vocabCircle').classList.remove('playing');
-  document.getElementById('vocabHint').textContent = 'Tap to hear';
-  document.getElementById('vocabEmoji').textContent = phrase.emoji || '🗣️';
-  document.getElementById('vocabTask').style.display = 'none';
-  document.getElementById('vocabTaskMeaning').style.display = 'none';
-  document.getElementById('vocabNextBtn').classList.add('hidden');
-  document.getElementById('vocabTaskResult').className = 'result-bar';
-
-  let vocabCallbackFired = false;
-  audioEndedCallback = () => {
-    if (vocabCallbackFired) return;
-    vocabCallbackFired = true;
-    document.getElementById('vocabHint').textContent = 'Tap to hear again';
-    bumpScore(phrase.id, 1);
-    renderVocabTask(phrase);
-  };
-  setTimeout(() => playPhrase(phrase, 'vocabCircle'), 500);
-  setTimeout(() => {
-    if (!vocabCallbackFired && audioEndedCallback) {
-      console.warn('Vocab audio timeout — forcing task display');
-      onAudioEnded();
-    }
-  }, 8000);
-}
-
-function playVocabAudio() {
-  if (_vocabPhrase) playPhrase(_vocabPhrase, 'vocabCircle');
-}
-
-function renderVocabTask(phrase) {
-  document.getElementById('vocabTask').style.display = 'block';
-  document.getElementById('vocabTaskMeaning').style.display = 'block';
-  const score = getScore(phrase.id);
-
-  const distractors = getDistractors(phrase, 3);
-  const options = shuffle([phrase, ...distractors]);
-  const container = document.getElementById('vocabMeaningOptions');
-  container.innerHTML = '';
-
-  if (score >= 1) {
-    // Identify written form
-    document.querySelector('#vocabTaskMeaning > div:first-child').textContent = 'Which word did you hear?';
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'mc-option';
-      btn.style.fontFamily = "'Cormorant Garamond', serif";
-      btn.style.fontStyle = 'italic';
-      btn.textContent = displayNative(opt, 'card');
-      btn.onclick = () => {
-        container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
-        const correct = opt.id === phrase.id;
-        btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-        if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
-          if (b.textContent === displayNative(phrase, 'card')) b.className = 'mc-option reveal';
-        });
-        showVocabRevealAfterTask(correct, phrase);
-      };
-      container.appendChild(btn);
-    });
-  } else {
-    // Meaning match
-    document.querySelector('#vocabTaskMeaning > div:first-child').textContent = 'What does this mean?';
-    const correctVocabMeaning = lowercaseFirst(getMeaning(phrase));
-    options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 'mc-option';
-      btn.textContent = opt.id === phrase.id ? correctVocabMeaning : lowercaseFirst(getMeaning(opt));
-      btn.onclick = () => {
-        container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
-        const correct = opt.id === phrase.id;
-        btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-        if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
-          if (b.textContent === correctVocabMeaning) b.className = 'mc-option reveal';
-        });
-        showVocabRevealAfterTask(correct, phrase);
-      };
-      container.appendChild(btn);
-    });
-  }
-}
-
-function showVocabRevealAfterTask(isCorrect, phrase) {
-  const result = document.getElementById('vocabTaskResult');
-  result.className = 'result-bar ' + (isCorrect ? 'correct visible' : 'wrong visible');
-  document.getElementById('vocabTaskResultTitle').textContent = isCorrect ? '✓ Correct' : '✗ Not quite';
-  document.getElementById('vocabTaskResultBody').textContent = phrase.native + ' — ' + getMeaning(phrase);
-  bumpIfFinal(phrase.id, 2, isCorrect);
-  const btn = document.getElementById('vocabNextBtn');
-  btn.textContent = isCorrect ? 'Continue →' : 'Got it →';
-  btn.onclick = () => nextExercise();
-  btn.classList.remove('hidden');
-}
-
 // ── SITUATION ────────────────────────────────────────────────────
 
 let _currentSituPhrase = null;
@@ -6691,7 +6580,7 @@ function showTierUnlockScreen(type) {
           <div style="font-size:13px; color:var(--text-dim); line-height:1.5;">Hear French in context. No pressure, no score.</div>
         </button>
       </div>
-      <button onclick="onTierUnlockContinue()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;padding:0.5rem 0;letter-spacing:0.04em;transition:color 0.15s;width:100%;text-align:center;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Not now, keep practicing</button>
+      <button onclick="onTierUnlockContinue()" class="btn-text" style="padding:0.5rem 0;width:100%;text-align:center">Not now, keep practicing</button>
     `;
   } else if (type === 'tier3') {
     // Subtle toast-style notification
@@ -6976,7 +6865,7 @@ function renderTripCountdown(containerId) {
       <div style="margin-bottom:0.75rem;">How did it go?</div>
       <div style="display:flex; gap:0.5rem; align-items:center;">
         <button class="btn-ghost" onclick="localStorage.removeItem('tt_trip_date');showScreen('screenTripDate')" style="font-size:13px; padding:0.5rem 0.75rem;">Plan another trip</button>
-        <button onclick="localStorage.setItem('tt_post_trip_dismissed','true');updateWelcomeScreen()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Keep practicing</button>
+        <button onclick="localStorage.setItem('tt_post_trip_dismissed','true');updateWelcomeScreen()" class="btn-text">Keep practicing</button>
       </div>
     `;
   } else if (days === 0) {
@@ -7205,10 +7094,10 @@ function startExpWatch(pass) {
 
   // Gate playback behind coach mark dismissal.
   if (coachKey && !localStorage.getItem(coachKey)) {
-    console.log('[exp] Coach mark showing:', coachKey, '— audio GATED, waiting for Got it');
+    if (localStorage.getItem('tt_devMode')) console.log('[exp] Coach mark showing:', coachKey, '— audio GATED, waiting for Got it');
     // Set callback BEFORE showing coach mark
     _onCoachMarkDismiss = () => {
-      console.log('[exp] Got it tapped — starting playback now');
+      if (localStorage.getItem('tt_devMode')) console.log('[exp] Got it tapped — starting playback now');
       setTimeout(() => playNextBeat(), 400);
     };
     showCoachMark(coachKey);
@@ -7216,7 +7105,7 @@ function startExpWatch(pass) {
     return;
   }
   // Coach mark already seen or not needed — start immediately
-  console.log('[exp] No coach mark needed — starting playback');
+  if (localStorage.getItem('tt_devMode')) console.log('[exp] No coach mark needed — starting playback');
   setTimeout(() => playNextBeat(), 600);
 }
 
@@ -7525,7 +7414,7 @@ function practiceStateSpeak() {
     frenchHtml = `<div style="font-family:'Cormorant Garamond',serif; font-size:28px; font-style:italic; color:var(--text); margin-bottom:1.5rem; cursor:pointer;" onclick="replayExpPhrase('${targetEsc}')">${target} <span style="font-size:13px; opacity:0.4; vertical-align:middle;">&#9655;</span></div>`;
   } else if (tScore <= 3) {
     frenchHtml = `<div id="expSpeakPhrase" class="hidden" style="font-family:'Cormorant Garamond',serif; font-size:28px; font-style:italic; color:var(--text); margin-bottom:1rem; cursor:pointer;" onclick="replayExpPhrase('${targetEsc}')">${target} <span style="font-size:13px; opacity:0.4; vertical-align:middle;">&#9655;</span></div>
-    <button onclick="document.getElementById('expSpeakPhrase').classList.remove('hidden');this.style.display='none'" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;margin-bottom:1.5rem;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Show phrase</button>`;
+    <button onclick="document.getElementById('expSpeakPhrase').classList.remove('hidden');this.style.display='none'" class="btn-text" style="margin-bottom:1.5rem">Show phrase</button>`;
   } else {
     frenchHtml = `<div style="margin-bottom:1.5rem;"></div>`;
   }
@@ -7536,7 +7425,7 @@ function practiceStateSpeak() {
     <button class="mic-btn" id="expMicBtn">${micSvg}</button>
     <div style="font-size:13px; color:var(--text-dim); margin-top:0.6rem; letter-spacing:0.1em;" id="expMicHint">Your turn</div>
     <div style="font-size:15px; color:var(--text-mid); font-style:italic; min-height:1.2rem; margin-top:0.4rem;" id="expHeardText"></div>
-    <button onclick="advanceToNextTrigger()" style="background:none;border:none;color:var(--text-dim);font-size:13px;font-family:'Lexend',sans-serif;cursor:pointer;margin-top:0.75rem;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">Skip this one</button>
+    <button onclick="advanceToNextTrigger()" class="btn-text" style="margin-top:0.75rem">Skip this one</button>
   `;
 
   const btn = document.getElementById('expMicBtn');
@@ -7784,7 +7673,7 @@ function openCultureNoteDetail(noteId) {
 }
 
 function startListenMode() {
-  console.log('[listen] startListenMode called, LISTEN_CLIPS:', typeof LISTEN_CLIPS, Array.isArray(LISTEN_CLIPS) ? LISTEN_CLIPS.length : 'N/A');
+  if (localStorage.getItem('tt_devMode')) console.log('[listen] startListenMode called, LISTEN_CLIPS:', typeof LISTEN_CLIPS, Array.isArray(LISTEN_CLIPS) ? LISTEN_CLIPS.length : 'N/A');
   if (typeof LISTEN_CLIPS === 'undefined' || !LISTEN_CLIPS.length) return;
 
   const sessionCount = parseInt(localStorage.getItem('tt_listenSessionCount') || '0', 10);
