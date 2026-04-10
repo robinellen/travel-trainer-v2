@@ -6837,28 +6837,24 @@ function switchHomeTab(tab) {
     document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('hidden', t !== tab);
     document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
   });
+  // Render the selected tab's content
+  if (tab === 'learn') renderLearnTab();
+  else if (tab === 'practice') renderPracticeTab();
+  else if (tab === 'reference') renderReferenceTab();
+  else if (tab === 'settings') renderSettingsTab();
 }
 
 function renderLearnTab() {
-  // Stub — will be populated in the next prompt. For now, render the
-  // stage eyebrow plus the existing Foundation/post-Foundation content.
   const container = document.getElementById('learnTabContent');
   if (!container) return;
   container.innerHTML = '';
 
-  const hasProgress = hasAnyProgress();
+  const _hasProgress = hasAnyProgress();
   const foundationComplete = !!localStorage.getItem('tt_foundationComplete');
 
-  // Stage eyebrow
-  const eyebrow = document.createElement('div');
-  eyebrow.id = 'learnStageEyebrow';
-  eyebrow.style.marginBottom = '1.5rem';
-  container.appendChild(eyebrow);
-  renderStageEyebrow('learnStageEyebrow');
-
-  if (!hasProgress && !foundationComplete) {
-    // Brand new user — language selection
-    container.innerHTML += `
+  // Brand new user — language selection (before any sessions)
+  if (!_hasProgress && !foundationComplete) {
+    container.innerHTML = `
       <h1 class="serif" style="font-size:clamp(2.6rem,9vw,3.6rem); line-height:1.05; margin-bottom:0.5rem;">
         Not fluent.<br><em style="color:var(--text-mid)">Just prepared.</em>
       </h1>
@@ -6893,42 +6889,198 @@ function renderLearnTab() {
     return;
   }
 
-  // Trip countdown
-  const tripDiv = document.createElement('div');
-  tripDiv.id = 'learnTripCountdown';
-  tripDiv.className = 'hidden';
-  tripDiv.style.cssText = 'font-size:15px; color:var(--text-mid); margin-bottom:1.25rem;';
-  container.appendChild(tripDiv);
-  renderTripCountdown('learnTripCountdown');
-
-  // Progress + capabilities + session button
-  const tier1All = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded && p.sortOrder);
-  const tier1Playable = tier1All.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
-  const seen = tier1Playable.filter(p => getScore(p.id) >= 1).length;
-
-  if (!foundationComplete) {
-    const progress = document.createElement('div');
-    progress.style.cssText = 'font-size:15px; color:var(--text-dim); margin-bottom:1rem;';
-    progress.textContent = `${seen} of ${tier1All.length} phrases`;
-    container.appendChild(progress);
+  // ── Trip countdown ──
+  const tripDate = localStorage.getItem('tt_trip_date');
+  if (tripDate) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const trip = new Date(tripDate + 'T00:00:00');
+    const days = Math.ceil((trip - today) / 86400000);
+    if (days > 0) {
+      const tripEl = document.createElement('div');
+      tripEl.style.cssText = 'font-size:15px; color:var(--text-mid); margin-bottom:1.25rem;';
+      tripEl.textContent = `${days} day${days === 1 ? '' : 's'} until your trip`;
+      container.appendChild(tripEl);
+    }
   }
 
-  const caps = document.createElement('div');
-  caps.id = 'learnCapabilities';
-  caps.style.marginBottom = '1.5rem';
-  container.appendChild(caps);
-  renderCapabilities(caps);
+  // ── Stage ladder ──
+  const current = getCurrentStage();
+  const currentIdx = STAGES.findIndex(s => s.key === current);
+  const ladder = document.createElement('div');
+  ladder.style.cssText = 'display:flex; flex-direction:column; gap:0; flex:1; justify-content:center; padding:1rem 0;';
 
-  const activePhrases = getActivePhrases();
-  const dueCount = getDueCount(activePhrases);
-  const allCaughtUp = dueCount === 0 && activePhrases.every(p => !!state.leitner[p.id]);
+  STAGES.forEach((stage, i) => {
+    const isCompleted = i < currentIdx;
+    const isCurrent = i === currentIdx;
+    const isLocked = i > currentIdx;
 
+    // Dot color
+    let dotBg, dotBorder, nameColor, nameWeight;
+    if (isCompleted) {
+      dotBg = 'var(--text-dim)'; dotBorder = 'var(--text-dim)';
+      nameColor = 'var(--text-dim)'; nameWeight = '400';
+    } else if (isCurrent) {
+      dotBg = 'var(--text)'; dotBorder = 'var(--text)';
+      nameColor = 'var(--text)'; nameWeight = '500';
+    } else {
+      dotBg = 'transparent'; dotBorder = 'var(--border)';
+      nameColor = 'var(--border)'; nameWeight = '400';
+    }
+
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0;';
+    if (isCompleted) {
+      row.style.cursor = 'pointer';
+      // TODO: navigate to that stage's practice content when tapped
+      row.onclick = () => {};
+    }
+    if (isLocked) {
+      row.style.pointerEvents = 'none';
+    }
+
+    // Stage number
+    const num = document.createElement('div');
+    num.style.cssText = `font-size:10px; color:var(--text-dim); min-width:1.4rem; text-align:right; font-variant-numeric:tabular-nums;`;
+    num.textContent = String(i + 1).padStart(2, '0');
+
+    // Dot
+    const dot = document.createElement('div');
+    dot.style.cssText = `width:8px; height:8px; border-radius:50%; background:${dotBg}; border:1.5px solid ${dotBorder}; flex-shrink:0;`;
+
+    // Name
+    const name = document.createElement('div');
+    name.style.cssText = `font-size:15px; color:${nameColor}; font-weight:${nameWeight}; line-height:1.3;`;
+    name.textContent = stage.label;
+
+    row.appendChild(num);
+    row.appendChild(dot);
+    row.appendChild(name);
+    ladder.appendChild(row);
+
+    // Connecting line between rows (not after last)
+    if (i < STAGES.length - 1) {
+      const line = document.createElement('div');
+      const lineColor = i < currentIdx ? 'var(--text-dim)' : 'var(--border)';
+      line.style.cssText = `width:1px; height:0.6rem; background:${lineColor}; margin-left:calc(1.4rem + 0.75rem + 3px);`;
+      ladder.appendChild(line);
+    }
+  });
+
+  container.appendChild(ladder);
+
+  // ── Continue Learning button ──
   const btn = document.createElement('button');
   btn.className = 'btn-primary';
-  btn.style.marginBottom = '0.75rem';
-  btn.textContent = allCaughtUp ? 'Practice anyway →' : 'Continue session →';
+  btn.style.cssText = 'margin-top:auto;';
+  btn.textContent = 'Continue Learning →';
   btn.onclick = () => startLesson();
   container.appendChild(btn);
+}
+
+function renderPracticeTab() {
+  const container = document.getElementById('practiceTabContent');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const foundationComplete = !!localStorage.getItem('tt_foundationComplete');
+  const stage = getCurrentStage();
+  const stageIdx = STAGES.findIndex(s => s.key === stage);
+
+  // Shared row builder
+  function makeRow(title, subtitle, onclick, locked) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.85rem 0; border-bottom:1px solid var(--border);'
+      + (locked ? ' opacity:0.3; pointer-events:none;' : ' cursor:pointer;');
+    if (!locked && onclick) row.onclick = onclick;
+    const left = document.createElement('div');
+    left.innerHTML = `<div style="font-size:14px; color:var(--text); line-height:1.3;">${title}</div>`
+      + (subtitle ? `<div style="font-size:12px; color:var(--text-dim); margin-top:0.15rem;">${subtitle}</div>` : '');
+    const chevron = document.createElement('div');
+    chevron.style.cssText = 'font-size:15px; color:var(--text-dim);';
+    chevron.textContent = '›';
+    row.appendChild(left);
+    row.appendChild(chevron);
+    return row;
+  }
+
+  // Listen — show if foundation complete AND at least 8 phrases at score 1+
+  const tier1Seen = PHRASES.filter(p => (p.tier || '1') === '1' && getScore(p.id) >= 1).length;
+  if (foundationComplete && tier1Seen >= 8) {
+    container.appendChild(makeRow('Listen', 'Hear French in context', () => startListenMode(), false));
+  }
+
+  // Recognition — show if foundation complete
+  if (foundationComplete) {
+    container.appendChild(makeRow('Recognition', 'Identify what you hear', () => startRecognition(), false));
+  }
+
+  // Experiences — locked until stage wild (index 2) or beyond
+  const expLocked = stageIdx < 2;
+  container.appendChild(makeRow(
+    'Experiences',
+    expLocked ? 'Unlocks at Stage 3' : 'Walk through real interactions',
+    expLocked ? null : () => openExperience('At the Café'),
+    expLocked
+  ));
+
+  if (!container.children.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-size:15px; color:var(--text-dim); padding:2rem 0; text-align:center;';
+    empty.textContent = 'Complete more of your Foundation to unlock practice modes.';
+    container.appendChild(empty);
+  }
+}
+
+function renderReferenceTab() {
+  const container = document.getElementById('referenceTabContent');
+  if (!container) return;
+  container.innerHTML = '';
+
+  function makeRow(title, subtitle, onclick) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.85rem 0; border-bottom:1px solid var(--border); cursor:pointer;';
+    row.onclick = onclick;
+    const left = document.createElement('div');
+    left.innerHTML = `<div style="font-size:14px; color:var(--text); line-height:1.3;">${title}</div>`
+      + `<div style="font-size:12px; color:var(--text-dim); margin-top:0.15rem;">${subtitle}</div>`;
+    const chevron = document.createElement('div');
+    chevron.style.cssText = 'font-size:15px; color:var(--text-dim);';
+    chevron.textContent = '›';
+    row.appendChild(left);
+    row.appendChild(chevron);
+    return row;
+  }
+
+  container.appendChild(makeRow('All phrases', "Foundation + phrases you've heard", () => openVocabModal()));
+  container.appendChild(makeRow('Know before you go', 'Culture notes for France', () => openCultureNotes()));
+}
+
+function renderSettingsTab() {
+  const container = document.getElementById('settingsTabContent');
+  if (!container) return;
+  container.innerHTML = '';
+
+  function makeRow(title, value, onclick) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.85rem 0; border-bottom:1px solid var(--border);'
+      + (onclick ? ' cursor:pointer;' : '');
+    if (onclick) row.onclick = onclick;
+    const left = document.createElement('div');
+    left.style.cssText = 'font-size:14px; color:var(--text);';
+    left.textContent = title;
+    const right = document.createElement('div');
+    right.style.cssText = 'font-size:13px; color:var(--text-dim);';
+    right.textContent = value;
+    row.appendChild(left);
+    row.appendChild(right);
+    return row;
+  }
+
+  const tripDate = localStorage.getItem('tt_trip_date');
+  const tripDisplay = tripDate || 'Not set';
+  container.appendChild(makeRow('Trip date', tripDisplay, () => showScreen('screenTripDate')));
+  container.appendChild(makeRow('Language', 'French', null));
+  container.appendChild(makeRow('Destination', 'France', null));
 }
 
 function selectLanguage(lang) {
