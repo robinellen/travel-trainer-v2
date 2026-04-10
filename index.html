@@ -7084,7 +7084,12 @@ function renderSettingsTab() {
 }
 
 function selectLanguage(lang) {
-  // Show trip date screen before first session
+  // If a trip date already exists, go straight to a session
+  if (localStorage.getItem('tt_trip_date')) {
+    startLesson();
+    return;
+  }
+  // Otherwise show the trip date prompt first
   showScreen('screenTripDate');
   // Set a sensible default (2 weeks from now)
   const twoWeeks = new Date();
