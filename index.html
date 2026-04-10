@@ -1327,7 +1327,23 @@ body::after {
   <div style="overflow-y:auto; padding:0 1.25rem 2rem; display:flex; flex-direction:column; gap:0.75rem;">
 
     <!-- Exercise progression by score reference -->
-    <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55;">
+    <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid);">JUMP TO STAGE</div>
+    <div style="display:flex; gap:0.4rem;">
+      <button onclick="devJumpToStage(1)" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">1</button>
+      <button onclick="devJumpToStage(2)" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">2</button>
+      <button onclick="devJumpToStage(3)" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">3</button>
+      <button onclick="devJumpToStage(4)" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">4</button>
+      <button onclick="devJumpToStage(5)" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">5</button>
+    </div>
+
+    <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-top:0.5rem;">LAUNCH PRACTICE MODULE</div>
+    <div style="display:flex; gap:0.4rem;">
+      <button onclick="devLaunch('listen')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Listening</button>
+      <button onclick="devLaunch('recognition')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Recognition</button>
+      <button onclick="devLaunch('experience')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Experiences</button>
+    </div>
+
+    <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55; margin-top:0.5rem;">
       <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-bottom:0.4rem;">EXERCISE PROGRESSION BY SCORE</div>
       <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 0</span> listen_pick_english (vocab card chains as follow-up)</div>
       <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_pick_english, listen_pick_french, speak_from_french</div>
@@ -8473,6 +8489,53 @@ function closeDevPanel() {
   backdrop.style.opacity = '0';
   panel.style.transform = 'translateY(100%)';
   setTimeout(() => { backdrop.style.display = 'none'; panel.style.display = 'none'; }, 350);
+}
+
+function devJumpToStage(stage) {
+  const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
+  const tier1 = playable.filter(p => (p.tier || '1') === '1' && p.audioRecorded);
+
+  if (stage === 1) {
+    // Clean slate — same as Reset All but without reload
+    devResetAll();
+    return;
+  }
+
+  // Stage 2: all Foundation at score 2, set tt_foundationComplete
+  if (stage >= 2) {
+    tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 2); });
+    localStorage.setItem('tt_foundationComplete', 'true');
+    localStorage.setItem('tt_seenPhraseCount', String(tier1.length));
+  }
+
+  // Stage 3: Stage 2 + recognition scores high enough for Experiences
+  if (stage >= 3) {
+    tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
+    devSetAllRecognition(4);
+  }
+
+  // Stage 4-5: all phrases to score 3+, all recognition maxed
+  if (stage >= 4) {
+    playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
+    localStorage.setItem('tt_recoveryUnlocked', 'true');
+    state.seenTierUnlock.recovery = true;
+  }
+  if (stage >= 5) {
+    playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 4); });
+    localStorage.setItem('tt_allExperiencesComplete', 'true');
+  }
+
+  saveState();
+  updateWelcomeScreen();
+  console.log('[dev] Jumped to Stage', stage);
+  closeDevPanel();
+}
+
+function devLaunch(module) {
+  closeDevPanel();
+  if (module === 'listen') startListenMode();
+  else if (module === 'recognition') startRecognition();
+  else if (module === 'experience') openExperience('At the Café');
 }
 
 function devSetTier1Score3() {
