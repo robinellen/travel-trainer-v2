@@ -110,6 +110,8 @@ function recordToTrigger(record) {
     triggerPhrase: f['Trigger Phrase'] || '',
     signal: f['Signal'] || '',
     signalWord: f['Signal Word'] || '',
+    signalWordDefinition: f['Signal Word Definition'] || '',
+    signalWordNote: f['Signal Word Note'] || '',
     intent: intentName,
     type: f['Type'] || '',
     language: langName,

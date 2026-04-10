@@ -1036,9 +1036,9 @@ body::after {
         <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
         <div id="recogSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
         <div id="recogSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
-        <div id="recogSignalDefinition" style="font-size:13px; color:var(--text-dim); margin-bottom:0.4rem; display:none;"></div>
-        <div id="recogFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
-        <div id="recogMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5; display:none;"></div>
+        <div id="recogSignalWordDef" style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem; display:none;"></div>
+        <div id="recogSignalWordNote" style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem; display:none;"></div>
+        <div id="recogFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;"></div>
       </div>
       <div class="mt-auto">
         <button class="btn-primary hidden" id="recogNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
@@ -1237,9 +1237,9 @@ body::after {
       <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
       <div id="recogStdSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
       <div id="recogStdSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
-      <div id="recogStdSignalDefinition" style="font-size:13px; color:var(--text-dim); margin-bottom:0.4rem; display:none;"></div>
-      <div id="recogStdFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4; margin-bottom:0.4rem;"></div>
-      <div id="recogStdMeaning" style="font-size:15px; color:var(--text-dim); line-height:1.5; display:none;"></div>
+      <div id="recogStdSignalWordDef" style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem; display:none;"></div>
+      <div id="recogStdSignalWordNote" style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem; display:none;"></div>
+      <div id="recogStdFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;"></div>
     </div>
     <div class="mt-auto">
       <button class="btn-primary hidden" id="recogStdNextBtn" onclick="advanceRecognitionStd()" style="margin-top:1.25rem;">Continue →</button>
@@ -2528,6 +2528,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "La même chose?",
     "signal": "They're asking if you'd like the same again",
     "signalWord": "même",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Same Again",
     "type": "Respond",
     "language": "French",
@@ -2547,6 +2549,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "L'ascenseur est à gauche.",
     "signal": "They're directing you to the elevator",
     "signalWord": "ascenseur / gauche",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Elevator Direction",
     "type": "Recognize",
     "language": "French",
@@ -2566,6 +2570,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Vous avez choisi?",
     "signal": "They're ready for your order",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Order Taking",
     "type": "Respond",
     "language": "French",
@@ -2585,6 +2591,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Je peux vous aider?",
     "signal": "They're offering to help you",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Help Offer",
     "type": "Respond",
     "language": "French",
@@ -2604,6 +2612,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Vous avez une réservation?",
     "signal": "They're asking if you have a reservation",
     "signalWord": "réservation",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Reservation Check",
     "type": "Respond",
     "language": "French",
@@ -2623,6 +2633,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Le départ est à midi.",
     "signal": "They're telling you checkout is at noon",
     "signalWord": "départ / midi",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Checkout Time",
     "type": "Recognize",
     "language": "French",
@@ -2642,6 +2654,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "On n'a pas ça dans votre taille.",
     "signal": "They're telling you they don't have it in your size",
     "signalWord": "pas / taille",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Size Check",
     "type": "Recognize",
     "language": "French",
@@ -2661,6 +2675,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Quelle taille?",
     "signal": "They're asking what size you are",
     "signalWord": "taille",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Size Check",
     "type": "Respond",
     "language": "French",
@@ -2680,6 +2696,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Changement de voie.",
     "signal": "The platform for your train has changed",
     "signalWord": "voie / changement",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Platform Change",
     "type": "Recognize",
     "language": "French",
@@ -2699,6 +2717,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Un café?",
     "signal": "They're offering you a coffee",
     "signalWord": "café",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Coffee Offer",
     "type": "Respond",
     "language": "French",
@@ -2718,6 +2738,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "C'est ensemble ou séparé?",
     "signal": "They're asking if you're paying together or separately",
     "signalWord": "ensemble / séparé",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Split Check",
     "type": "Respond",
     "language": "French",
@@ -2737,6 +2759,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Voilà",
     "signal": "Something is being placed in front of you",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Item Delivery",
     "type": "React",
     "language": "French",
@@ -2756,6 +2780,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Pour combien de personnes?",
     "signal": "They're asking how many people are in your party",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Party Size",
     "type": "Respond",
     "language": "French",
@@ -2775,6 +2801,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Tout se passe bien?",
     "signal": "They're checking if everything is okay",
     "signalWord": "bien",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Wellbeing Check",
     "type": "Respond",
     "language": "French",
@@ -2794,6 +2822,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Votre passeport, s'il vous plaît?",
     "signal": "They're asking to see your passport",
     "signalWord": "passeport",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Passport Request",
     "type": "React",
     "language": "French",
@@ -2813,6 +2843,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Suivez-moi",
     "signal": "Follow them to your table",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Follow Me",
     "type": "Recognize",
     "language": "French",
@@ -2832,6 +2864,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Voilà votre monnaie",
     "signal": "They're handing you your change",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Item Delivery",
     "type": "React",
     "language": "French",
@@ -2851,6 +2885,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Vos billets, s'il vous plaît.",
     "signal": "They're asking to see your ticket",
     "signalWord": "billets",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Ticket Check",
     "type": "React",
     "language": "French",
@@ -2870,6 +2906,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Vous parlez quelle langue?",
     "signal": "They're asking what language you speak",
     "signalWord": "langue",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Recovery Follow Up",
     "type": "Respond",
     "language": "French",
@@ -2889,6 +2927,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Vous voulez un sac?",
     "signal": "They're asking if you'd like a bag",
     "signalWord": "sac",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Bag Offer",
     "type": "Respond",
     "language": "French",
@@ -2908,6 +2948,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Bonne journée",
     "signal": "They're wishing you a good day",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Farewell",
     "type": "React",
     "language": "French",
@@ -2927,6 +2969,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "En terrasse ou à l'intérieur?",
     "signal": "They're asking if you want to sit inside or outside",
     "signalWord": "terrasse / intérieur",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Seating Preference",
     "type": "Respond",
     "language": "French",
@@ -2946,6 +2990,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Bon appétit",
     "signal": "They're wishing you a good meal",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Meal Wish",
     "type": "React",
     "language": "French",
@@ -2965,6 +3011,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Carte ou espèces?",
     "signal": "They're asking if you're paying by card or cash",
     "signalWord": "carte / espèces",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Payment Method",
     "type": "Respond",
     "language": "French",
@@ -2984,6 +3032,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Bonjour",
     "signal": "They're greeting you",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Greeting",
     "type": "React",
     "language": "French",
@@ -3003,6 +3053,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Votre numéro de chambre?",
     "signal": "They're asking for your room number",
     "signalWord": "numéro / chambre",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Room Number",
     "type": "Respond",
     "language": "French",
@@ -3022,6 +3074,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Vous désirez?",
     "signal": "They want your order",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Order Taking",
     "type": "Respond",
     "language": "French",
@@ -3041,6 +3095,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Et pour manger?",
     "signal": "They're asking what you'd like to eat",
     "signalWord": "manger",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Food Order",
     "type": "Respond",
     "language": "French",
@@ -3060,6 +3116,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "C'est tout?",
     "signal": "They're asking if that's everything",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Order Confirmation",
     "type": "Respond",
     "language": "French",
@@ -3079,6 +3137,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Voilà l'addition",
     "signal": "The bill is being placed in front of you",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Bill Request",
     "type": "React",
     "language": "French",
@@ -3098,6 +3158,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Vous désirez un dessert?",
     "signal": "They're asking if you'd like dessert",
     "signalWord": "dessert",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Dessert Offer",
     "type": "Respond",
     "language": "French",
@@ -3117,6 +3179,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Le petit-déjeuner est de sept heures à dix heures.",
     "signal": "They're telling you when breakfast is served",
     "signalWord": "petit-déjeuner",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Breakfast Info",
     "type": "Recognize",
     "language": "French",
@@ -3136,6 +3200,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Votre nom, s'il vous plaît?",
     "signal": "They're asking for your name",
     "signalWord": "nom",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Name Request",
     "type": "Respond",
     "language": "French",
@@ -3155,6 +3221,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Bonsoir",
     "signal": "They're greeting you",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Greeting",
     "type": "React",
     "language": "French",
@@ -3174,6 +3242,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Voilà",
     "signal": "Your food is being placed in front of you",
     "signalWord": "",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Item Delivery",
     "type": "React",
     "language": "French",
@@ -3193,6 +3263,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Vous voulez de l'eau plate, gazeuse, ou du robinet?",
     "signal": "They're asking what kind of water you want",
     "signalWord": "plate / gazeuse / robinet",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Water Preference",
     "type": "Respond",
     "language": "French",
@@ -3212,6 +3284,8 @@ const TRIGGER_PHRASES = [
     "triggerPhrase": "Qu'est-ce que vous voulez boire?",
     "signal": "They're asking what you'd like to drink",
     "signalWord": "boire",
+    "signalWordDefinition": "",
+    "signalWordNote": "",
     "intent": "Order Taking",
     "type": "Respond",
     "language": "French",
@@ -5436,19 +5510,23 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
           child.style.opacity = '0.4';
         }
       });
-      // Reveal signal word + full phrase + meaning
+      // Reveal signal word, definition, note, full phrase
       signalEl.textContent = trigger.signalWord || '';
-      const defEl = document.getElementById(prefix + 'SignalDefinition');
-      if (defEl) {
-        defEl.textContent = trigger.signalDefinition || '';
-        defEl.style.display = trigger.signalDefinition ? '' : 'none';
+      const wordDefEl = document.getElementById(prefix + 'SignalWordDef');
+      if (wordDefEl) {
+        wordDefEl.textContent = trigger.signalWordDefinition || '';
+        wordDefEl.style.display = trigger.signalWordDefinition ? '' : 'none';
+      }
+      const wordNoteEl = document.getElementById(prefix + 'SignalWordNote');
+      if (wordNoteEl) {
+        wordNoteEl.textContent = trigger.signalWordNote || '';
+        wordNoteEl.style.display = trigger.signalWordNote ? '' : 'none';
       }
       const wordCount = (trigger.signalWord || '').split('/').length;
       const labelText = wordCount > 1 ? 'The words to listen for' : 'The word to listen for';
       const labelEl = document.getElementById(prefix + 'SignalLabel');
       if (labelEl) labelEl.textContent = labelText;
       fullEl.textContent = trigger.triggerPhrase || '';
-      if (meaningEl) meaningEl.style.display = 'none';
       revealEl.classList.remove('hidden');
       nextBtn.classList.remove('hidden');
       // Coach mark for the signal word reveal (first time only)
