@@ -6802,6 +6802,8 @@ const STAGES = [
 ];
 
 function getCurrentStage() {
+  const override = localStorage.getItem('tt_devStageOverride');
+  if (override) return override;
   if (!hasAnyProgress()) return 'foundation'; // First session, show stage 1
   const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded);
   const allAt3 = tier1.every(p => getScore(p.id) >= 3);
@@ -8492,40 +8494,14 @@ function closeDevPanel() {
 }
 
 function devJumpToStage(stage) {
-  const playable = PHRASES.filter(p => (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
-  const tier1 = playable.filter(p => (p.tier || '1') === '1' && p.audioRecorded);
-
+  const stageKeys = [null, null, 'listening', 'wild', 'nosafety', 'ready'];
   if (stage === 1) {
-    // Clean slate — same as Reset All but without reload
-    devResetAll();
-    return;
+    localStorage.removeItem('tt_devStageOverride');
+  } else {
+    localStorage.setItem('tt_devStageOverride', stageKeys[stage]);
   }
-
-  // Stage 2: all Foundation at score 2, set tt_foundationComplete
-  if (stage >= 2) {
-    tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 2); });
-    localStorage.setItem('tt_foundationComplete', 'true');
-    localStorage.setItem('tt_seenPhraseCount', String(tier1.length));
-  }
-
-  // Stage 3: all Foundation at score 4 (getCurrentStage requires allAt3 + allAt4
-  // thresholds), recognition maxed so Experiences unlocks
-  if (stage >= 3) {
-    tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 4); });
-    devSetAllRecognition(4);
-  }
-
-  // Stage 4-5: all phrases to score 5, all recognition maxed
-  if (stage >= 4) {
-    playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 5); });
-    localStorage.setItem('tt_recoveryUnlocked', 'true');
-    state.seenTierUnlock.recovery = true;
-    localStorage.setItem('tt_allExperiencesComplete', 'true');
-  }
-
-  saveState();
   updateWelcomeScreen();
-  console.log('[dev] Jumped to Stage', stage);
+  console.log('[dev] Stage override:', stage === 1 ? 'cleared' : stageKeys[stage]);
   closeDevPanel();
 }
 
