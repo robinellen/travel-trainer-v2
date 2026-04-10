@@ -1310,6 +1310,25 @@ body::after {
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════
+     STAGE COMPLETION CARD
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenStageComplete">
+  <div class="exercise-header">
+    <button class="btn-back" onclick="goHome()" aria-label="Back">←</button>
+    <div style="flex:1;"></div>
+  </div>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:1.5rem;">
+    <div style="max-width:400px; width:100%; margin:0 auto;">
+      <div class="eyebrow" style="margin-bottom:1rem;" id="stageCompleteEyebrow"></div>
+      <h2 class="serif" style="font-size:clamp(1.6rem,5vw,2rem); line-height:1.2; margin-bottom:1.5rem; font-weight:500;" id="stageCompleteHeadline"></h2>
+      <div style="font-size:13px; letter-spacing:0.12em; color:var(--text-dim); margin-bottom:0.6rem;">WHAT YOU LEARNED</div>
+      <div id="stageCompleteItems" style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:2rem;"></div>
+      <button class="btn-primary" id="stageCompleteReviewBtn" style="margin-bottom:0.75rem;">Review →</button>
+    </div>
+  </div>
+</div>
+
 <!-- Coach mark overlay (injected dynamically) -->
 <div id="coachOverlay" class="coach-overlay" style="display:none;" onclick="dismissActiveCoachMark()"></div>
 
@@ -6940,6 +6959,136 @@ function switchHomeTab(tab) {
   else if (tab === 'settings') renderSettingsTab();
 }
 
+// ── STAGE COMPLETION CARD ─────────────────────────────────────────
+
+const STAGE_CARDS = [
+  {
+    headline: 'You know the words that matter.',
+    items: ['15 essential French phrases', 'Greetings, ordering, paying, and recovering'],
+  },
+  {
+    headline: 'You can hear it coming.',
+    items: ['Recognizing trigger phrases by ear', 'Picking out signal words in real speech'],
+  },
+  {
+    headline: "You've been there before.",
+    items: ['Full interactions from arrival to goodbye', 'Handling the unexpected'],
+  },
+  {
+    headline: 'Stage complete.',
+    items: ['More to come.'],
+  },
+  {
+    headline: 'Stage complete.',
+    items: ['More to come.'],
+  },
+];
+
+function openStageComplete(stageIdx) {
+  const card = STAGE_CARDS[stageIdx];
+  if (!card) return;
+
+  document.getElementById('stageCompleteEyebrow').textContent = `Stage ${stageIdx + 1} Complete`;
+  document.getElementById('stageCompleteHeadline').textContent = card.headline;
+
+  const itemsEl = document.getElementById('stageCompleteItems');
+  itemsEl.innerHTML = '';
+  card.items.forEach(text => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; gap:0.5rem; font-size:15px; color:var(--text); line-height:1.4;';
+    row.innerHTML = `<span style="color:var(--green); font-size:13px;">&#10003;</span> ${text}`;
+    itemsEl.appendChild(row);
+  });
+
+  const reviewBtn = document.getElementById('stageCompleteReviewBtn');
+  reviewBtn.onclick = () => startStageReview(stageIdx);
+
+  showScreen('screenStageComplete');
+}
+
+function startStageReview(stageIdx) {
+  // Filter phrases by stage content, then launch a standard session
+  let pool;
+  if (stageIdx <= 1) {
+    // Stages 1-2: tier 1 phrases only
+    pool = PHRASES.filter(p => (p.tier || '1') === '1');
+  } else if (stageIdx === 2) {
+    // Stage 3: tier 1 + recovery
+    pool = PHRASES.filter(p => (p.tier || '1') === '1' || p.tier === 'Recovery');
+  } else {
+    // Stages 4-5: all active
+    pool = getActivePhrases();
+  }
+
+  // Build a review session from this pool using the standard engine
+  const playable = pool.filter(p => getScore(p.id) >= 1 && getAudio(p.native));
+  if (!playable.length) {
+    goHome();
+    return;
+  }
+
+  state.session.mode = 'lesson';
+  state.session.index = 0;
+  state.session.pendingUnlock = null;
+  state.session._resurfaced = {};
+  state.session._startScores = {};
+  state.session._sessionPhrases = [];
+
+  // Pick up to 6 review phrases, prioritizing due ones
+  const due = shuffle(playable.filter(p => isPhrasedue(p.id)));
+  const notDue = shuffle(playable.filter(p => !isPhrasedue(p.id)));
+  const selected = [...due, ...notDue].slice(0, 6);
+
+  state.session._sessionPhrases = selected.map(p => p.id);
+  selected.forEach(p => { state.session._startScores[p.id] = getScore(p.id); });
+
+  const phraseTouches = selected.map(p => ({
+    phrase: p,
+    touches: buildPhraseTouches(p),
+  }));
+
+  const queue = [];
+  const lastTouchIdxByPhrase = {};
+  const maxTouches = phraseTouches.reduce((m, pt) => Math.max(m, pt.touches.length), 0);
+
+  for (let pass = 0; pass < maxTouches; pass++) {
+    const order = shuffle([...phraseTouches]);
+    for (const pt of order) {
+      if (pass < pt.touches.length) {
+        queue.push({ phraseId: pt.phrase.id, type: pt.touches[pass] });
+        lastTouchIdxByPhrase[pt.phrase.id] = queue.length - 1;
+      }
+    }
+  }
+
+  Object.values(lastTouchIdxByPhrase).forEach(idx => { queue[idx]._isFinal = true; });
+
+  // Mark score 0 listen_meaning items for vocab card follow-up
+  const score0Ids = new Set(selected.filter(p => getScore(p.id) === 0 && p.tier !== 'Recovery').map(p => p.id));
+  for (const item of queue) {
+    if (item.type === 'listen_meaning' && score0Ids.has(item.phraseId)) {
+      item._followWithVocabCard = true;
+    }
+  }
+
+  // Anti-clustering
+  for (let i = 1; i < queue.length; i++) {
+    if (queue[i].phraseId === queue[i - 1].phraseId) {
+      for (let j = i + 1; j < queue.length; j++) {
+        if (queue[j].phraseId !== queue[i - 1].phraseId &&
+            (i + 1 >= queue.length || queue[j].phraseId !== queue[i + 1]?.phraseId)) {
+          [queue[i], queue[j]] = [queue[j], queue[i]];
+          break;
+        }
+      }
+    }
+  }
+
+  state.session.queue = queue;
+  showScreen('screenExercise');
+  renderCurrentExercise();
+}
+
 function renderLearnTab() {
   const container = document.getElementById('learnTabContent');
   if (!container) return;
@@ -7027,8 +7176,7 @@ function renderLearnTab() {
     row.style.cssText = 'display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0;';
     if (isCompleted) {
       row.style.cursor = 'pointer';
-      // TODO: navigate to that stage's practice content when tapped
-      row.onclick = () => {};
+      row.onclick = () => openStageComplete(i);
     }
     if (isLocked) {
       row.style.pointerEvents = 'none';
