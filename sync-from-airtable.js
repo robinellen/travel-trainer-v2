@@ -94,6 +94,10 @@ function recordToPhrase(record) {
     situationEarly: parseArray(f['Situation (Early)']),
     situationLate: parseArray(f['Situation (Late)']),
     responses: parseArray(f['Responses']),
+    direction: f['Direction'] ? (typeof f['Direction'] === 'object' ? f['Direction'].name : f['Direction']) : '',
+    preferenceGroup: Array.isArray(f['Preference Group'])
+      ? f['Preference Group'].map(v => typeof v === 'object' ? v.name : v)
+      : [],
   };
 }
 

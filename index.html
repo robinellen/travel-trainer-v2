@@ -152,6 +152,25 @@ body::after {
 }
 .btn-text:hover { color: var(--text); }
 
+.pref-pill {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0 0.4rem 0.4rem 0;
+  border: 1px solid var(--border);
+  border-radius: 2rem;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: 'Lexend', sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pref-pill.selected {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--text);
+  color: var(--text);
+}
+
 .home-tab {
   flex: 1;
   display: flex;
@@ -1307,6 +1326,19 @@ body::after {
 <div class="screen" id="screenTierUnlock">
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; gap:0;" id="tierUnlockContent">
     <!-- Dynamically rendered -->
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     PREFERENCE GATE
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenPrefGate">
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:1.5rem;">
+    <div style="max-width:400px; width:100%; margin:0 auto;">
+      <div id="prefGateDrinks" style="margin-bottom:1.5rem;"></div>
+      <div id="prefGateDietary" style="margin-bottom:2rem;"></div>
+      <button class="btn-primary" id="prefGateGoBtn" style="width:100%;">Let's go →</button>
+    </div>
   </div>
 </div>
 
@@ -6354,16 +6386,30 @@ const PHRASES = [
 //   3 = correctly produced at least twice
 
 // Returns phrases the user currently has access to, based on unlock flags.
+function normalizePreference(value) {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+function isPreferenceSelected(group) {
+  return !!localStorage.getItem('tt_prefs_' + normalizePreference(group));
+}
+
 function getActivePhrases() {
+  const prefGateSeen = !!localStorage.getItem('tt_prefGateSeen');
   return PHRASES.filter(p => {
     if (!(p.meaning || (p.meanings && p.meanings.length)) || !getAudio(p.native)) return false;
     const tier = p.tier || '1';
-    if (tier === '1') return p.audioRecorded;
-    if (tier === 'Recovery') return !!localStorage.getItem('tt_recoveryUnlocked');
-    if (tier === '2') return !!localStorage.getItem('tt_recoveryUnlocked'); // Tier 2 unlocks with recovery
-    if (tier === '3') return !!localStorage.getItem('tt_tier3Unlocked');
-    // Any other tier value (Vocabulary, Vocabulary — Pending Pack System, etc.) is excluded
-    return false;
+    if (tier === '1') { if (!p.audioRecorded) return false; }
+    else if (tier === 'Recovery') { if (!localStorage.getItem('tt_recoveryUnlocked')) return false; }
+    else if (tier === '2') { if (!localStorage.getItem('tt_recoveryUnlocked')) return false; }
+    else if (tier === '3') { if (!localStorage.getItem('tt_tier3Unlocked')) return false; }
+    else return false;
+    // Preference filtering: after the gate, only include preference-tagged
+    // phrases if the user selected at least one matching preference group.
+    if (prefGateSeen && p.preferenceGroup && p.preferenceGroup.length > 0) {
+      if (!p.preferenceGroup.some(g => isPreferenceSelected(g))) return false;
+    }
+    return true;
   });
 }
 
@@ -6916,6 +6962,61 @@ function shuffle(arr) {
   return a;
 }
 
+// ── PREFERENCE GATE ──────────────────────────────────────────────
+
+function openPreferenceGate(resumeCallback) {
+  const allPrefs = [];
+  PHRASES.forEach(p => {
+    (p.preferenceGroup || []).forEach(g => {
+      if (!allPrefs.includes(g)) allPrefs.push(g);
+    });
+  });
+
+  const drinkKeywords = ['coffee', 'tea', 'beer', 'wine', 'alcohol'];
+  const dietaryKeywords = ['vegetarian', 'vegan', 'gluten', 'dairy', 'dietary'];
+
+  const drinkOptions = allPrefs.filter(g => drinkKeywords.some(k => g.toLowerCase().includes(k)));
+  const dietaryOptions = allPrefs.filter(g => dietaryKeywords.some(k => g.toLowerCase().includes(k)));
+
+  const selectedSet = new Set();
+
+  function renderSection(containerId, title, options) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!options.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="eyebrow" style="margin-bottom:0.75rem;">${title}</div><div id="${containerId}Pills"></div>`;
+    const pillsEl = document.getElementById(containerId + 'Pills');
+    options.forEach(opt => {
+      const pill = document.createElement('button');
+      pill.className = 'pref-pill';
+      pill.textContent = opt;
+      pill.onclick = () => {
+        if (selectedSet.has(opt)) {
+          selectedSet.delete(opt);
+          pill.classList.remove('selected');
+        } else {
+          selectedSet.add(opt);
+          pill.classList.add('selected');
+        }
+      };
+      pillsEl.appendChild(pill);
+    });
+  }
+
+  renderSection('prefGateDrinks', 'What do you drink?', drinkOptions);
+  renderSection('prefGateDietary', 'Do you have any dietary needs?', dietaryOptions);
+
+  document.getElementById('prefGateGoBtn').onclick = () => {
+    localStorage.setItem('tt_prefGateSeen', 'true');
+    selectedSet.forEach(val => {
+      localStorage.setItem('tt_prefs_' + normalizePreference(val), 'true');
+    });
+    if (resumeCallback) resumeCallback();
+  };
+
+  showScreen('screenPrefGate');
+}
+
 function startSessionWithMode(mode) {
   state.session.mode = mode;
   state.session.index = 0;
@@ -6957,6 +7058,14 @@ function startSessionWithMode(mode) {
     }
 
     const selected = [...newPicks, ...reviewPicks];
+
+    // Preference gate: fire once before the first preference-tagged phrase
+    if (!localStorage.getItem('tt_prefGateSeen') &&
+        selected.some(p => p.preferenceGroup && p.preferenceGroup.length > 0)) {
+      openPreferenceGate(() => startSessionWithMode(mode));
+      return;
+    }
+
     state.session._sessionPhrases = selected.map(p => p.id);
     selected.forEach(p => { state.session._startScores[p.id] = getScore(p.id); });
 
@@ -8607,19 +8716,115 @@ const STAGES = [
   { key: 'ready',      label: "Stage 5: As Ready As You'll Get" },
 ];
 
-function getCurrentStage() {
+// Returns Foundation-eligible phrases with sortOrder in [min, max].
+function getPhrasesInSortRange(min, max) {
+  return PHRASES.filter(p =>
+    (p.tier || '1') === '1' && p.audioRecorded && p.sortOrder >= min && p.sortOrder <= max
+  );
+}
+
+function getCurrentSubstage() {
   const override = localStorage.getItem('tt_devStageOverride');
-  if (override) return override;
-  if (!hasAnyProgress()) return 'foundation'; // First session, show stage 1
-  const tier1 = PHRASES.filter(p => (p.tier || '1') === '1' && p.audioRecorded);
-  const allAt3 = tier1.every(p => getScore(p.id) >= 3);
-  const allAt4 = tier1.every(p => getScore(p.id) >= 4);
-  const foundationComplete = !!localStorage.getItem('tt_foundationComplete');
-  if (!foundationComplete) return 'foundation';
-  if (!allAt3) return 'listening';
-  if (!allAt4) return 'wild';
-  if (!localStorage.getItem('tt_allExperiencesComplete')) return 'nosafety';
-  return 'ready';
+  if (override) {
+    // Map override keys to substage objects
+    const overrideMap = {
+      'foundation': { stage: 1, substage: 'S1-A' },
+      'listening':  { stage: 2, substage: 'S2-A' },
+      'wild':       { stage: 3, substage: 'S3-entry' },
+      'nosafety':   { stage: 4, substage: 'S4-A' },
+      'ready':      { stage: 5, substage: 'S5' },
+      // Direct substage overrides
+      'S1-A': { stage: 1, substage: 'S1-A' },
+      'S1-B': { stage: 1, substage: 'S1-B' },
+      'S1-C': { stage: 1, substage: 'S1-C' },
+      'S2-A': { stage: 2, substage: 'S2-A' },
+      'S2-B': { stage: 2, substage: 'S2-B' },
+      'S2-C': { stage: 2, substage: 'S2-C' },
+      'S3-entry': { stage: 3, substage: 'S3-entry' },
+      'S3-A': { stage: 3, substage: 'S3-A' },
+      'S3-B': { stage: 3, substage: 'S3-B' },
+      'S4-A': { stage: 4, substage: 'S4-A' },
+      'S4-B': { stage: 4, substage: 'S4-B' },
+      'S5':   { stage: 5, substage: 'S5' },
+    };
+    return overrideMap[override] || { stage: 1, substage: 'S1-A' };
+  }
+
+  if (!hasAnyProgress()) return { stage: 1, substage: 'S1-A' };
+
+  // S1-A → S1-B: sorts 1-16, at least 8 at score 2+ AND all 16 introduced
+  const s1_16 = getPhrasesInSortRange(1, 16);
+  const s1_16_at2 = s1_16.filter(p => getScore(p.id) >= 2).length;
+  const s1_16_at1 = s1_16.filter(p => getScore(p.id) >= 1).length;
+  if (s1_16_at2 < 8 || s1_16_at1 < s1_16.length) return { stage: 1, substage: 'S1-A' };
+
+  // S1-B → S1-C: all 16 at score 2+
+  if (!s1_16.every(p => getScore(p.id) >= 2)) return { stage: 1, substage: 'S1-B' };
+
+  // S1-C sets tt_foundationComplete when crossed
+  if (!localStorage.getItem('tt_foundationComplete')) {
+    localStorage.setItem('tt_foundationComplete', 'true');
+  }
+
+  // S1-C → S2-A: tt_foundationComplete set (it is now)
+  // We're in Stage 2
+
+  // S2-A → S2-B: sorts 17-24 all at score 2+ AND recognition for specific intents
+  const s17_24 = getPhrasesInSortRange(17, 24);
+  const requiredIntents = ['Order Taking', 'Greeting', 'Reservation Check', 'Party Size', 'Follow Me', 'Water Preference'];
+  const intentsOk = requiredIntents.every(i => getRecognitionScore(i) >= 1);
+  if (!s17_24.every(p => getScore(p.id) >= 2) || !intentsOk) return { stage: 2, substage: 'S2-A' };
+
+  // S2-B → S2-C: sorts 25-36 all at score 2+ AND sorts 17-24 all at score 3+
+  const s25_36 = getPhrasesInSortRange(25, 36);
+  if (!s25_36.every(p => getScore(p.id) >= 2) || !s17_24.every(p => getScore(p.id) >= 3)) {
+    return { stage: 2, substage: 'S2-B' };
+  }
+
+  // S2-C → Stage 3 entry: sorts 37-47 all at score 1+ AND tt_prefGateSeen AND sorts 17-36 80% at score 2+
+  const s37_47 = getPhrasesInSortRange(37, 47);
+  const s17_36 = getPhrasesInSortRange(17, 36);
+  const s17_36_threshold = Math.floor(s17_36.length * 0.8);
+  const s17_36_at2 = s17_36.filter(p => getScore(p.id) >= 2).length;
+  if (!s37_47.every(p => getScore(p.id) >= 1) ||
+      !localStorage.getItem('tt_prefGateSeen') ||
+      s17_36_at2 < s17_36_threshold) {
+    return { stage: 2, substage: 'S2-C' };
+  }
+
+  // Stage 3 entry → S3-A: all preference-filtered phrases introduced AND 50% at score 2+
+  // AND sorts 74-77 (Tier 3) all introduced
+  const active = getActivePhrases();
+  const activeIntroduced = active.filter(p => getScore(p.id) >= 1);
+  const activeAt2 = active.filter(p => getScore(p.id) >= 2);
+  const s74_77 = getPhrasesInSortRange(74, 77);
+  if (activeIntroduced.length < active.length ||
+      activeAt2.length < Math.floor(active.length * 0.5) ||
+      !s74_77.every(p => getScore(p.id) >= 1)) {
+    return { stage: 3, substage: 'S3-entry' };
+  }
+
+  // S3-A → S3-B: all preference-filtered phrases at score 2+ AND sorts 74-77 at score 1+
+  if (!active.every(p => getScore(p.id) >= 2) || !s74_77.every(p => getScore(p.id) >= 1)) {
+    return { stage: 3, substage: 'S3-A' };
+  }
+
+  // S3-B → S4-A: all active at score 2+
+  if (!active.every(p => getScore(p.id) >= 2)) return { stage: 3, substage: 'S3-B' };
+
+  // S4-A → S4-B: 80% of all active at score 3+
+  const activeAt3 = active.filter(p => getScore(p.id) >= 3).length;
+  if (activeAt3 < Math.floor(active.length * 0.8)) return { stage: 4, substage: 'S4-A' };
+
+  // S4-B → S5
+  return { stage: 5, substage: 'S5' };
+}
+
+// Backward-compatible wrapper returning the stage key string
+function getCurrentStage() {
+  const sub = getCurrentSubstage();
+  const stageToKey = { 1: 'foundation', 2: 'listening', 3: 'wild', 4: 'nosafety', 5: 'ready' };
+  return stageToKey[sub.stage] || 'foundation';
 }
 
 function renderStageEyebrow(containerId) {
@@ -10431,14 +10636,14 @@ function closeDevPanel() {
 }
 
 function devJumpToStage(stage) {
-  const stageKeys = [null, null, 'listening', 'wild', 'nosafety', 'ready'];
+  const substageKeys = [null, 'S1-A', 'S2-A', 'S3-entry', 'S4-A', 'S5'];
   if (stage === 1) {
     localStorage.removeItem('tt_devStageOverride');
   } else {
-    localStorage.setItem('tt_devStageOverride', stageKeys[stage]);
+    localStorage.setItem('tt_devStageOverride', substageKeys[stage]);
   }
   updateWelcomeScreen();
-  console.log('[dev] Stage override:', stage === 1 ? 'cleared' : stageKeys[stage]);
+  console.log('[dev] Stage override:', stage === 1 ? 'cleared' : substageKeys[stage]);
   closeDevPanel();
 }
 
@@ -10529,7 +10734,8 @@ function devShowScores() {
     + ' vocabulary=' + !!localStorage.getItem('tt_vocabularyUnlocked')
     + ' tier3=' + !!localStorage.getItem('tt_tier3Unlocked'));
   lines.push('foundationComplete: ' + !!localStorage.getItem('tt_foundationComplete'));
-  lines.push('currentStage: ' + getCurrentStage());
+  const sub = getCurrentSubstage();
+  lines.push('currentStage: ' + getCurrentStage() + ' (substage: ' + sub.substage + ')');
   lines.push('seenTierUnlock: ' + JSON.stringify(state.seenTierUnlock));
   out.textContent = lines.join('\n');
   out.style.display = 'block';
