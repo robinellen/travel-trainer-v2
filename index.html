@@ -6401,7 +6401,7 @@ function getActivePhrases() {
     const tier = p.tier || '1';
     if (tier === '1') { if (!p.audioRecorded) return false; }
     else if (tier === 'Recovery') { if (!localStorage.getItem('tt_recoveryUnlocked')) return false; }
-    else if (tier === '2') { if (!localStorage.getItem('tt_recoveryUnlocked')) return false; }
+    else if (tier === '2') { if (!localStorage.getItem('tt_recoveryUnlocked') || !p.audioRecorded) return false; }
     else if (tier === '3') { if (!localStorage.getItem('tt_tier3Unlocked')) return false; }
     else return false;
     // Preference filtering: after the gate, only include preference-tagged
