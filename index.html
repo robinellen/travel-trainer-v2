@@ -9623,7 +9623,16 @@ function renderListenPanel(phrase, type, forcedSubType) {
   // Check if this phrase needs a buildup sequence first
   if (type === 'listen' && checkAndStartBuildup(phrase)) return;
 
+  // First-time gate: repeat coach mark fires the first time a previously-seen
+  // phrase comes back in a session. Full-screen interstitial so audio doesn't
+  // start playing behind it.
+  if (getScore(phrase.id) >= 1 && !localStorage.getItem('tt_seenRepeatCoachMark')) {
+    showRepeatCoachMark(() => renderListenPanel(phrase, type, forcedSubType));
+    return;
+  }
+
   document.getElementById('panelListen').classList.remove('hidden');
+  showScreen('screenExercise');
   document.getElementById('listenCircle').classList.remove('playing');
   document.getElementById('listenHint').textContent = 'Tap to hear';
   document.getElementById('listenEmoji').classList.add('hidden');
@@ -9631,14 +9640,6 @@ function renderListenPanel(phrase, type, forcedSubType) {
   document.getElementById('listenTask').style.display = 'none';
   document.getElementById('listenNextBtn').classList.add('hidden');
   document.getElementById('listenTaskResult').className = 'result-bar';
-
-  // Listen coach mark — first listening exercise ever
-  showCoachMark('tt_seenListenCoachMark');
-
-  // Review coach mark — first time a previously-seen phrase comes back
-  if (getScore(phrase.id) >= 1) {
-    showCoachMark('tt_seenReviewCoachMark');
-  }
 
   let listenCallbackFired = false;
   audioEndedCallback = () => {
@@ -12145,14 +12146,32 @@ function showCoachMark(_storageKey) {
   return false;
 }
 
-function showRecognitionCoachMark(onDismiss) {
-  document.getElementById('coachMarkText').textContent =
-    "This app is built around hearing real French. Training your ear here is what makes the difference in the moment.";
+// Generic interstitial. Shows screenCoachMark with the given text and wires
+// the Got it button to set the seen flag and fire the callback. The exercise
+// that caused the interstitial should re-enter itself from the callback.
+function showCoachMarkInterstitial(text, seenKey, onDismiss) {
+  document.getElementById('coachMarkText').textContent = text;
   document.getElementById('coachMarkDismissBtn').onclick = () => {
-    localStorage.setItem('tt_seenRecogCoachMark', 'true');
+    localStorage.setItem(seenKey, 'true');
     if (onDismiss) onDismiss();
   };
   showScreen('screenCoachMark');
+}
+
+function showRecognitionCoachMark(onDismiss) {
+  showCoachMarkInterstitial(
+    "This app is built around hearing real French. Training your ear here is what makes the difference in the moment.",
+    'tt_seenRecogCoachMark',
+    onDismiss
+  );
+}
+
+function showRepeatCoachMark(onDismiss) {
+  showCoachMarkInterstitial(
+    "Some phrases will repeat. That's intentional. Coming back to them is what moves them from short-term to long-term memory.",
+    'tt_seenRepeatCoachMark',
+    onDismiss
+  );
 }
 
 
