@@ -1329,6 +1329,10 @@ body::after {
       <button onclick="devLaunch('tripfocus')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Trip Focus</button>
       <button onclick="devLaunch('prefgate')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Pref Gate</button>
     </div>
+    <div style="display:flex; gap:0.4rem;">
+      <button onclick="devClearCoachMark('tt_seenRecogCoachMark')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Clear Recog Mark</button>
+      <button onclick="devClearCoachMark('tt_seenRepeatCoachMark')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Clear Repeat Mark</button>
+    </div>
 
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55; margin-top:0.5rem;">
       <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-bottom:0.4rem;">EXERCISE PROGRESSION BY SCORE</div>
@@ -10368,6 +10372,23 @@ function advanceSession() {
     showCompletion();
     return;
   }
+
+  // Coach mark gates: fire BEFORE showing the exercise screen so no flash.
+  // Each interstitial's dismiss callback re-enters advanceSession to proceed.
+  const item = state.session.queue[state.session.index];
+  const phrase = item && item.phraseId ? PHRASES.find(p => p.id === item.phraseId) : null;
+  const isListen = item && ['listen_meaning', 'listen_pick_french', 'listen_identify', 'listen', 'learn'].includes(item.type);
+  const isRecognition = item && item.type === 'recognition';
+
+  if (isRecognition && !localStorage.getItem('tt_seenRecogCoachMark')) {
+    showRecognitionCoachMark(() => advanceSession());
+    return;
+  }
+  if (isListen && phrase && getScore(phrase.id) >= 1 && !localStorage.getItem('tt_seenRepeatCoachMark')) {
+    showRepeatCoachMark(() => advanceSession());
+    return;
+  }
+
   showScreen('screenExercise');
   renderCurrentExercise();
 }
@@ -12545,9 +12566,20 @@ function devSetAllScore3() {
 
 function devResetAll() {
   // Clear everything the app owns: phrase scores, recognition scores per
-  // Intent, coach mark flags, the foundation complete flag, and any
+  // Intent, coach mark flags (including tt_seenRecogCoachMark and
+  // tt_seenRepeatCoachMark), the foundation complete flag, and any
   // tt_prefs_ preferences.
-  const keys = [];
+  const explicitKeys = [
+    'tt_seenRecogCoachMark',
+    'tt_seenRepeatCoachMark',
+    'tt_foundationComplete',
+    'tt_tripFocusSeen',
+    'tt_prefGateSeen',
+    'tt_devStageOverride',
+    'tt_language',
+    'tt_trip_date',
+  ];
+  const keys = new Set(explicitKeys);
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (!key) continue;
@@ -12556,13 +12588,19 @@ function devResetAll() {
       key.startsWith('tt_recog_') ||
       key.startsWith('tt_seen') ||
       key.startsWith('tt_prefs_') ||
-      key === 'tt_foundationComplete'
+      key.startsWith('tt_tripFocus_')
     ) {
-      keys.push(key);
+      keys.add(key);
     }
   }
   keys.forEach(k => localStorage.removeItem(k));
   location.reload();
+}
+
+function devClearCoachMark(key) {
+  localStorage.removeItem(key);
+  console.log('[dev] Cleared coach mark flag:', key);
+  closeDevPanel();
 }
 
 function devSkipToCafePass3() {
