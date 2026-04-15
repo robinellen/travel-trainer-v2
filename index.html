@@ -10746,9 +10746,15 @@ function renderSettingsTab() {
 }
 
 function selectLanguage(lang) {
-  // If a trip date already exists, go straight to a session
+  // Persist language immediately so later renders know onboarding is done
+  // regardless of what routing happens next.
+  localStorage.setItem('tt_language', 'French');
+
+  // If a trip date already exists, land on the Learn tab (stage ladder).
+  // No exercise is launched here — the user taps Continue Learning when ready.
   if (localStorage.getItem('tt_trip_date')) {
-    startLesson();
+    showScreen('screenWelcome');
+    updateWelcomeScreen();
     return;
   }
   // Otherwise show the trip date prompt first
