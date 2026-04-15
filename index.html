@@ -1350,7 +1350,8 @@ body::after {
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:1.5rem;">
     <div style="max-width:400px; width:100%; margin:0 auto;">
       <div id="prefGateDrinks" style="margin-bottom:1.5rem;"></div>
-      <div id="prefGateDietary" style="margin-bottom:2rem;"></div>
+      <div id="prefGateDietary" style="margin-bottom:1.5rem;"></div>
+      <div id="prefGateTransit" style="margin-bottom:2rem;"></div>
       <button class="btn-primary" id="prefGateGoBtn" style="width:100%;">Let's go →</button>
     </div>
   </div>
@@ -8884,10 +8885,12 @@ function openPreferenceGate(resumeCallback) {
   });
 
   const drinkKeywords = ['coffee', 'tea', 'beer', 'wine', 'alcohol', 'spirit'];
-  const dietaryKeywords = ['vegetarian', 'vegan', 'gluten', 'dairy', 'dietary'];
+  const dietaryKeywords = ['vegetarian', 'vegan', 'gluten', 'dairy', 'dietary', 'meat'];
+  const transitKeywords = ['train'];
 
   const drinkOptions = allPrefs.filter(g => drinkKeywords.some(k => g.toLowerCase().includes(k)));
   const dietaryOptions = allPrefs.filter(g => dietaryKeywords.some(k => g.toLowerCase().includes(k)));
+  const transitOptions = allPrefs.filter(g => transitKeywords.some(k => g.toLowerCase().includes(k)));
 
   const selectedSet = new Set();
 
@@ -8916,6 +8919,7 @@ function openPreferenceGate(resumeCallback) {
 
   renderSection('prefGateDrinks', 'What do you drink?', drinkOptions);
   renderSection('prefGateDietary', 'Do you have any dietary needs?', dietaryOptions);
+  renderSection('prefGateTransit', 'How are you getting around?', transitOptions);
 
   document.getElementById('prefGateGoBtn').onclick = () => {
     localStorage.setItem('tt_prefGateSeen', 'true');
@@ -9059,6 +9063,23 @@ function startSessionWithMode(mode) {
       }
     }
 
+    // Priority injection: Train users must hear the Composting Reminder
+    // trigger before their first normal recognition. This is the single
+    // most safety-critical phrase in the French set — missing it can mean
+    // a fine even with a valid ticket. Once Composting Reminder has a
+    // recognition score > 0, normal weighted selection takes over.
+    const composter = getComposterPriorityTrigger();
+    if (composter) {
+      // Inject at the front of the queue as a recognition item pinned to
+      // the Composting Reminder intent. Not marked _isFinal and not tied
+      // to any phrase score so it doesn't interfere with session scoring.
+      queue.unshift({
+        type: 'recognition',
+        intent: 'Composting Reminder',
+        _priorityInject: true,
+      });
+    }
+
     state.session.queue = queue;
   } else {
     const pool = activePhrases;
@@ -9149,6 +9170,16 @@ function extractDepthLevel(depthLevel) {
 // Pick the best variant within an intent group based on user's recognition score for that intent.
 // Score 0-1 → Level 1 variant. Score 2-3 → Level 2. Score 4+ → Level 3.
 // Falls back to the highest available level if the target level has no recorded variant.
+// Train users must hear the Composting Reminder trigger before any other
+// recognition. Returns the trigger to serve, or null if the user isn't a
+// Train user or has already encountered this intent.
+function getComposterPriorityTrigger() {
+  if (!localStorage.getItem('tt_prefs_train')) return null;
+  if (getRecognitionScore('Composting Reminder') > 0) return null;
+  const pool = getRecognitionPool();
+  return pool.find(t => t.intent === 'Composting Reminder') || null;
+}
+
 function pickTriggerForIntent(intent) {
   const pool = getRecognitionPool().filter(t => t.intent === intent);
   if (!pool.length) return null;
