@@ -1330,6 +1330,20 @@ body::after {
 </div>
 
 <!-- ═══════════════════════════════════════════════════
+     TRIP FOCUS GATE
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenTripFocus">
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:1.5rem;">
+    <div style="max-width:400px; width:100%; margin:0 auto;">
+      <h2 class="serif" style="font-size:clamp(1.6rem,5vw,2rem); line-height:1.2; margin-bottom:0.5rem; font-weight:500;">What's your trip about?</h2>
+      <p style="font-size:15px; color:var(--text-dim); line-height:1.6; margin-bottom:1.5rem;">Pick what matters most. You can pick more than one, or skip.</p>
+      <div id="tripFocusPills" style="margin-bottom:2rem;"></div>
+      <button class="btn-primary" id="tripFocusGoBtn" style="width:100%;">Let's go →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
      PREFERENCE GATE
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="screenPrefGate">
@@ -8355,6 +8369,78 @@ function shuffle(arr) {
   return a;
 }
 
+// ── TRIP FOCUS GATE ──────────────────────────────────────────────
+
+const TRIP_FOCUS_OPTIONS = [
+  { label: 'Eating and drinking', tags: ['Restaurant', 'Café'] },
+  { label: 'Shopping and markets', tags: ['Shopping'] },
+  { label: 'Getting around',      tags: ['Transit', 'Hotel'] },
+];
+
+function userSelectedFocus(focusTag) {
+  return !!localStorage.getItem('tt_tripFocus_' + String(focusTag || '').toLowerCase());
+}
+
+function hasAnyTripFocusSelected() {
+  return TRIP_FOCUS_OPTIONS.some(opt => opt.tags.some(t => userSelectedFocus(t)));
+}
+
+function openTripFocusGate(resumeCallback) {
+  const pillsEl = document.getElementById('tripFocusPills');
+  pillsEl.innerHTML = '';
+  const selectedIdx = new Set();
+
+  TRIP_FOCUS_OPTIONS.forEach((opt, i) => {
+    const pill = document.createElement('button');
+    pill.className = 'pref-pill';
+    pill.textContent = opt.label;
+    pill.onclick = () => {
+      if (selectedIdx.has(i)) {
+        selectedIdx.delete(i);
+        pill.classList.remove('selected');
+      } else {
+        selectedIdx.add(i);
+        pill.classList.add('selected');
+      }
+    };
+    pillsEl.appendChild(pill);
+  });
+
+  document.getElementById('tripFocusGoBtn').onclick = () => {
+    localStorage.setItem('tt_tripFocusSeen', 'true');
+    selectedIdx.forEach(i => {
+      TRIP_FOCUS_OPTIONS[i].tags.forEach(tag => {
+        localStorage.setItem('tt_tripFocus_' + tag.toLowerCase(), 'true');
+      });
+    });
+    if (resumeCallback) resumeCallback();
+  };
+
+  showScreen('screenTripFocus');
+}
+
+// Sort Tier 2+ unseen phrases by trip focus preference:
+// 1. Phrases with a tripFocus tag the user selected
+// 2. Universal phrases (empty tripFocus)
+// 3. Phrases whose tags the user didn't select
+// Falls back to plain sort order if the gate hasn't been seen or no focus selected.
+function sortTier2ByTripFocus(phrases) {
+  const byOrder = [...phrases].sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+  if (!localStorage.getItem('tt_tripFocusSeen') || !hasAnyTripFocusSelected()) {
+    return byOrder;
+  }
+  const selected = [];
+  const universal = [];
+  const unselected = [];
+  byOrder.forEach(p => {
+    const tags = p.tripFocus || [];
+    if (tags.length === 0) universal.push(p);
+    else if (tags.some(t => userSelectedFocus(t))) selected.push(p);
+    else unselected.push(p);
+  });
+  return [...selected, ...universal, ...unselected];
+}
+
 // ── PREFERENCE GATE ──────────────────────────────────────────────
 
 function openPreferenceGate(resumeCallback) {
@@ -8421,10 +8507,25 @@ function startSessionWithMode(mode) {
   const activePhrases = getActivePhrases();
 
   if (mode === 'lesson') {
-    // Unseen Foundation phrases sorted by introduction order
-    const unseenFoundation = activePhrases
-      .filter(p => (p.tier || '1') === '1' && getScore(p.id) === 0)
+    // Trip focus gate: fires once at Foundation complete, before the preference
+    // gate and before the session builds. Tier 2 content is reordered based on
+    // the user's focus selections.
+    if (localStorage.getItem('tt_foundationComplete') &&
+        !localStorage.getItem('tt_tripFocusSeen')) {
+      openTripFocusGate(() => startSessionWithMode(mode));
+      return;
+    }
+
+    // Unseen phrases to introduce. Foundation (sorts 1-16) always serves in
+    // sort order. Tier 2+ (sorts >= 17) is reordered by trip focus when set.
+    const unseenAll = activePhrases.filter(p => getScore(p.id) === 0);
+    const unseenTier1 = unseenAll
+      .filter(p => !p.sortOrder || p.sortOrder < 17)
       .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+    const unseenTier2Plus = sortTier2ByTripFocus(
+      unseenAll.filter(p => p.sortOrder >= 17)
+    );
+    const unseenFoundation = [...unseenTier1, ...unseenTier2Plus];
 
     // Already-seen phrases split by spaced repetition due status
     const seenPhrases = activePhrases.filter(p => getScore(p.id) >= 1);
