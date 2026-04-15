@@ -98,6 +98,12 @@ function recordToPhrase(record) {
     preferenceGroup: Array.isArray(f['Preference Group'])
       ? f['Preference Group'].map(v => typeof v === 'object' ? v.name : v)
       : [],
+    substage: f['Substage']
+      ? (typeof f['Substage'] === 'object' ? f['Substage'].name : f['Substage'])
+      : null,
+    tripFocus: Array.isArray(f['Trip Focus'])
+      ? f['Trip Focus'].map(v => typeof v === 'object' ? v.name : v)
+      : [],
   };
 }
 
