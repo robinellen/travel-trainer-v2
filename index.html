@@ -645,94 +645,6 @@ body::after {
   .phrase-native { font-size: 24px; }
 }
 
-/* Coach mark overlay */
-.coach-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  z-index: 500;
-  animation: coachFadeIn 0.2s ease both;
-}
-@keyframes coachFadeIn { from { opacity: 0; } to { opacity: 1; } }
-.coach-bubble {
-  position: absolute;
-  left: 1.5rem;
-  right: 1.5rem;
-  max-width: 340px;
-  margin: 0 auto;
-  background: var(--surface);
-  border: 1px solid var(--border-hi);
-  border-radius: var(--radius);
-  padding: 1.1rem 1.25rem;
-  animation: fadeUp 0.3s ease both;
-}
-/* Arrow pointing up (bubble below target) */
-.coach-bubble.arrow-up::before {
-  content: '';
-  position: absolute;
-  top: -7px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 14px;
-  height: 7px;
-  background: var(--surface);
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-}
-.coach-bubble.arrow-up::after {
-  content: '';
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 8px;
-  background: var(--border-hi);
-  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-  z-index: -1;
-}
-/* Arrow pointing down (bubble above target) */
-.coach-bubble.arrow-down::before {
-  content: '';
-  position: absolute;
-  bottom: -7px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 14px;
-  height: 7px;
-  background: var(--surface);
-  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
-}
-.coach-bubble.arrow-down::after {
-  content: '';
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 8px;
-  background: var(--border-hi);
-  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
-  z-index: -1;
-}
-.coach-text {
-  font-size: 17px;
-  color: var(--text);
-  line-height: 1.5;
-  margin-bottom: 0.75rem;
-}
-.coach-dismiss {
-  background: none;
-  border: 1px solid var(--border-hi);
-  border-radius: var(--radius-sm);
-  color: var(--text-mid);
-  font-family: 'Lexend', sans-serif;
-  font-size: 15px;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.coach-dismiss:hover { border-color: var(--text-mid); color: var(--text); }
 
 /* ── EXPERIENCE SCREENS ───────────────────────────────────────── */
 .exp-beat {
@@ -1376,8 +1288,13 @@ body::after {
   </div>
 </div>
 
-<!-- Coach mark overlay (injected dynamically) -->
-<div id="coachOverlay" class="coach-overlay" style="display:none;" onclick="dismissActiveCoachMark()"></div>
+<!-- Coach mark interstitial (full-screen, shown before first recognition exercise) -->
+<div class="screen" id="screenCoachMark">
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:1.5rem; text-align:center;">
+    <p id="coachMarkText" style="font-size:17px; color:var(--text); line-height:1.65; max-width:320px; margin-bottom:2rem;">This app is built around hearing real French. Training your ear here is what makes the difference in the moment.</p>
+    <button class="btn-primary" id="coachMarkDismissBtn" style="max-width:320px; width:100%;">Got it →</button>
+  </div>
+</div>
 
 </div><!-- .app -->
 
@@ -9422,7 +9339,15 @@ function hearRecognitionSlower() {
 // In-session recognition exercise. Picks a trigger by intent if provided,
 // otherwise picks a low-score intent at random.
 function renderRecognitionPanel(_phrase) {
+  // First-time gate: show the full-screen coach mark interstitial before
+  // rendering the exercise. This keeps audio from starting until the user
+  // has acknowledged the framing.
+  if (!localStorage.getItem('tt_seenRecogCoachMark')) {
+    showRecognitionCoachMark(() => renderRecognitionPanel(_phrase));
+    return;
+  }
   document.getElementById('panelRecognition').classList.remove('hidden');
+  showScreen('screenExercise');
   const item = getCurrentItem();
   let trigger = null;
   if (item && item.intent) trigger = pickTriggerForIntent(item.intent);
@@ -9452,6 +9377,12 @@ function startRecognition() {
   const pool = getRecognitionPool();
   if (!pool.length) {
     alert('No recognition content available yet.');
+    return;
+  }
+  // First-time gate: show the full-screen coach mark interstitial before
+  // the standalone recognition session starts.
+  if (!localStorage.getItem('tt_seenRecogCoachMark')) {
+    showRecognitionCoachMark(() => startRecognition());
     return;
   }
   _recognitionStdSession = {
@@ -12203,111 +12134,25 @@ function onListenModeComplete() {
 // COACH MARKS
 // ═══════════════════════════════════════════════════════════════════
 
-// All coach mark definitions — foundation (1-4) and experience stubs (5-8)
-const COACH_MARKS = {
-  tt_seenListenCoachMark: {
-    text: "This app is built around hearing real French. Training your ear here is what makes the difference in the moment.",
-    target: 'listenCircle',
-  },
-  tt_seenReviewCoachMark: {
-    text: "You\u2019ve heard this before and that\u2019s intentional. Coming back to it is what moves it from short-term to long-term memory.",
-    target: 'listenCircle',
-  },
-  tt_seenVocabCoachMark: {
-    text: "Every new word gets a card like this. It\u2019s here to refer back to, not to memorize on the spot.",
-    target: 'revealNative',
-  },
-  tt_seenSpeakCoachMark: {
-    text: "This is the part most language apps let you skip. Don\u2019t skip it. Saying it out loud is what makes it available to you when you need it.",
-    target: 'micBtn',
-  },
-  // Experience stubs — wire up when experience system is built
-  tt_seenExperiencePass1CoachMark: {
-    text: "Just listen. You\u2019ll recognize more than you think.",
-    target: null,
-  },
-  tt_seenExperiencePass2CoachMark: {
-    text: "Same exchange. This time the words appear as you hear them.",
-    target: null,
-  },
-  tt_seenExperiencePass3CoachMark: {
-    text: "One more time \u2014 now with context about what\u2019s actually happening.",
-    target: null,
-  },
-  tt_seenExperiencePracticeCoachMark: {
-    text: "You\u2019ve heard the whole thing. Now let\u2019s take it apart.",
-    target: null,
-  },
-  tt_seenListenModeCoachMark: {
-    text: "This isn\u2019t a test. Just listen. You won\u2019t catch everything and that\u2019s fine.",
-    target: null,
-  },
-  tt_seenRecognitionCoachMark: {
-    text: "You don\u2019t need to understand the whole sentence, just the one word that tells you what\u2019s being asked. That\u2019s what this is training.",
-    target: null,
-  },
-  tt_seenSignalWordCoachMark: {
-    text: "That\u2019s the word to listen for, and the more you hear it in real sentences, the faster you\u2019ll catch it when it counts.",
-    target: null,
-  },
-};
-
-let _activeCoachMarkKey = null;
-
-function dismissActiveCoachMark() {
-  if (_activeCoachMarkKey) dismissCoachMark(_activeCoachMarkKey);
+// Full-screen coach mark interstitials. Currently only the first recognition
+// exercise uses one — it shows screenCoachMark before the exercise renders
+// so no audio plays until the user taps Got it. Other legacy coach mark keys
+// (listen, review, vocab, speak, experience, etc.) are no-ops for now.
+function showCoachMark(_storageKey) {
+  // No-op stub. The floating bubble implementation has been removed.
+  // New coach marks should use the screenCoachMark interstitial pattern
+  // — see showRecognitionCoachMark for an example.
+  return false;
 }
 
-function showCoachMark(storageKey) {
-  if (localStorage.getItem(storageKey)) return false;
-  const def = COACH_MARKS[storageKey];
-  if (!def) return false;
-
-  _activeCoachMarkKey = storageKey;
-  const overlay = document.getElementById('coachOverlay');
-  const targetEl = def.target ? document.getElementById(def.target) : null;
-
-  // Determine position: place bubble relative to target, or centered if no target
-  let arrowClass = '';
-  const bubble = document.createElement('div');
-  bubble.className = 'coach-bubble';
-  if (targetEl) {
-    const rect = targetEl.getBoundingClientRect();
-    const midY = rect.top + rect.height / 2;
-    if (midY < window.innerHeight * 0.5) {
-      bubble.classList.add('arrow-up');
-      bubble.style.top = (rect.bottom + 12) + 'px';
-    } else {
-      bubble.classList.add('arrow-down');
-      bubble.style.bottom = (window.innerHeight - rect.top + 12) + 'px';
-    }
-  } else {
-    bubble.style.top = '50%';
-    bubble.style.transform = 'translateY(-50%)';
-  }
-  bubble.innerHTML = `
-    <div class="coach-text">${def.text}</div>
-    <button class="coach-dismiss" onclick="dismissCoachMark('${storageKey}')">Got it</button>
-  `;
-  bubble.onclick = (e) => e.stopPropagation();
-
-  overlay.innerHTML = '';
-  overlay.appendChild(bubble);
-  overlay.style.display = 'block';
-  return true;
-}
-
-function dismissCoachMark(storageKey) {
-  localStorage.setItem(storageKey, 'true');
-  _activeCoachMarkKey = null;
-  const overlay = document.getElementById('coachOverlay');
-  overlay.style.display = 'none';
-  overlay.innerHTML = '';
-  if (_onCoachMarkDismiss) {
-    const cb = _onCoachMarkDismiss;
-    _onCoachMarkDismiss = null;
-    cb();
-  }
+function showRecognitionCoachMark(onDismiss) {
+  document.getElementById('coachMarkText').textContent =
+    "This app is built around hearing real French. Training your ear here is what makes the difference in the moment.";
+  document.getElementById('coachMarkDismissBtn').onclick = () => {
+    localStorage.setItem('tt_seenRecogCoachMark', 'true');
+    if (onDismiss) onDismiss();
+  };
+  showScreen('screenCoachMark');
 }
 
 
