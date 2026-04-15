@@ -7921,7 +7921,7 @@ function showPhraseRevealScreen(phrase) {
   } else {
     document.getElementById('revealMeaning').textContent = allMeanings[0].toUpperCase();
   }
-  document.getElementById('revealNote').textContent = phrase.note || '';
+  document.getElementById('revealNote').innerHTML = phrase.note || '';
 
   // Frame note for formulaic units — shows once per phrase
   const frameNoteEl = document.getElementById('revealFrameNote');
