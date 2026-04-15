@@ -9273,9 +9273,6 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   // Show "Hear it slower" at Tier 1-2 (score < 3), hide at Tier 3+
   const slowerBtn = document.getElementById(prefix + 'SlowerBtn');
   if (slowerBtn) slowerBtn.style.display = recogScore < 3 ? '' : 'none';
-
-  // Coach mark for the very first recognition exercise
-  showCoachMark('tt_seenRecognitionCoachMark');
 }
 
 function playRecognitionAudio(trigger, circle, onEnded) {
