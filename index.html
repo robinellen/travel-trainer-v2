@@ -1408,6 +1408,10 @@ body::after {
       <button onclick="devLaunch('recognition')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Recognition</button>
       <button onclick="devLaunch('experience')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Experiences</button>
     </div>
+    <div style="display:flex; gap:0.4rem;">
+      <button onclick="devLaunch('tripfocus')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Trip Focus</button>
+      <button onclick="devLaunch('prefgate')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Pref Gate</button>
+    </div>
 
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55; margin-top:0.5rem;">
       <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-bottom:0.4rem;">EXERCISE PROGRESSION BY SCORE</div>
@@ -12630,6 +12634,16 @@ function devLaunch(module) {
   if (module === 'listen') startListenMode();
   else if (module === 'recognition') startRecognition();
   else if (module === 'experience') openExperience('At the Café');
+  else if (module === 'tripfocus') {
+    // Clear the seen flag so the screen fires, then open it directly
+    localStorage.removeItem('tt_tripFocusSeen');
+    openTripFocusGate(() => { showScreen('screenWelcome'); switchHomeTab('learn'); });
+  }
+  else if (module === 'prefgate') {
+    // Clear the seen flag so the screen fires, then open it directly
+    localStorage.removeItem('tt_prefGateSeen');
+    openPreferenceGate(() => { showScreen('screenWelcome'); switchHomeTab('learn'); });
+  }
 }
 
 function devSetTier1Score3() {
