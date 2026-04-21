@@ -10704,19 +10704,19 @@ function getCurrentSubstage() {
   }
 
   // Stage 3 entry → S3-A: all preference-filtered phrases introduced AND 50% at score 2+
-  // AND sorts 74-77 (Tier 3) all introduced
+  // AND sorts 79-82 (Tier 3) all introduced
   const active = getActivePhrases();
   const activeIntroduced = active.filter(p => getScore(p.id) >= 1);
   const activeAt2 = active.filter(p => getScore(p.id) >= 2);
-  const s74_77 = getPhrasesInSortRange(74, 77);
+  const s79_82 = getPhrasesInSortRange(79, 82);
   if (activeIntroduced.length < active.length ||
       activeAt2.length < Math.floor(active.length * 0.5) ||
-      !s74_77.every(p => getScore(p.id) >= 1)) {
+      !s79_82.every(p => getScore(p.id) >= 1)) {
     return { stage: 3, substage: 'S3-entry' };
   }
 
-  // S3-A → S3-B: all preference-filtered phrases at score 2+ AND sorts 74-77 at score 1+
-  if (!active.every(p => getScore(p.id) >= 2) || !s74_77.every(p => getScore(p.id) >= 1)) {
+  // S3-A → S3-B: all preference-filtered phrases at score 2+ AND sorts 79-82 at score 1+
+  if (!active.every(p => getScore(p.id) >= 2) || !s79_82.every(p => getScore(p.id) >= 1)) {
     return { stage: 3, substage: 'S3-A' };
   }
 
@@ -11053,7 +11053,7 @@ function renderLearnTab() {
   const btn = document.createElement('button');
   btn.className = 'btn-primary';
   btn.style.cssText = 'margin-top:auto;';
-  btn.textContent = 'Continue Learning →';
+  btn.textContent = hasAnyProgress() ? 'Continue Learning →' : 'Start Learning →';
   btn.onclick = () => startLesson();
   container.appendChild(btn);
 }
