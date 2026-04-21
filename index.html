@@ -10620,12 +10620,26 @@ function getHomeState() {
 // 'ready', 'foundation', or 'voice'. The remaining two are placeholders that
 // will be reachable once Experiences progression and final readiness ship.
 const STAGES = [
-  { key: 'foundation', label: 'Stage 1: Building Foundation' },
-  { key: 'listening',  label: 'Stage 2: Learning to Listen' },
+  { key: 'foundation', label: 'Stage 1: Finding Your Feet' },
+  { key: 'listening',  label: 'Stage 2: Catching On' },
   { key: 'wild',       label: 'Stage 3: In the Wild' },
   { key: 'nosafety',   label: 'Stage 4: No Safety Net' },
   { key: 'ready',      label: "Stage 5: As Ready As You'll Get" },
 ];
+
+const SUBSTAGE_COPY = {
+  'S1-A': { name: 'New Here',         desc: 'The words that start every interaction: how to say hello, yes, no, please, and excuse me.' },
+  'S1-B': { name: 'Taking Shape',     desc: 'The full Foundation set is in front of you. Some phrases are clicking, some are still new.' },
+  'S1-C': { name: 'Solid Ground',     desc: 'All 16 Foundation phrases are solid. You can greet people, order a drink, ask for the bathroom, and ask for English if you need it.' },
+  'S2-A': { name: 'Through the Door', desc: 'How to arrive at a restaurant, ask for a table, and say where you\'d like to sit.' },
+  'S2-B': { name: 'Speaking Up',      desc: 'Enough to order for the table, specify what you want, and ask for a little more or a little less.' },
+  'S2-C': { name: 'Seeing It Through',desc: 'Asking for another round, managing the bill, and closing the interaction the right way.' },
+  'S3-A': { name: 'Your Words',       desc: 'The phrases that fit your preferences: what you eat, what you drink, and how you need to order it.' },
+  'S3-B': { name: 'Beyond the Table', desc: 'Your preferences are solid. Now the phrases for shops, markets, and anywhere else you\'ll end up.' },
+  'S4-A': { name: 'On Your Own',      desc: 'Everything you\'ve learned, with the text support gone. Audio only.' },
+  'S4-B': { name: 'The Last Few',     desc: 'Most of it is solid. A handful of phrases left to reach full confidence.' },
+  'S5':   { name: 'Staying Sharp',    desc: 'You\'ve got everything. Short sessions to keep it sharp until your trip.' },
+};
 
 // Returns Foundation-eligible phrases with sortOrder in [min, max].
 function getPhrasesInSortRange(min, max) {
@@ -11010,7 +11024,7 @@ function renderLearnTab() {
     }
 
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0;';
+    row.style.cssText = 'display:flex; align-items:flex-start; gap:0.75rem; padding:0.6rem 0;';
     if (isCompleted) {
       row.style.cursor = 'pointer';
       row.onclick = () => openStageComplete(i);
@@ -11028,14 +11042,32 @@ function renderLearnTab() {
     const dot = document.createElement('div');
     dot.style.cssText = `width:8px; height:8px; border-radius:50%; background:${dotBg}; border:1.5px solid ${dotBorder}; flex-shrink:0;`;
 
-    // Name
-    const name = document.createElement('div');
-    name.style.cssText = `font-size:15px; color:${nameColor}; font-weight:${nameWeight}; line-height:1.3;`;
-    name.textContent = stage.label;
+    // Name + substage detail for current stage
+    const nameBlock = document.createElement('div');
+    nameBlock.style.cssText = 'flex:1;';
+    const nameEl = document.createElement('div');
+    nameEl.style.cssText = `font-size:15px; color:${nameColor}; font-weight:${nameWeight}; line-height:1.3;`;
+    nameEl.textContent = stage.label;
+    nameBlock.appendChild(nameEl);
+
+    if (isCurrent) {
+      const sub = getCurrentSubstage();
+      const copy = SUBSTAGE_COPY[sub.substage];
+      if (copy) {
+        const subName = document.createElement('div');
+        subName.style.cssText = 'font-size:13px; color:var(--text); font-weight:500; margin-top:0.3rem;';
+        subName.textContent = copy.name;
+        nameBlock.appendChild(subName);
+        const subDesc = document.createElement('div');
+        subDesc.style.cssText = 'font-size:13px; color:var(--text-dim); line-height:1.4; margin-top:0.15rem;';
+        subDesc.textContent = copy.desc;
+        nameBlock.appendChild(subDesc);
+      }
+    }
 
     row.appendChild(num);
     row.appendChild(dot);
-    row.appendChild(name);
+    row.appendChild(nameBlock);
     ladder.appendChild(row);
 
     // Connecting line between rows (not after last)
@@ -11053,7 +11085,7 @@ function renderLearnTab() {
   const btn = document.createElement('button');
   btn.className = 'btn-primary';
   btn.style.cssText = 'margin-top:auto;';
-  btn.textContent = hasAnyProgress() ? 'Continue Learning →' : 'Start Learning →';
+  btn.textContent = hasAnyProgress() ? 'Keep Going →' : 'Start Preparing →';
   btn.onclick = () => startLesson();
   container.appendChild(btn);
 }
