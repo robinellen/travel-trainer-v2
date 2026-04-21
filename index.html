@@ -9249,6 +9249,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       revealEl.classList.remove('hidden');
       nextBtn.classList.remove('hidden');
       // Coach mark for the signal word reveal (first time only)
+      _onCoachMarkDismiss = () => showScreen('screenExercise');
       showCoachMark('tt_seenSignalWordCoachMark');
       // Track this trigger phrase as seen for the vocab modal reference list
       const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
@@ -9833,6 +9834,7 @@ function showPhraseRevealScreen(phrase) {
   showScreen('screenPhraseReveal');
 
   // Vocab coach mark — first time seeing a phrase reveal card
+  _onCoachMarkDismiss = () => showScreen('screenPhraseReveal');
   showCoachMark('tt_seenVocabCoachMark');
 }
 
@@ -9861,6 +9863,7 @@ function renderSpeakPanel(phrase, opts = {}) {
   _currentSpeakFromEnglish = fromEnglish;
 
   // Speak coach mark — first speaking exercise ever
+  _onCoachMarkDismiss = () => showScreen('screenExercise');
   showCoachMark('tt_seenSpeakCoachMark');
 
   const score = getScore(phrase.id);
