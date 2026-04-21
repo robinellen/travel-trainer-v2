@@ -12157,11 +12157,25 @@ function onListenModeComplete() {
 // exercise uses one — it shows screenCoachMark before the exercise renders
 // so no audio plays until the user taps Got it. Other legacy coach mark keys
 // (listen, review, vocab, speak, experience, etc.) are no-ops for now.
-function showCoachMark(_storageKey) {
-  // No-op stub. The floating bubble implementation has been removed.
-  // New coach marks should use the screenCoachMark interstitial pattern
-  // — see showRecognitionCoachMark for an example.
-  return false;
+const COACH_MARK_COPY = {
+  'tt_seenVocabCoachMark':    'This card shows you everything about the phrase. Tap the play button to hear it, then continue when you\'re ready.',
+  'tt_seenSpeakCoachMark':    'Now you\'ll say it out loud. Speak clearly and the app will check your pronunciation.',
+  'tt_seenSignalWordCoachMark': 'The highlighted word is your signal. It\'s what to listen for when a native speaker says this phrase quickly.',
+  'tt_seenExperiencePass1CoachMark': 'Watch how this interaction plays out. You\'ll hear both sides before you practice anything.',
+  'tt_seenExperiencePass2CoachMark': 'Now follow along. You\'ll see each phrase as it comes up.',
+  'tt_seenExperiencePass3CoachMark': 'Your turn. Respond at each step as if you\'re really there.',
+  'tt_seenExperiencePracticeCoachMark': 'Practice mode. Run through the whole interaction from start to finish.',
+  'tt_seenListenModeCoachMark': 'These are real conversations. You\'re not being tested — just listen and see how much you catch.',
+};
+
+function showCoachMark(storageKey) {
+  if (localStorage.getItem(storageKey)) return false;
+  const text = COACH_MARK_COPY[storageKey];
+  if (!text) return false;
+  const dismiss = _onCoachMarkDismiss;
+  _onCoachMarkDismiss = null;
+  showCoachMarkInterstitial(text, storageKey, dismiss);
+  return true;
 }
 
 // Generic interstitial. Shows screenCoachMark with the given text and wires
