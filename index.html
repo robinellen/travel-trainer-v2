@@ -10648,6 +10648,14 @@ function getPhrasesInSortRange(min, max) {
   );
 }
 
+function getPhrasesForSubstage(substageKey) {
+  return PHRASES.filter(p =>
+    p.substage === substageKey &&
+    p.audioRecorded &&
+    (p.meaning || (p.meanings && p.meanings.length))
+  );
+}
+
 function getCurrentSubstage() {
   const override = localStorage.getItem('tt_devStageOverride');
   if (override) {
@@ -10677,60 +10685,61 @@ function getCurrentSubstage() {
 
   if (!hasAnyProgress()) return { stage: 1, substage: 'S1-A' };
 
-  // S1-A → S1-B: sorts 1-16, at least 8 at score 2+ AND all 16 introduced
-  const s1_16 = getPhrasesInSortRange(1, 16);
-  const s1_16_at2 = s1_16.filter(p => getScore(p.id) >= 2).length;
-  const s1_16_at1 = s1_16.filter(p => getScore(p.id) >= 1).length;
-  if (s1_16_at2 < 8 || s1_16_at1 < s1_16.length) return { stage: 1, substage: 'S1-A' };
+  // Stage 1 phrases: all phrases tagged S1-A, S1-B, or S1-C
+  const s1All = [...getPhrasesForSubstage('S1-A'), ...getPhrasesForSubstage('S1-B'), ...getPhrasesForSubstage('S1-C')];
+  const s1_at2 = s1All.filter(p => getScore(p.id) >= 2).length;
+  const s1_at1 = s1All.filter(p => getScore(p.id) >= 1).length;
 
-  // S1-B → S1-C: all 16 at score 2+
-  if (!s1_16.every(p => getScore(p.id) >= 2)) return { stage: 1, substage: 'S1-B' };
+  // S1-A → S1-B: at least 8 at score 2+ AND all introduced
+  if (s1_at2 < 8 || s1_at1 < s1All.length) return { stage: 1, substage: 'S1-A' };
+
+  // S1-B → S1-C: all at score 2+
+  if (!s1All.every(p => getScore(p.id) >= 2)) return { stage: 1, substage: 'S1-B' };
 
   // S1-C sets tt_foundationComplete when crossed
   if (!localStorage.getItem('tt_foundationComplete')) {
     localStorage.setItem('tt_foundationComplete', 'true');
   }
 
-  // S1-C → S2-A: tt_foundationComplete set (it is now)
-  // We're in Stage 2
+  // Stage 2
+  const s2a = getPhrasesForSubstage('S2-A');
+  const s2b = getPhrasesForSubstage('S2-B');
+  const s2c = getPhrasesForSubstage('S2-C');
+  const s2ab = [...s2a, ...s2b];
 
-  // S2-A → S2-B: sorts 17-24 all at score 2+ AND recognition for specific intents
-  const s17_24 = getPhrasesInSortRange(17, 24);
+  // S2-A → S2-B: S2-A phrases all at score 2+ AND recognition for specific intents
   const requiredIntents = ['Order Taking', 'Greeting', 'Reservation Check', 'Party Size', 'Follow Me', 'Water Preference'];
   const intentsOk = requiredIntents.every(i => getRecognitionScore(i) >= 1);
-  if (!s17_24.every(p => getScore(p.id) >= 2) || !intentsOk) return { stage: 2, substage: 'S2-A' };
+  if (!s2a.every(p => getScore(p.id) >= 2) || !intentsOk) return { stage: 2, substage: 'S2-A' };
 
-  // S2-B → S2-C: sorts 25-36 all at score 2+ AND sorts 17-24 all at score 3+
-  const s25_36 = getPhrasesInSortRange(25, 36);
-  if (!s25_36.every(p => getScore(p.id) >= 2) || !s17_24.every(p => getScore(p.id) >= 3)) {
+  // S2-B → S2-C: S2-B phrases all at score 2+ AND S2-A all at score 3+
+  if (!s2b.every(p => getScore(p.id) >= 2) || !s2a.every(p => getScore(p.id) >= 3)) {
     return { stage: 2, substage: 'S2-B' };
   }
 
-  // S2-C → Stage 3 entry: sorts 37-47 all at score 1+ AND tt_prefGateSeen AND sorts 17-36 80% at score 2+
-  const s37_47 = getPhrasesInSortRange(37, 47);
-  const s17_36 = getPhrasesInSortRange(17, 36);
-  const s17_36_threshold = Math.floor(s17_36.length * 0.8);
-  const s17_36_at2 = s17_36.filter(p => getScore(p.id) >= 2).length;
-  if (!s37_47.every(p => getScore(p.id) >= 1) ||
+  // S2-C → Stage 3 entry: S2-C phrases all at score 1+ AND tt_prefGateSeen AND S2-A+B 80% at score 2+
+  const s2ab_threshold = Math.floor(s2ab.length * 0.8);
+  const s2ab_at2 = s2ab.filter(p => getScore(p.id) >= 2).length;
+  if (!s2c.every(p => getScore(p.id) >= 1) ||
       !localStorage.getItem('tt_prefGateSeen') ||
-      s17_36_at2 < s17_36_threshold) {
+      s2ab_at2 < s2ab_threshold) {
     return { stage: 2, substage: 'S2-C' };
   }
 
   // Stage 3 entry → S3-A: all preference-filtered phrases introduced AND 50% at score 2+
-  // AND sorts 79-82 (Tier 3) all introduced
+  // AND Tier 3 phrases all introduced
   const active = getActivePhrases();
   const activeIntroduced = active.filter(p => getScore(p.id) >= 1);
   const activeAt2 = active.filter(p => getScore(p.id) >= 2);
-  const s79_82 = getPhrasesInSortRange(79, 82);
+  const tier3 = PHRASES.filter(p => (p.tier || '1') === '3' && p.audioRecorded);
   if (activeIntroduced.length < active.length ||
       activeAt2.length < Math.floor(active.length * 0.5) ||
-      !s79_82.every(p => getScore(p.id) >= 1)) {
+      !tier3.every(p => getScore(p.id) >= 1)) {
     return { stage: 3, substage: 'S3-entry' };
   }
 
-  // S3-A → S3-B: all preference-filtered phrases at score 2+ AND sorts 79-82 at score 1+
-  if (!active.every(p => getScore(p.id) >= 2) || !s79_82.every(p => getScore(p.id) >= 1)) {
+  // S3-A → S3-B: all preference-filtered phrases at score 2+ AND Tier 3 at score 1+
+  if (!active.every(p => getScore(p.id) >= 2) || !tier3.every(p => getScore(p.id) >= 1)) {
     return { stage: 3, substage: 'S3-A' };
   }
 
