@@ -9648,9 +9648,14 @@ function renderListenPanel(phrase, type, forcedSubType) {
     if (listenCallbackFired) return;
     listenCallbackFired = true;
     document.getElementById('listenHint').textContent = 'Tap to hear again';
+    // Hide emoji at Stage 4+ — it acts as a category hint that gives away
+    // the answer before the user processes the audio.
+    const _sub = getCurrentSubstage();
     const emoji = document.getElementById('listenEmoji');
-    emoji.textContent = phrase.emoji;
-    emoji.classList.remove('hidden');
+    if (_sub.stage < 4) {
+      emoji.textContent = phrase.emoji;
+      emoji.classList.remove('hidden');
+    }
 
     if (type === 'learn') {
       bumpIfFinal(phrase.id, 1);
@@ -9867,19 +9872,23 @@ function renderSpeakPanel(phrase, opts = {}) {
   showCoachMark('tt_seenSpeakCoachMark');
 
   const score = getScore(phrase.id);
+  const _sub = getCurrentSubstage();
+  const scaffoldingRemoved = _sub.stage >= 4;
+
   document.getElementById('speakMeaning').textContent = getMeaning(phrase).toUpperCase();
   document.getElementById('speakRoman').textContent = stripHtmlTags(phrase.romanization || '');
 
   const speakNative = document.getElementById('speakNative');
   const showPhraseBtn = document.getElementById('speakShowPhrase');
 
-  if (fromEnglish) {
-    // Speak from English: only the English meaning is visible. No French text,
-    // no romanization, no Show phrase link, no audio. The user produces the
-    // phrase from memory triggered solely by the English meaning.
+  if (fromEnglish || scaffoldingRemoved) {
+    // Speak from English OR Stage 4+: no French text, no romanization,
+    // no Show phrase link. Audio-only at Stage 4+.
     document.getElementById('speakNativeText').textContent = '';
     speakNative.classList.add('hidden');
     showPhraseBtn.classList.add('hidden');
+    // Also hide romanization at Stage 4+
+    if (scaffoldingRemoved) document.getElementById('speakRoman').classList.add('hidden');
   } else if (score <= 1) {
     // Score 0-1: French text visible automatically
     document.getElementById('speakNativeText').textContent = displayNative(phrase, 'card');
@@ -9897,10 +9906,10 @@ function renderSpeakPanel(phrase, opts = {}) {
     showPhraseBtn.classList.add('hidden');
   }
 
-  // "Hear it slower" available at score 0-2 only, hidden at 3+ and always
-  // hidden in speak-from-English (the whole point is no audio).
+  // "Hear it slower" available at score 0-2 only, hidden at 3+, and always
+  // hidden in speak-from-English or Stage 4+ (audio-only, no scaffolding).
   const slowerBtn = document.getElementById('speakSlowerBtn');
-  slowerBtn.style.display = (!fromEnglish && score < 3 && getAudio(phrase.native)) ? '' : 'none';
+  slowerBtn.style.display = (!fromEnglish && !scaffoldingRemoved && score < 3 && getAudio(phrase.native)) ? '' : 'none';
 
   // Set recognition language
   if (window.SpeechRecognition || window.webkitSpeechRecognition) {
