@@ -68,7 +68,7 @@ function recordToPhrase(record) {
   const langName = langRaw ? (typeof langRaw === 'object' ? langRaw.name : langRaw) : 'French';
   const lang = LANG_CODE[langName] || 'fr';
   const tierRaw = f['Tier'];
-  const tier = tierRaw ? (typeof tierRaw === 'object' ? tierRaw.name : tierRaw) : '1';
+  const tier = tierRaw ? (typeof tierRaw === 'object' ? tierRaw.name : tierRaw) : null;
   const emoji = f['Emoji'] || f['emoji'] || '';
 
   return {
@@ -305,7 +305,7 @@ function gitCommitAndPush() {
 
   // Process phrases
   const allPhrases = phraseRecords.map(recordToPhrase);
-  const phrases = allPhrases.filter(p => !p.isBuildupChunk);
+  const phrases = allPhrases.filter(p => !p.isBuildupChunk && p.tier);
   console.log(`Excluded ${allPhrases.length - phrases.length} buildup chunks`);
 
   // Process trigger phrases
