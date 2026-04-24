@@ -1129,9 +1129,8 @@ body::after {
     </div>
     <div id="listenModeFrench" class="hidden" style="font-family:'Cormorant Garamond',serif; font-size:22px; font-style:italic; color:var(--text); margin-top:1rem; line-height:1.4;"></div>
     <div id="listenModeEnglish" class="hidden" style="font-size:15px; color:var(--text-dim); margin-top:0.5rem; line-height:1.5;"></div>
-    <div id="listenModeLinks" class="hidden" style="display:flex; gap:1.25rem; margin-top:1rem;">
-      <button id="listenModeShowFrench" onclick="showListenFrench()" class="btn-text">Show French</button>
-      <button id="listenModeShowEnglish" onclick="showListenEnglish()" class="btn-text">Show English</button>
+    <div id="listenModeLinks" class="hidden" style="margin-top:1rem; text-align:center;">
+      <button id="listenRevealBtn" onclick="toggleListenReveal()" class="btn-text"></button>
     </div>
     <div id="listenModeComplete" class="hidden" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; background:var(--bg); padding:1.5rem;">
       <div>
@@ -19520,11 +19519,8 @@ function playListenClip() {
   document.getElementById('listenModeContext').textContent = '';
   document.getElementById('listenModeScene').textContent = clip.englishTranslation || clip.scenePrompt;
 
-  // Show/hide French link based on session count scaffolding
-  const showFrenchBtn = document.getElementById('listenModeShowFrench');
-  const showEnglishBtn = document.getElementById('listenModeShowEnglish');
-  showFrenchBtn.style.display = '';
-  showEnglishBtn.style.display = '';
+  // Reset reveal state — nothing shown yet
+  _listenRevealState = 'none';
 
   // After 1 second, play audio
   _listenTimer = setTimeout(() => {
@@ -19548,12 +19544,13 @@ function playListenClip() {
       // Scaffolding: auto-show French in early sessions
       if (sessionCount <= 2) {
         document.getElementById('listenModeFrench').classList.remove('hidden');
-        showFrenchBtn.style.display = 'none';
+        _listenRevealState = 'french';
       }
 
-      // Show reveal links after 1500ms
+      // Show reveal toggle after 1500ms
       _listenTimer = setTimeout(() => {
         if (_listenPaused) return;
+        updateListenRevealButton();
         document.getElementById('listenModeLinks').classList.remove('hidden');
 
         // Advance after 4000ms
@@ -19579,15 +19576,36 @@ function playListenClip() {
   }, 1000);
 }
 
-function showListenFrench() {
-  document.getElementById('listenModeFrench').classList.remove('hidden');
-  document.getElementById('listenModeShowFrench').style.display = 'none';
-  resetListenAdvanceTimer();
+// 'none' = nothing revealed yet, 'french' = French showing, 'english' = English showing, 'both' = both
+let _listenRevealState = 'none';
+
+function updateListenRevealButton() {
+  const btn = document.getElementById('listenRevealBtn');
+  if (!btn) return;
+  btn.style.display = '';
+  if (_listenRevealState === 'none') {
+    btn.textContent = 'Show French';
+  } else if (_listenRevealState === 'french') {
+    btn.textContent = 'Show English';
+  } else if (_listenRevealState === 'english') {
+    btn.textContent = 'Show French';
+  } else {
+    btn.style.display = 'none';
+  }
 }
 
-function showListenEnglish() {
-  document.getElementById('listenModeEnglish').classList.remove('hidden');
-  document.getElementById('listenModeShowEnglish').style.display = 'none';
+function toggleListenReveal() {
+  if (_listenRevealState === 'none') {
+    document.getElementById('listenModeFrench').classList.remove('hidden');
+    _listenRevealState = 'french';
+  } else if (_listenRevealState === 'french') {
+    document.getElementById('listenModeEnglish').classList.remove('hidden');
+    _listenRevealState = 'both';
+  } else if (_listenRevealState === 'english') {
+    document.getElementById('listenModeFrench').classList.remove('hidden');
+    _listenRevealState = 'both';
+  }
+  updateListenRevealButton();
   resetListenAdvanceTimer();
 }
 
