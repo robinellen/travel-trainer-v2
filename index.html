@@ -18984,10 +18984,11 @@ function switchHomeTab(tab) {
     document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('hidden', t !== tab);
     document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
   });
-  // Render the selected tab's content
+  // Render the selected tab's content. Reference tab always opens on its
+  // landing view; internal navigation into All Phrases doesn't persist.
   if (tab === 'learn') renderLearnTab();
   else if (tab === 'practice') renderPracticeTab();
-  else if (tab === 'reference') renderReferenceTab();
+  else if (tab === 'reference') { _refView = 'landing'; renderReferenceTab(); }
   else if (tab === 'settings') renderSettingsTab();
 }
 
@@ -19348,17 +19349,55 @@ const REFERENCE_GROUPS = [
   { key: 'recovery', label: 'Recovery', tiers: ['Recovery'] },
 ];
 
-let _refExpandedGroups = new Set();
+// Reference tab view state: 'landing' = two options, 'phrases' = All Phrases list
+let _refView = 'landing';
 
 function renderReferenceTab() {
   const container = document.getElementById('referenceTabContent');
   if (!container) return;
+  if (_refView === 'phrases') {
+    renderReferencePhrases(container);
+  } else {
+    renderReferenceLanding(container);
+  }
+}
 
-  // Preserve search value across re-renders
+function renderReferenceLanding(container) {
+  container.innerHTML = '';
+
+  function makeCard(emoji, label, onclick) {
+    const row = document.createElement('button');
+    row.style.cssText = 'display:flex; align-items:center; gap:0.9rem; padding:1.1rem 1.25rem; margin-bottom:0.6rem; width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; text-align:left; cursor:pointer; transition:border-color 0.15s;';
+    row.onmouseover = () => { row.style.borderColor = 'var(--border-hi)'; };
+    row.onmouseout = () => { row.style.borderColor = 'var(--border)'; };
+    row.onclick = onclick;
+    row.innerHTML = `<span style="font-size:1.5rem;">${emoji}</span><span style="flex:1;">${label}</span><span style="color:var(--text-dim); font-size:15px;">›</span>`;
+    return row;
+  }
+
+  container.appendChild(makeCard('📖', 'All Phrases', () => {
+    _refView = 'phrases';
+    renderReferenceTab();
+  }));
+  container.appendChild(makeCard('✈️', 'Know Before You Go', () => openCultureNotes()));
+}
+
+function renderReferencePhrases(container) {
+  // Preserve search value across re-renders within this view
   const existingSearch = document.getElementById('refSearch');
   const searchVal = existingSearch ? existingSearch.value : '';
 
   container.innerHTML = '';
+
+  // Back row
+  const back = document.createElement('button');
+  back.style.cssText = 'display:block; background:none; border:none; color:var(--text-dim); font-family:"Lexend",sans-serif; font-size:13px; padding:0.25rem 0; margin-bottom:0.75rem; cursor:pointer; text-align:left;';
+  back.textContent = '← Reference';
+  back.onclick = () => {
+    _refView = 'landing';
+    renderReferenceTab();
+  };
+  container.appendChild(back);
 
   // Search input
   const searchInput = document.createElement('input');
@@ -19374,7 +19413,6 @@ function renderReferenceTab() {
   searchInput.oninput = () => renderReferenceTab();
   container.appendChild(searchInput);
 
-  // Build phrase list
   const query = searchVal.toLowerCase().trim();
   const lang = langToCode(localStorage.getItem('tt_language') || 'French');
   let phrases = PHRASES.filter(p =>
@@ -19389,7 +19427,6 @@ function renderReferenceTab() {
       (p.meaning || '').toLowerCase().includes(query) ||
       (p.meanings || []).some(m => m.toLowerCase().includes(query))
     );
-    // Flat list when searching
     phrases.sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
     phrases.forEach(p => container.appendChild(makePhraseRow(p)));
     if (!phrases.length) {
@@ -19399,7 +19436,7 @@ function renderReferenceTab() {
       container.appendChild(empty);
     }
   } else {
-    // Grouped by substage
+    // All sections collapsed by default on every fresh render of this view.
     REFERENCE_GROUPS.forEach(group => {
       let groupPhrases;
       if (group.substage) {
@@ -19412,32 +19449,25 @@ function renderReferenceTab() {
       if (!groupPhrases.length) return;
       groupPhrases.sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
 
-      const anySeen = groupPhrases.some(p => getScore(p.id) >= 1);
-      const isExpanded = _refExpandedGroups.has(group.key) || anySeen;
-      if (anySeen && !_refExpandedGroups.has(group.key)) _refExpandedGroups.add(group.key);
-
-      // Section header
       const header = document.createElement('div');
-      header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.75rem 0; cursor:pointer; -webkit-user-select:none; user-select:none;';
+      header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.9rem 0; cursor:pointer; -webkit-user-select:none; user-select:none; border-bottom:1px solid var(--border);';
       const headerLabel = document.createElement('div');
-      headerLabel.style.cssText = 'font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);';
-      headerLabel.textContent = group.label;
+      headerLabel.style.cssText = 'font-size:15px; color:var(--text); display:flex; align-items:center; gap:0.5rem;';
+      headerLabel.innerHTML = `${group.label} <span style="color:var(--text-dim); font-size:13px;">${groupPhrases.length}</span>`;
       const chevron = document.createElement('div');
       chevron.style.cssText = 'font-size:13px; color:var(--text-dim);';
-      chevron.textContent = isExpanded ? '▾' : '▸';
+      chevron.textContent = '▸';
       header.appendChild(headerLabel);
       header.appendChild(chevron);
 
       const sectionBody = document.createElement('div');
-      if (!isExpanded) sectionBody.style.display = 'none';
+      sectionBody.style.display = 'none';
       groupPhrases.forEach(p => sectionBody.appendChild(makePhraseRow(p)));
 
       header.onclick = () => {
         const nowExpanded = sectionBody.style.display === 'none';
         sectionBody.style.display = nowExpanded ? '' : 'none';
         chevron.textContent = nowExpanded ? '▾' : '▸';
-        if (nowExpanded) _refExpandedGroups.add(group.key);
-        else _refExpandedGroups.delete(group.key);
       };
 
       container.appendChild(header);
@@ -19445,14 +19475,6 @@ function renderReferenceTab() {
     });
   }
 
-  // Culture notes link at the bottom
-  const cultureRow = document.createElement('div');
-  cultureRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.85rem 0; border-top:1px solid var(--border); margin-top:1rem; cursor:pointer;';
-  cultureRow.onclick = () => openCultureNotes();
-  cultureRow.innerHTML = '<div><div style="font-size:14px; color:var(--text); line-height:1.3;">Know before you go</div><div style="font-size:12px; color:var(--text-dim); margin-top:0.15rem;">Culture notes for France</div></div><div style="font-size:15px; color:var(--text-dim);">›</div>';
-  container.appendChild(cultureRow);
-
-  // Restore focus to search input if it was active
   if (searchVal) {
     const newInput = document.getElementById('refSearch');
     if (newInput) {
