@@ -90,6 +90,7 @@ function recordToPhrase(record) {
     capabilityLabel: f['Capability Label'] || '',
     alsoAccepted: parseArray(f['Also Accepted']),
     audioRecorded: f['Audio Recorded'] === true,
+    audioFileName: f['File Name'] || '',
     situations: parseArray(f['Situations']),
     situationEarly: parseArray(f['Situation (Early)']),
     situationLate: parseArray(f['Situation (Late)']),
@@ -216,7 +217,7 @@ function recordToExperience(record) {
 
 // ── HTML update ──
 
-function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes) {
+function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes, allPhrases) {
   let html = fs.readFileSync(HTML_FILE, 'utf8');
 
   // Replace PHRASES array
@@ -274,10 +275,28 @@ function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listen
 
   fs.writeFileSync(HTML_FILE, html, 'utf8');
   console.log(`Updated index.html with ${phrases.length} phrases, ${triggerPhrases.length} trigger phrases, ${experiences.length} experiences, ${situations.length} situations, ${listenClips.length} listen clips, ${cultureNotes.length} culture notes`);
+
+  // Regenerate audio manifest from all phrases with audio (including buildup chunks)
+  const manifest = {};
+  allPhrases.filter(p => p.audioRecorded && p.audioFileName && p.native).forEach(p => {
+    manifest[p.native] = p.audioFileName;
+  });
+  // Preserve any existing manifest entries not covered by the sync (e.g.
+  // buildup chunks whose File Name may not be set in Airtable)
+  const manifestPath = path.join(__dirname, 'audio', 'manifest.json');
+  try {
+    const existing = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    for (const [k, v] of Object.entries(existing)) {
+      if (!manifest[k]) manifest[k] = v;
+    }
+  } catch (e) { /* first run, no existing manifest */ }
+  const manifestPath = path.join(__dirname, 'audio', 'manifest.json');
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
+  console.log(`Regenerated audio/manifest.json with ${Object.keys(manifest).length} entries`);
 }
 
 function gitCommitAndPush() {
-  execSync('git add index.html', { cwd: __dirname, stdio: 'inherit' });
+  execSync('git add index.html audio/manifest.json', { cwd: __dirname, stdio: 'inherit' });
   const staged = execSync('git diff --cached --name-only', { cwd: __dirname }).toString().trim();
   if (!staged) {
     console.log('No changes to commit — data already up to date');
@@ -352,6 +371,6 @@ function gitCommitAndPush() {
     Object.entries(cultureNotes.reduce((acc, n) => { acc[n.language] = (acc[n.language]||0)+1; return acc; }, {}))
   ));
 
-  updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes);
+  updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes, allPhrases);
   gitCommitAndPush();
 })();
