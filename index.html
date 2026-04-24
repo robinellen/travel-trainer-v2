@@ -1412,11 +1412,13 @@ let _onCoachMarkDismiss = null;
 
 let AUDIO_MANIFEST = {};
 fetch('audio/manifest.json').then(r => r.json()).then(m => {
-  // Normalize all keys to lowercase so lookups are case-insensitive
   for (const [k, v] of Object.entries(m)) {
     AUDIO_MANIFEST[k.toLowerCase()] = v;
   }
-}).catch(() => {});
+  initApp();
+}).catch(() => {
+  initApp();
+});
 
 const CULTURE_NOTES = [
   {
@@ -19970,8 +19972,10 @@ function devShowScores() {
   console.log(lines.join('\n'));
 }
 
-loadState();
-updateWelcomeProgress();
+function initApp() {
+  loadState();
+  updateWelcomeProgress();
+}
 
 </script>
 </body>
