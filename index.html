@@ -1125,16 +1125,16 @@ body::after {
     <button id="listenModePauseBtn" onclick="toggleListenPause()" style="background:none; border:none; color:var(--text-dim); font-size:17px; cursor:pointer; padding:0.25rem; line-height:1;">⏸</button>
   </div>
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
-    <div style="font-size:13px; letter-spacing:0.25em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.75rem;" id="listenModeContext"></div>
-    <div style="font-size:17px; color:var(--text); line-height:1.6; max-width:300px; margin-bottom:1.5rem;" id="listenModeScene"></div>
-    <div id="listenModePulse" class="exp-pulse hidden">
+    <div style="font-size:13px; letter-spacing:0.25em; text-transform:uppercase; color:var(--text-dim); margin-bottom:1.5rem;" id="listenModeContext"></div>
+    <div class="play-circle" id="listenModePlayBtn" onclick="playCurrentListenClip()" style="margin-bottom:1rem;">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </div>
+    <div id="listenModePulse" class="exp-pulse hidden" style="margin-bottom:1rem;">
       <svg viewBox="0 0 24 24" style="width:20px; height:20px; fill:var(--text-dim);"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
     </div>
-    <div id="listenModeFrench" class="hidden" style="font-family:'Cormorant Garamond',serif; font-size:22px; font-style:italic; color:var(--text); margin-top:1rem; line-height:1.4;"></div>
-    <div id="listenModeEnglish" class="hidden" style="font-size:15px; color:var(--text-dim); margin-top:0.5rem; line-height:1.5;"></div>
-    <div id="listenModeLinks" class="hidden" style="margin-top:1rem; text-align:center;">
-      <button id="listenRevealBtn" onclick="toggleListenReveal()" class="btn-text"></button>
-    </div>
+    <div id="listenModeFrench" class="hidden" style="font-family:'Cormorant Garamond',serif; font-size:22px; font-style:italic; color:var(--text); margin-top:1rem; line-height:1.4; opacity:0; transition:opacity 0.3s;"></div>
+    <div id="listenModeEnglish" class="hidden" onclick="revealListenEnglish()" style="font-size:15px; color:var(--text-dim); margin-top:0.75rem; line-height:1.5; min-height:1.5em; cursor:pointer;"></div>
+    <div id="listenModeRevealHint" class="hidden" onclick="revealListenEnglish()" style="font-size:13px; color:var(--text-dim); margin-top:0.75rem; cursor:pointer;">Tap for English</div>
     <div id="listenModeComplete" class="hidden" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; background:var(--bg); padding:1.5rem;">
       <div>
         <div style="font-size:2rem; margin-bottom:1.5rem;">✦</div>
@@ -20394,6 +20394,117 @@ function toggleListenPause() {
   }
 }
 
+// Resolve audio path — some Listen Clips reuse trigger phrase files
+// (prefixed with T). Those live in audio/trigger-phrases/.
+function getListenClipAudioPath(clip) {
+  if (!clip || !clip.fileName) return null;
+  const prefix = clip.fileName.startsWith('T') ? 'audio/trigger-phrases/' : 'audio/';
+  return prefix + clip.fileName;
+}
+
+// Decide whether English auto-reveals or needs a tap. Driven by the
+// anchor phrase's current score when set, otherwise the learner's stage.
+function getListenClipRevealMode(clip) {
+  const anchor = clip.anchorPhrase;
+  if (anchor) {
+    const lang = langToCode(localStorage.getItem('tt_language') || 'French');
+    const phrase = PHRASES.find(p =>
+      p.native && p.native.toLowerCase() === anchor.toLowerCase() && p.lang === lang
+    );
+    if (phrase) return getScore(phrase.id) >= 2 ? 'tap-only' : 'auto';
+  }
+  return getCurrentSubstage().stage >= 3 ? 'tap-only' : 'auto';
+}
+
+let _listenEnglishRevealed = false;
+let _listenAudioPlayed = false;
+
+function revealListenEnglish() {
+  if (_listenEnglishRevealed) return;
+  _listenEnglishRevealed = true;
+  const englishEl = document.getElementById('listenModeEnglish');
+  const hintEl = document.getElementById('listenModeRevealHint');
+  if (englishEl) englishEl.classList.remove('hidden');
+  if (hintEl) hintEl.classList.add('hidden');
+  resetListenAdvanceTimer();
+}
+
+function playCurrentListenClip() {
+  if (_listenPaused) return;
+  const clip = _listenClips[_listenClipIdx];
+  if (!clip) return;
+  const url = getListenClipAudioPath(clip);
+  if (!url) return;
+
+  // Clear any pending timers and stop anything playing
+  clearTimeout(_listenTimer);
+  if (currentAudio) { try { currentAudio.pause(); } catch(e) {} currentAudio = null; }
+
+  document.getElementById('listenModePulse').classList.remove('hidden');
+  const frenchEl = document.getElementById('listenModeFrench');
+
+  const audio = new Audio(url);
+  audio.playbackRate = 1.0;
+  currentAudio = audio;
+
+  audio.onended = () => {
+    currentAudio = null;
+    if (_listenPaused) return;
+    document.getElementById('listenModePulse').classList.add('hidden');
+
+    // Replay keeps French visible — no state change on replay
+    if (_listenAudioPlayed) {
+      // Already shown French before; just reset the advance timer
+      resetListenAdvanceTimer();
+      return;
+    }
+    _listenAudioPlayed = true;
+
+    // 500ms pause, then fade French in over 300ms
+    _listenTimer = setTimeout(() => {
+      if (_listenPaused) return;
+      frenchEl.textContent = clip.frenchText;
+      frenchEl.classList.remove('hidden');
+      // Force reflow so the opacity transition fires
+      frenchEl.offsetHeight;
+      frenchEl.style.opacity = '1';
+
+      // English reveal: auto after 3s or tap-only
+      const mode = getListenClipRevealMode(clip);
+      if (mode === 'auto') {
+        _listenTimer = setTimeout(() => {
+          if (_listenPaused || _listenEnglishRevealed) return;
+          revealListenEnglish();
+        }, 3000);
+      }
+
+      // Advance timer — user can tap English anytime before this
+      _listenAdvanceTimer = setTimeout(() => {
+        if (_listenPaused) return;
+        _listenClipIdx++;
+        playListenClip();
+      }, 6500);
+    }, 500);
+  };
+
+  audio.onerror = () => {
+    currentAudio = null;
+    document.getElementById('listenModePulse').classList.add('hidden');
+    if (_listenPaused) return;
+    _listenClipIdx++;
+    playListenClip();
+  };
+
+  audio.play().catch(() => {
+    currentAudio = null;
+    document.getElementById('listenModePulse').classList.add('hidden');
+    if (!_listenPaused) {
+      _listenClipIdx++;
+      playListenClip();
+    }
+  });
+}
+
 function playListenClip() {
   if (_listenPaused) return;
   if (_listenClipIdx >= _listenClips.length) {
@@ -20403,110 +20514,28 @@ function playListenClip() {
 
   const clip = _listenClips[_listenClipIdx];
   const total = _listenClips.length;
-  const sessionCount = parseInt(localStorage.getItem('tt_listenSessionCount') || '0', 10);
-
   document.getElementById('listenModeProgressFill').style.width = Math.round((_listenClipIdx / total) * 100) + '%';
 
-  // Reset state
+  // Reset UI: show context label, hide French + English, show play button
+  _listenEnglishRevealed = false;
+  _listenAudioPlayed = false;
+  document.getElementById('listenModeContext').textContent = (clip.contextLabel || '').toUpperCase();
   document.getElementById('listenModePulse').classList.add('hidden');
-  document.getElementById('listenModeFrench').classList.add('hidden');
-  document.getElementById('listenModeEnglish').classList.add('hidden');
-  document.getElementById('listenModeLinks').classList.add('hidden');
-  document.getElementById('listenModeFrench').textContent = clip.frenchText;
-  document.getElementById('listenModeEnglish').textContent = clip.englishTranslation;
+  const frenchEl = document.getElementById('listenModeFrench');
+  frenchEl.classList.add('hidden');
+  frenchEl.style.opacity = '0';
+  frenchEl.textContent = '';
+  const englishEl = document.getElementById('listenModeEnglish');
+  englishEl.classList.add('hidden');
+  englishEl.textContent = clip.englishTranslation || '';
+  document.getElementById('listenModeRevealHint').classList.remove('hidden');
+  document.getElementById('listenModePlayBtn').style.display = '';
 
-  // State 1: Scene
-  document.getElementById('listenModeContext').textContent = '';
-  document.getElementById('listenModeScene').textContent = clip.englishTranslation || clip.scenePrompt;
-
-  // Reset reveal state — nothing shown yet
-  _listenRevealState = 'none';
-
-  // After 1 second, play audio
+  // Auto-start audio after a brief pause
   _listenTimer = setTimeout(() => {
     if (_listenPaused) return;
-
-    // State 2: Audio plays
-    document.getElementById('listenModePulse').classList.remove('hidden');
-
-    const audioUrl = 'audio/listen-clips/' + clip.fileName;
-    const audio = new Audio(audioUrl);
-    audio.playbackRate = 1.0;
-    currentAudio = audio;
-
-    audio.onended = () => {
-      currentAudio = null;
-      if (_listenPaused) return;
-
-      // State 3: After audio — hide pulse
-      document.getElementById('listenModePulse').classList.add('hidden');
-
-      // Scaffolding: auto-show French in early sessions
-      if (sessionCount <= 2) {
-        document.getElementById('listenModeFrench').classList.remove('hidden');
-        _listenRevealState = 'french';
-      }
-
-      // Show reveal toggle after 1500ms
-      _listenTimer = setTimeout(() => {
-        if (_listenPaused) return;
-        updateListenRevealButton();
-        document.getElementById('listenModeLinks').classList.remove('hidden');
-
-        // Advance after 4000ms
-        _listenAdvanceTimer = setTimeout(() => {
-          if (_listenPaused) return;
-          _listenClipIdx++;
-          playListenClip();
-        }, 4000);
-      }, 1500);
-    };
-
-    audio.onerror = () => {
-      currentAudio = null;
-      _listenClipIdx++;
-      if (!_listenPaused) playListenClip();
-    };
-
-    audio.play().catch(() => {
-      currentAudio = null;
-      _listenClipIdx++;
-      if (!_listenPaused) playListenClip();
-    });
-  }, 1000);
-}
-
-// 'none' = nothing revealed yet, 'french' = French showing, 'english' = English showing, 'both' = both
-let _listenRevealState = 'none';
-
-function updateListenRevealButton() {
-  const btn = document.getElementById('listenRevealBtn');
-  if (!btn) return;
-  btn.style.display = '';
-  if (_listenRevealState === 'none') {
-    btn.textContent = 'Show French';
-  } else if (_listenRevealState === 'french') {
-    btn.textContent = 'Show English';
-  } else if (_listenRevealState === 'english') {
-    btn.textContent = 'Show French';
-  } else {
-    btn.style.display = 'none';
-  }
-}
-
-function toggleListenReveal() {
-  if (_listenRevealState === 'none') {
-    document.getElementById('listenModeFrench').classList.remove('hidden');
-    _listenRevealState = 'french';
-  } else if (_listenRevealState === 'french') {
-    document.getElementById('listenModeEnglish').classList.remove('hidden');
-    _listenRevealState = 'both';
-  } else if (_listenRevealState === 'english') {
-    document.getElementById('listenModeFrench').classList.remove('hidden');
-    _listenRevealState = 'both';
-  }
-  updateListenRevealButton();
-  resetListenAdvanceTimer();
+    playCurrentListenClip();
+  }, 700);
 }
 
 function resetListenAdvanceTimer() {
@@ -20525,11 +20554,11 @@ function onListenModeComplete() {
 
   // Show completion overlay
   document.getElementById('listenModeContext').textContent = '';
-  document.getElementById('listenModeScene').textContent = '';
   document.getElementById('listenModePulse').classList.add('hidden');
   document.getElementById('listenModeFrench').classList.add('hidden');
   document.getElementById('listenModeEnglish').classList.add('hidden');
-  document.getElementById('listenModeLinks').classList.add('hidden');
+  document.getElementById('listenModeRevealHint').classList.add('hidden');
+  document.getElementById('listenModePlayBtn').style.display = 'none';
   document.getElementById('listenModeComplete').classList.remove('hidden');
 }
 
