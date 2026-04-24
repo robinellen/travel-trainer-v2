@@ -19915,9 +19915,9 @@ function devSetAllScore3() {
   state.seenTierUnlock.recovery = true;
   state.seenTierUnlock.tier3 = true;
   saveState();
-  alert('Scored: ' + Object.keys(state.scores).length + ' phrases saved to localStorage: ' + (localStorage.getItem('tt_state') ? JSON.parse(localStorage.getItem('tt_state')).scores ? Object.keys(JSON.parse(localStorage.getItem('tt_state')).scores).length : 0 : 0));
   updateWelcomeScreen();
   console.log(`[dev] Scored ${playable.length} phrases. Active after: ${getActivePhrases().length}`);
+  alert('After scoring: state.scores has ' + Object.keys(state.scores).length + ' entries. localStorage tt_state has ' + (()=>{ try { const s = JSON.parse(localStorage.getItem('tt_state')); return Object.keys(s.scores||{}).length; } catch(e) { return 'ERROR: '+e; }})() + ' scores.');
   closeDevPanel();
 }
 
