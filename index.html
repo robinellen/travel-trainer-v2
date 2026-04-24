@@ -19871,20 +19871,20 @@ function devLaunch(module) {
 
 function devSetTier1Score3() {
   const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p));
+  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)));
   const tier1 = playable.filter(p => (p.tier || '1') === '1');
   tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
   localStorage.setItem('tt_recoveryUnlocked', 'true');
   state.seenTierUnlock.recovery = true;
   saveState();
   updateWelcomeScreen();
-  console.log('[dev] Tier 1 set to score 3. Recovery unlocked.');
+  console.log(`[dev] Tier 1 set to score 3. Scored ${tier1.length} phrases. Recovery unlocked.`);
   closeDevPanel();
 }
 
 function devSetAllScore3() {
   const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p));
+  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)));
   playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 4); });
   localStorage.setItem('tt_recoveryUnlocked', 'true');
   localStorage.setItem('tt_tier3Unlocked', 'true');
@@ -19893,8 +19893,7 @@ function devSetAllScore3() {
   state.seenTierUnlock.tier3 = true;
   saveState();
   updateWelcomeScreen();
-  const active = getActivePhrases();
-  console.log(`[dev] All set to score 4. All tiers unlocked. Active: ${active.length} total.`);
+  console.log(`[dev] Scored ${playable.length} phrases. Active after: ${getActivePhrases().length}`);
   closeDevPanel();
 }
 
@@ -19957,12 +19956,13 @@ function devSkipToCafePractice() {
 function devShowScores() {
   const out = document.getElementById('devScoreOutput');
   const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p));
+  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)));
   const lines = playable.map(p => {
     const score = getScore(p.id);
     const tier = p.tier || '1';
+    const hasAudio = !!getAudio(p);
     const due = isPhrasedue(p.id) ? 'DUE' : '';
-    return `[${tier.padEnd(10)}] score=${score} ${due.padEnd(3)} ${p.native.slice(0, 35)}`;
+    return `[${tier.padEnd(10)}] score=${score} ${due.padEnd(3)} ${hasAudio ? '♪' : '✗'} ${p.native.slice(0, 35)}`;
   });
   lines.push('');
   lines.push('Unlock flags: recovery=' + !!localStorage.getItem('tt_recoveryUnlocked')
