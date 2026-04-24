@@ -16117,6 +16117,17 @@ function startSessionWithMode(mode) {
 
   const activePhrases = getActivePhrases();
 
+  alert(
+    'SESSION START\n' +
+    'activePhrases: ' + activePhrases.length + '\n' +
+    'T1: ' + activePhrases.filter(p => (p.tier||'1')==='1').length + '\n' +
+    'T2: ' + activePhrases.filter(p => p.tier==='2').length + '\n' +
+    'recoveryUnlocked: ' + localStorage.getItem('tt_recoveryUnlocked') + '\n' +
+    'foundationComplete: ' + localStorage.getItem('tt_foundationComplete') + '\n' +
+    'language: ' + localStorage.getItem('tt_language') + '\n' +
+    'scores set: ' + Object.keys(state.scores).length
+  );
+
   if (localStorage.getItem('tt_devMode')) {
     const frTier1 = activePhrases.filter(p => (p.tier || '1') === '1');
     const frTier2 = activePhrases.filter(p => p.tier === '2');
