@@ -15403,7 +15403,7 @@ function getActivePhrases() {
   const prefGateSeen = !!localStorage.getItem('tt_prefGateSeen');
   return PHRASES.filter(p => {
     if (p.lang !== lang) return false;
-    if (!(p.meaning || (p.meanings && p.meanings.length)) || !getAudio(p.native)) return false;
+    if (!(p.meaning || (p.meanings && p.meanings.length)) || !getAudio(p)) return false;
     const tier = p.tier || '1';
     if (tier === '1') { /* manifest check above is sufficient */ }
     else if (tier === 'Recovery') { if (!localStorage.getItem('tt_recoveryUnlocked')) return false; }
@@ -15541,7 +15541,12 @@ let currentAudio = null;
 const LANG_CODES = { fr: 'fr-FR' };
 
 // Case-tolerant audio lookup — returns file URL or null
-function getAudio(key) {
+function getAudio(phraseOrKey) {
+  if (!phraseOrKey) return null;
+  if (typeof phraseOrKey === 'object' && phraseOrKey.audioFileName) {
+    return 'audio/' + phraseOrKey.audioFileName;
+  }
+  const key = typeof phraseOrKey === 'string' ? phraseOrKey : phraseOrKey.native;
   if (!key) return null;
   const entry = AUDIO_MANIFEST[key.toLowerCase()];
   return entry ? 'audio/' + entry : null;
@@ -15599,7 +15604,7 @@ function playPhrase(phrase, circleId) {
   const setPlay = () => circle?.classList.add('playing');
   const setStop = () => circle?.classList.remove('playing');
 
-  const _a0 = getAudio(phrase.native);
+  const _a0 = getAudio(phrase);
   if (_a0) {
     const audio = new Audio(_a0);
     audio.playbackRate = 1.0;
@@ -15808,7 +15813,7 @@ function confirmLeaveExit() {
 
 function checkUnlocks() {
   const lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  const playable = PHRASES.filter(p => p.lang === lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
+  const playable = PHRASES.filter(p => p.lang === lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p));
   const tier1 = playable.filter(p => (p.tier || '1') === '1');
   const recovery = playable.filter(p => p.tier === 'Recovery');
 
@@ -17150,7 +17155,7 @@ function renderSpeakPanel(phrase, opts = {}) {
   // "Hear it slower" available at score 0-2 only, hidden at 3+, and always
   // hidden in speak-from-English or Stage 4+ (audio-only, no scaffolding).
   const slowerBtn = document.getElementById('speakSlowerBtn');
-  slowerBtn.style.display = (!fromEnglish && !scaffoldingRemoved && score < 3 && getAudio(phrase.native)) ? '' : 'none';
+  slowerBtn.style.display = (!fromEnglish && !scaffoldingRemoved && score < 3 && getAudio(phrase)) ? '' : 'none';
 
   // Set recognition language
   if (window.SpeechRecognition || window.webkitSpeechRecognition) {
@@ -17191,7 +17196,7 @@ let _currentSpeakFromEnglish = false;
 
 function hearSlower() {
   if (!_currentSpeakPhrase) return;
-  const url = getAudio(_currentSpeakPhrase.native);
+  const url = getAudio(_currentSpeakPhrase);
   if (!url) return;
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   // Always create a fresh Audio instance with rate set before play
@@ -17206,7 +17211,7 @@ function hearSlower() {
 
 function replayAtNaturalSpeed() {
   if (!_currentSpeakPhrase) return;
-  const url = getAudio(_currentSpeakPhrase.native);
+  const url = getAudio(_currentSpeakPhrase);
   if (!url) return;
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   const audio = new Audio(url);
@@ -17329,7 +17334,7 @@ function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, 
     // Play the correct phrase audio, then show Got it button
     const nextBtn = document.getElementById(nextId);
     nextBtn.textContent = 'Got it →';
-    const url = getAudio(phrase.native);
+    const url = getAudio(phrase);
     if (url) {
       const audio = new Audio(url);
       audio.playbackRate = 1.0;
@@ -17558,7 +17563,7 @@ function evaluateSituSpeak(heard, phrase) {
     }
     const situBtn2 = document.getElementById('situNextBtn');
     situBtn2.textContent = 'Got it →';
-    const url = getAudio(phrase.native);
+    const url = getAudio(phrase);
     if (url) {
       const audio = new Audio(url);
       audio.playbackRate = 1.0;
@@ -18126,7 +18131,7 @@ function startStageReview(stageIdx) {
   }
 
   // Build a review session from this pool using the standard engine
-  const playable = pool.filter(p => getScore(p.id) >= 1 && getAudio(p.native));
+  const playable = pool.filter(p => getScore(p.id) >= 1 && getAudio(p));
   if (!playable.length) {
     goHome();
     return;
@@ -18929,7 +18934,7 @@ function practiceStateRespond(tp) {
   _expSpeakTarget = correctResponse;
 
   const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  const allResponses = PHRASES.filter(p => p.lang === _lang && p.tier === '2' && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native)).map(p => p.native);
+  const allResponses = PHRASES.filter(p => p.lang === _lang && p.tier === '2' && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p)).map(p => p.native);
   const distractors = shuffle(allResponses.filter(r => r !== correctResponse)).slice(0, 3);
   const options = shuffle([correctResponse, ...distractors]);
 
@@ -19604,7 +19609,7 @@ function closePhraseDetail() {
 
 function playPhraseDetailAudio() {
   if (!_detailPhrase) return;
-  const url = getAudio(_detailPhrase.native);
+  const url = getAudio(_detailPhrase);
   if (!url) return;
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   const audio = new Audio(url);
@@ -19866,7 +19871,7 @@ function devLaunch(module) {
 
 function devSetTier1Score3() {
   const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
+  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p));
   const tier1 = playable.filter(p => (p.tier || '1') === '1');
   tier1.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 3); });
   localStorage.setItem('tt_recoveryUnlocked', 'true');
@@ -19879,7 +19884,7 @@ function devSetTier1Score3() {
 
 function devSetAllScore3() {
   const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
+  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p));
   playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 4); });
   localStorage.setItem('tt_recoveryUnlocked', 'true');
   localStorage.setItem('tt_tier3Unlocked', 'true');
@@ -19952,7 +19957,7 @@ function devSkipToCafePractice() {
 function devShowScores() {
   const out = document.getElementById('devScoreOutput');
   const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p.native));
+  const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p));
   const lines = playable.map(p => {
     const score = getScore(p.id);
     const tier = p.tier || '1';
