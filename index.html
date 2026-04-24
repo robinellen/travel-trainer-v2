@@ -19906,6 +19906,7 @@ function devSetTier1Score3() {
 }
 
 function devSetAllScore3() {
+  alert('devSetAllScore3 called');
   const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
   const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)));
   playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 4); });
