@@ -19452,12 +19452,16 @@ function startListenMode() {
   document.getElementById('listenModeComplete').classList.add('hidden');
   document.getElementById('listenModeProgressFill').style.width = '0%';
 
-  // Coach mark on first visit — gate playback behind Got it
+  // Coach mark on first visit — gate playback behind Got it.
+  // Must check BEFORE playListenClip so no audio starts.
   const coachKey = 'tt_seenListenModeCoachMark';
   if (!localStorage.getItem(coachKey)) {
-    _onCoachMarkDismiss = () => playListenClip();
+    _onCoachMarkDismiss = () => {
+      showScreen('screenListenMode');
+      playListenClip();
+    };
     showCoachMark(coachKey);
-    return; // Wait for Got it
+    return; // Stop here — no audio until Got it
   } else {
     playListenClip();
   }
