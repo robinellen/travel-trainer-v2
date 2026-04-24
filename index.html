@@ -16121,6 +16121,12 @@ function startSessionWithMode(mode) {
 
   const activePhrases = getActivePhrases();
 
+  const _d2 = document.createElement('div');
+  _d2.style.cssText = 'position:fixed;top:0;left:0;right:0;background:blue;color:white;padding:20px;z-index:99999;font-size:16px;';
+  _d2.textContent = 'SESSION: active=' + activePhrases.length + ' T1=' + activePhrases.filter(p=>(p.tier||'1')==='1').length + ' T2=' + activePhrases.filter(p=>p.tier==='2').length + ' scores=' + Object.keys(state.scores).length + ' recovered=' + localStorage.getItem('tt_recoveryUnlocked');
+  document.body.appendChild(_d2);
+  setTimeout(() => _d2.remove(), 8000);
+
   if (localStorage.getItem('tt_devMode')) {
     const frTier1 = activePhrases.filter(p => (p.tier || '1') === '1');
     const frTier2 = activePhrases.filter(p => p.tier === '2');
@@ -19906,7 +19912,11 @@ function devSetTier1Score3() {
 }
 
 function devSetAllScore3() {
-  alert('devSetAllScore3 called');
+  const _diag = document.createElement('div');
+  _diag.style.cssText = 'position:fixed;top:0;left:0;right:0;background:red;color:white;padding:20px;z-index:99999;font-size:16px;';
+  _diag.id = '_dev_diag';
+  document.body.appendChild(_diag);
+  _diag.textContent = 'devSetAllScore3 START - scores before: ' + Object.keys(state.scores).length;
   const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
   const playable = PHRASES.filter(p => p.lang === _lang && (p.meaning || (p.meanings && p.meanings.length)));
   playable.forEach(p => { state.scores[p.id] = Math.max(getScore(p.id), 4); });
@@ -19918,7 +19928,8 @@ function devSetAllScore3() {
   saveState();
   updateWelcomeScreen();
   console.log(`[dev] Scored ${playable.length} phrases. Active after: ${getActivePhrases().length}`);
-  alert('After scoring: state.scores has ' + Object.keys(state.scores).length + ' entries. localStorage tt_state has ' + (()=>{ try { const s = JSON.parse(localStorage.getItem('tt_state')); return Object.keys(s.scores||{}).length; } catch(e) { return 'ERROR: '+e; }})() + ' scores.');
+  _diag.textContent = 'devSetAllScore3 END - scores after: ' + Object.keys(state.scores).length + ' saved: ' + (()=>{ try { return Object.keys(JSON.parse(localStorage.getItem('tt_state')||'{}').scores||{}).length; } catch(e){ return 'ERR'; }})();
+  setTimeout(() => _diag.remove(), 5000);
   closeDevPanel();
 }
 
