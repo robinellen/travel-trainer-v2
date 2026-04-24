@@ -135,6 +135,7 @@ function recordToTrigger(record) {
     sortOrder: f['Sort Order'] || null,
     difficulty: f['Sort Order'] || 0,
     voice: f['Voice'] || '',
+    displayLabel: f['Display Label'] || '',
     preferenceGroup: Array.isArray(f['Preference Group'])
       ? f['Preference Group'].map(v => typeof v === 'object' ? v.name : v)
       : [],

@@ -952,7 +952,10 @@ body::after {
     <!-- ── RECOGNITION panel ── -->
     <div id="panelRecognition" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
-        <div style="font-size:15px; color:var(--text-mid); line-height:1.6; max-width:320px; margin:0 auto 0.5rem; font-style:italic;" id="recogContext"></div>
+        <div id="recogSignalAnchor" style="margin-bottom:0.75rem; display:none;">
+          <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
+          <span id="recogAnchorWord" style="font-size:15px; color:var(--text);"></span>
+        </div>
       </div>
       <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
         <div class="play-circle" id="recogCircle" onclick="replayRecognitionAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
@@ -1152,7 +1155,10 @@ body::after {
   </div>
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
     <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
-      <div style="font-size:15px; color:var(--text-mid); line-height:1.6; max-width:320px; margin:0 auto 0.5rem; font-style:italic;" id="recogStdContext"></div>
+      <div id="recogStdSignalAnchor" style="margin-bottom:0.75rem; display:none;">
+        <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
+        <span id="recogStdAnchorWord" style="font-size:15px; color:var(--text);"></span>
+      </div>
     </div>
     <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
       <div class="play-circle" id="recogStdCircle" onclick="replayRecognitionStdAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
@@ -16565,32 +16571,94 @@ function pickRandomTrigger(excludeIds = []) {
 let _activeRecognitionTrigger = null;
 let _activeRecognitionAudio = null;
 
+function getTriggerLabel(trigger) {
+  return (trigger.displayLabel && trigger.displayLabel.trim())
+    ? trigger.displayLabel
+    : trigger.intent;
+}
+
+function highlightSignalWord(phraseText, signalWords) {
+  if (!signalWords || !phraseText) return phraseText || '';
+  const words = signalWords.split(/[,\/\s]+/).map(w => w.trim()).filter(Boolean);
+  let result = phraseText;
+  words.forEach(word => {
+    const regex = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    result = result.replace(regex, '<strong style="color:var(--text)">$1</strong>');
+  });
+  return result;
+}
+
+const SITUATION_ADJACENCY = {
+  'At the Restaurant': ['At the Café', 'Out and About'],
+  'At the Café':       ['At the Restaurant', 'Out and About'],
+  'At the Hotel':      ['Getting Around', 'Out and About'],
+  'Getting Around':    ['At the Hotel', 'Out and About'],
+  'Out and About':     ['At the Restaurant', 'At the Café'],
+  'Recovery':          ['At the Restaurant', 'At the Café'],
+};
+
+function pickRecognitionDistractors(trigger, count) {
+  const pool = getRecognitionPool().filter(t => t.id !== trigger.id && t.intent !== trigger.intent);
+  const targetSituation = trigger.experience || '';
+  const adjacent = SITUATION_ADJACENCY[targetSituation] || [];
+
+  // Deduplicate by intent — one label per intent
+  const seenIntents = new Set();
+  function pickUnique(list) {
+    const result = [];
+    for (const t of list) {
+      const label = getTriggerLabel(t);
+      if (!seenIntents.has(t.intent)) {
+        seenIntents.add(t.intent);
+        result.push(label);
+      }
+    }
+    return result;
+  }
+
+  const sameSituation = shuffle(pool.filter(t => t.experience === targetSituation));
+  const adjacentPool = shuffle(pool.filter(t => adjacent.includes(t.experience) && !sameSituation.some(s => s.intent === t.intent)));
+  const anyPool = shuffle(pool.filter(t => t.experience !== targetSituation && !adjacent.includes(t.experience)));
+
+  const labels = [
+    ...pickUnique(sameSituation),
+    ...pickUnique(adjacentPool),
+    ...pickUnique(anyPool),
+  ];
+  return labels.slice(0, count);
+}
+
 function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   _activeRecognitionTrigger = trigger;
 
-  const ctxEl = document.getElementById(prefix + 'Context');
   const promptEl = document.getElementById(prefix + 'Prompt');
   const optsEl = document.getElementById(prefix + 'Options');
   const revealEl = document.getElementById(prefix + 'Reveal');
   const signalEl = document.getElementById(prefix + 'SignalWord');
   const fullEl = document.getElementById(prefix + 'FullPhrase');
-  const meaningEl = document.getElementById(prefix + 'Meaning');
   const playHintEl = document.getElementById(prefix + 'PlayHint');
   const nextBtn = document.getElementById(prefix + 'NextBtn');
   const circle = document.getElementById(prefix + 'Circle');
 
-  ctxEl.textContent = trigger.scenePrompt || '';
+  // Change 1: no scenario text rendered
+  // Change 2: signal word anchor shown before audio
+  const anchorEl = document.getElementById(prefix + 'SignalAnchor');
+  const anchorWord = document.getElementById(prefix + 'AnchorWord');
+  if (anchorEl && anchorWord) {
+    if (trigger.signalWord) {
+      anchorWord.textContent = trigger.signalWord;
+      anchorEl.style.display = '';
+    } else {
+      anchorEl.style.display = 'none';
+    }
+  }
+
   const recogScore = getRecognitionScore(trigger.intent);
-  if (ctxEl) ctxEl.style.display = recogScore <= 1 ? 'none' : '';
   revealEl.classList.add('hidden');
   nextBtn.classList.add('hidden');
   circle.classList.remove('playing');
   optsEl.innerHTML = '';
 
-  // Tier-aware question prompt above the options.
-  // Tier 1 (recognition score 0-1): topic label options. Asks what the speaker is asking about.
-  // Tier 2 (score 2-3): Foundation phrase response options. Asks how the user would respond.
-  // Tier 3 (score 4+): mic opens, no prompt — the scene context handles framing.
   if (promptEl) {
     let promptText = '';
     if (recogScore <= 1) promptText = 'What are they asking about?';
@@ -16600,19 +16668,10 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     promptEl.style.display = promptText ? '' : 'none';
   }
 
-  // Build options: correct + 2 distractors, shuffled.
-  // The correct answer is the Intent topic label (e.g. "Party Size").
-  // Distractors are now generated dynamically from the fetched Trigger Phrases
-  // pool — two random Intent values from other records, excluding any record
-  // whose Intent matches the correct one. The Distractors field on the
-  // Airtable table has been deprecated and is no longer read.
-  const correctLabel = trigger.intent || trigger.signal || '';
-  const otherIntents = Array.from(new Set(
-    getRecognitionPool()
-      .filter(t => t.intent && t.intent !== correctLabel)
-      .map(t => t.intent)
-  ));
-  const distractors = shuffle(otherIntents).slice(0, 3);
+  // Change 4: situation-aware distractor selection
+  // Change 5: use displayLabel with intent fallback
+  const correctLabel = getTriggerLabel(trigger);
+  const distractors = pickRecognitionDistractors(trigger, 3);
   const choices = shuffle([
     { text: correctLabel, correct: true },
     ...distractors.map(d => ({ text: d, correct: false })),
@@ -16627,7 +16686,6 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     btn.onclick = () => {
       if (answered) return;
       answered = true;
-      // Highlight chosen + correct
       Array.from(optsEl.children).forEach(child => {
         const childCorrect = child.dataset.correct === 'true';
         child.style.cursor = 'default';
@@ -16641,7 +16699,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
           child.style.opacity = '0.4';
         }
       });
-      // Reveal signal word, definition, note, full phrase
+      // Reveal: signal word + definition + note
       signalEl.textContent = trigger.signalWord || '';
       const wordDefEl = document.getElementById(prefix + 'SignalWordDef');
       if (wordDefEl) {
@@ -16657,13 +16715,12 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       const labelText = wordCount > 1 ? 'The words to listen for' : 'The word to listen for';
       const labelEl = document.getElementById(prefix + 'SignalLabel');
       if (labelEl) labelEl.textContent = labelText;
-      fullEl.textContent = trigger.triggerPhrase || '';
+      // Change 3: full phrase with signal word highlighted
+      fullEl.innerHTML = highlightSignalWord(trigger.triggerPhrase, trigger.signalWord);
       revealEl.classList.remove('hidden');
       nextBtn.classList.remove('hidden');
-      // Coach mark for the signal word reveal (first time only)
       _onCoachMarkDismiss = () => showScreen('screenExercise');
       showCoachMark('tt_seenSignalWordCoachMark');
-      // Track this trigger phrase as seen for the vocab modal reference list
       const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
       if (!seen.includes(trigger.id)) {
         seen.push(trigger.id);
