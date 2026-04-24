@@ -15449,6 +15449,7 @@ let _stateLoaded = false;
 function loadState() {
   if (_stateLoaded) return;
   _stateLoaded = true;
+  console.trace('[loadState] called — loading from localStorage');
   try {
     const saved = localStorage.getItem('tt_state');
     if (saved) {
@@ -19914,6 +19915,7 @@ function devSetAllScore3() {
   state.seenTierUnlock.recovery = true;
   state.seenTierUnlock.tier3 = true;
   saveState();
+  alert('Scored: ' + Object.keys(state.scores).length + ' phrases saved to localStorage: ' + (localStorage.getItem('tt_state') ? JSON.parse(localStorage.getItem('tt_state')).scores ? Object.keys(JSON.parse(localStorage.getItem('tt_state')).scores).length : 0 : 0));
   updateWelcomeScreen();
   console.log(`[dev] Scored ${playable.length} phrases. Active after: ${getActivePhrases().length}`);
   closeDevPanel();
