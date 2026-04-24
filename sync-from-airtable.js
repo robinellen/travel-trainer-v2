@@ -89,7 +89,6 @@ function recordToPhrase(record) {
     isBuildupChunk: f['Is Buildup Chunk'] === true,
     capabilityLabel: f['Capability Label'] || '',
     alsoAccepted: parseArray(f['Also Accepted']),
-    audioRecorded: f['Audio Recorded'] === true,
     audioFileName: f['File Name'] || '',
     situations: parseArray(f['Situations']),
     situationEarly: parseArray(f['Situation (Early)']),
@@ -278,7 +277,7 @@ function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listen
 
   // Regenerate audio manifest from all phrases with audio (including buildup chunks)
   const manifest = {};
-  allPhrases.filter(p => p.audioRecorded && p.audioFileName && p.native).forEach(p => {
+  allPhrases.filter(p => p.audioFileName && p.native).forEach(p => {
     manifest[p.native] = p.audioFileName;
   });
   // Preserve any existing manifest entries not covered by the sync (e.g.
@@ -290,7 +289,6 @@ function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listen
       if (!manifest[k]) manifest[k] = v;
     }
   } catch (e) { /* first run, no existing manifest */ }
-  const manifestPath = path.join(__dirname, 'audio', 'manifest.json');
   fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   console.log(`Regenerated audio/manifest.json with ${Object.keys(manifest).length} entries`);
 }
