@@ -1333,6 +1333,9 @@ body::after {
       <button onclick="devClearCoachMark('tt_seenRecogCoachMark')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Clear Recog Mark</button>
       <button onclick="devClearCoachMark('tt_seenRepeatCoachMark')" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Clear Repeat Mark</button>
     </div>
+    <div style="display:flex; gap:0.4rem;">
+      <button onclick="devToggleFoundationComplete()" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Toggle Foundation Complete</button>
+    </div>
 
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55; margin-top:0.5rem;">
       <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-bottom:0.4rem;">EXERCISE PROGRESSION BY SCORE</div>
@@ -19798,13 +19801,28 @@ function devJumpToStage(stage) {
   } else {
     localStorage.setItem('tt_devStageOverride', substageKeys[stage]);
   }
-  // Ensure a valid language is set so the Learn tab doesn't fall back to
-  // the language picker when jumping to a post-onboarding stage.
+  // Stage 2+ requires these flags for getActivePhrases to serve Tier 2+
+  if (stage >= 2) {
+    localStorage.setItem('tt_foundationComplete', 'true');
+    localStorage.setItem('tt_recoveryUnlocked', 'true');
+  }
   if (!localStorage.getItem('tt_language')) {
     localStorage.setItem('tt_language', 'French');
   }
   updateWelcomeScreen();
   console.log('[dev] Stage override:', stage === 1 ? 'cleared' : substageKeys[stage]);
+  closeDevPanel();
+}
+
+function devToggleFoundationComplete() {
+  if (localStorage.getItem('tt_foundationComplete')) {
+    localStorage.removeItem('tt_foundationComplete');
+    localStorage.removeItem('tt_recoveryUnlocked');
+  } else {
+    localStorage.setItem('tt_foundationComplete', 'true');
+    localStorage.setItem('tt_recoveryUnlocked', 'true');
+  }
+  updateWelcomeScreen();
   closeDevPanel();
 }
 
