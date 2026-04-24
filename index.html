@@ -20398,7 +20398,11 @@ function toggleListenPause() {
 // (prefixed with T). Those live in audio/trigger-phrases/.
 function getListenClipAudioPath(clip) {
   if (!clip || !clip.fileName) return null;
-  const prefix = clip.fileName.startsWith('T') ? 'audio/trigger-phrases/' : 'audio/';
+  // LC-prefixed files live in audio/listen-clips/, T-prefixed in
+  // audio/trigger-phrases/, everything else at the audio/ root.
+  let prefix = 'audio/';
+  if (clip.fileName.startsWith('LC')) prefix = 'audio/listen-clips/';
+  else if (clip.fileName.startsWith('T')) prefix = 'audio/trigger-phrases/';
   return prefix + clip.fileName;
 }
 
@@ -20489,20 +20493,28 @@ function playCurrentListenClip() {
 
   audio.onerror = () => {
     currentAudio = null;
-    document.getElementById('listenModePulse').classList.add('hidden');
-    if (_listenPaused) return;
-    _listenClipIdx++;
-    playListenClip();
+    showListenClipTextFallback(clip);
   };
 
   audio.play().catch(() => {
     currentAudio = null;
-    document.getElementById('listenModePulse').classList.add('hidden');
-    if (!_listenPaused) {
-      _listenClipIdx++;
-      playListenClip();
-    }
+    showListenClipTextFallback(clip);
   });
+}
+
+// Audio failed to load — show the French + English directly with a
+// manual advance button. Prevents the infinite skip loop when files
+// are missing or paths are wrong.
+function showListenClipTextFallback(clip) {
+  document.getElementById('listenModePulse').classList.add('hidden');
+  const frenchEl = document.getElementById('listenModeFrench');
+  frenchEl.textContent = clip.frenchText || '';
+  frenchEl.classList.remove('hidden');
+  frenchEl.style.opacity = '1';
+  revealListenEnglish();
+  clearTimeout(_listenAdvanceTimer);
+  // User advances manually via the play button (now repurposed as Continue)
+  // or can wait — no auto-advance after a failure.
 }
 
 function playListenClip() {
