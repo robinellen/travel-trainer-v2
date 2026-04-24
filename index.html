@@ -17181,15 +17181,23 @@ function getCurrentLanguageName() {
   return localStorage.getItem('tt_language') || 'French';
 }
 
+// Map current stage to the Depth Levels the learner should encounter.
+// Stage 1-2: Level 1 only. Stage 3: Levels 1+2. Stage 4+: all three.
+function getEligibleDepthLevels(stage) {
+  if (stage <= 2) return ['Level 1 — Survive it'];
+  if (stage === 3) return ['Level 1 — Survive it', 'Level 2 — Handle it'];
+  return ['Level 1 — Survive it', 'Level 2 — Handle it', 'Level 3 — Own it'];
+}
+
 function getRecognitionPool() {
   if (typeof TRIGGER_PHRASES === 'undefined') return [];
   const lang = getCurrentLanguageName();
-  // Distractors are generated dynamically from the pool itself, so we no
-  // longer require records to ship with a Distractors field. We do require
-  // an Intent so the record can serve as either correct answer or distractor.
+  const stage = getCurrentSubstage().stage;
+  const eligibleLevels = getEligibleDepthLevels(stage);
   return TRIGGER_PHRASES.filter(t =>
     t.audioRecorded &&
     t.intent &&
+    eligibleLevels.includes(t.depthLevel) &&
     (t.language === lang || (typeof t.language === 'object' && t.language?.name === lang))
   );
 }
