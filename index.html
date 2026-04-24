@@ -15596,23 +15596,27 @@ function getMeaning(phrase) {
 }
 
 function playPhrase(phrase, circleId) {
-  // Stop anything playing
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   window.speechSynthesis?.cancel();
-
   const circle = circleId ? document.getElementById(circleId) : null;
   const setPlay = () => circle?.classList.add('playing');
   const setStop = () => circle?.classList.remove('playing');
-
   const _a0 = getAudio(phrase);
   if (_a0) {
     const audio = new Audio(_a0);
     audio.playbackRate = 1.0;
     currentAudio = audio;
     setPlay();
+    let fallbackFired = false;
+    const doFallback = () => {
+      if (fallbackFired) return;
+      fallbackFired = true;
+      currentAudio = null;
+      fallbackTTS(phrase, setPlay, setStop);
+    };
     audio.onended = () => { currentAudio = null; setStop(); onAudioEnded(); };
-    audio.onerror = () => { currentAudio = null; fallbackTTS(phrase, setPlay, setStop); };
-    audio.play().catch(() => fallbackTTS(phrase, setPlay, setStop));
+    audio.onerror = doFallback;
+    audio.play().catch(doFallback);
   } else {
     fallbackTTS(phrase, setPlay, setStop);
   }
@@ -16113,6 +16117,17 @@ function startSessionWithMode(mode) {
 
   const activePhrases = getActivePhrases();
 
+  if (localStorage.getItem('tt_devMode')) {
+    const frTier1 = activePhrases.filter(p => (p.tier || '1') === '1');
+    const frTier2 = activePhrases.filter(p => p.tier === '2');
+    const frTier3 = activePhrases.filter(p => p.tier === '3');
+    const seen = activePhrases.filter(p => getScore(p.id) >= 1);
+    const unseen = activePhrases.filter(p => getScore(p.id) === 0);
+    console.log(`[session] activePhrases: ${activePhrases.length} total — T1:${frTier1.length} T2:${frTier2.length} T3:${frTier3.length}`);
+    console.log(`[session] seen:${seen.length} unseen:${unseen.length}`);
+    console.log(`[session] tt_recoveryUnlocked:${localStorage.getItem('tt_recoveryUnlocked')} tt_foundationComplete:${localStorage.getItem('tt_foundationComplete')} tt_prefGateSeen:${localStorage.getItem('tt_prefGateSeen')}`);
+  }
+
   if (mode === 'lesson') {
     // Trip focus gate: fires once at Foundation complete, before the preference
     // gate and before the session builds. Tier 2 content is reordered based on
@@ -16165,6 +16180,10 @@ function startSessionWithMode(mode) {
         selected.some(p => p.preferenceGroup && p.preferenceGroup.length > 0)) {
       openPreferenceGate(() => startSessionWithMode(mode));
       return;
+    }
+
+    if (localStorage.getItem('tt_devMode')) {
+      console.log('[session] selected phrases:', selected.map(p => `${p.native}(T${p.tier||1},s${getScore(p.id)})`));
     }
 
     state.session._sessionPhrases = selected.map(p => p.id);
