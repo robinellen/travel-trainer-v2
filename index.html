@@ -16656,7 +16656,10 @@ function confirmLeaveDismiss() {
 }
 function confirmLeaveExit() {
   document.getElementById('leaveSessionBackdrop').classList.add('hidden');
+  const wasContextDrill = !!_contextDrillSection;
+  _contextDrillSection = null;
   goHome();
+  if (wasContextDrill) switchHomeTab('practice');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -16977,7 +16980,12 @@ function startSessionWithMode(mode) {
   state.session._startScores = {};       // phraseId → score at session start
   state.session._sessionPhrases = [];    // phrase ids in this session for win screen
 
-  const activePhrases = getActivePhrases();
+  let activePhrases = getActivePhrases();
+
+  // Context drill: replace the active pool with the section-filtered pool.
+  if (_contextDrillSection) {
+    activePhrases = getContextPhrases(_contextDrillSection);
+  }
 
   if (localStorage.getItem('tt_devMode')) {
     const frTier1 = activePhrases.filter(p => (p.tier || '1') === '1');
@@ -18787,6 +18795,31 @@ function showCompletion() {
     primaryBtn.textContent = 'Done';
     primaryBtn.onclick = () => goHome();
     secondaryBtn.style.display = 'none';
+  } else if (_contextDrillSection) {
+    // Context drill: offer Listen cooldown if clips exist, else just Done.
+    const section = _contextDrillSection;
+    const clips = getContextListenClips(section);
+    if (clips.length) {
+      primaryBtn.textContent = `Listen to more (${clips.length}) →`;
+      primaryBtn.onclick = () => {
+        startListenMode(section);
+      };
+      secondaryBtn.style.display = '';
+      secondaryBtn.textContent = 'Done';
+      secondaryBtn.onclick = () => {
+        _contextDrillSection = null;
+        goHome();
+        switchHomeTab('practice');
+      };
+    } else {
+      primaryBtn.textContent = 'Done';
+      primaryBtn.onclick = () => {
+        _contextDrillSection = null;
+        goHome();
+        switchHomeTab('practice');
+      };
+      secondaryBtn.style.display = 'none';
+    }
   } else {
     primaryBtn.textContent = 'Keep going →';
     primaryBtn.onclick = () => startLesson();
@@ -19003,10 +19036,10 @@ function switchHomeTab(tab) {
     document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('hidden', t !== tab);
     document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle('active', t === tab);
   });
-  // Render the selected tab's content. Reference tab always opens on its
-  // landing view; internal navigation into All Phrases doesn't persist.
+  // Render the selected tab's content. Reference and Practice tabs always
+  // reset to their landing view on tab switch.
   if (tab === 'learn') renderLearnTab();
-  else if (tab === 'practice') renderPracticeTab();
+  else if (tab === 'practice') { _contextDrillSection = null; renderPracticeTab(); }
   else if (tab === 'reference') { _refView = 'landing'; renderReferenceTab(); }
   else if (tab === 'settings') renderSettingsTab();
 }
@@ -19302,59 +19335,121 @@ function renderLearnTab() {
   container.appendChild(btn);
 }
 
+// ── CONTEXT DRILL SECTIONS ─────────────────────────────────────────
+
+const CONTEXT_DRILL_SECTIONS = [
+  { key: 'restaurant',  label: 'Restaurant',     emoji: '🍽️', tripFocus: 'Restaurant', experience: 'At the Restaurant', contextLabel: 'At the Restaurant' },
+  { key: 'cafe',        label: 'Café',           emoji: '☕',  tripFocus: 'Café',       experience: 'At the Café',       contextLabel: 'At the Café' },
+  { key: 'travel',      label: 'Travel',         emoji: '🚂',  tripFocus: 'Transit',    experience: 'Getting Around',    contextLabel: 'Getting Around' },
+  { key: 'hotel',       label: 'Hotel',          emoji: '🏨',  tripFocus: 'Hotel',      experience: 'At the Hotel',      contextLabel: 'At the Hotel' },
+  { key: 'shopping',    label: 'Shopping',       emoji: '🛍️', tripFocus: 'Shopping',   experience: 'Out and About',     contextLabel: 'Out and About' },
+  { key: 'outandabout', label: 'Out and About',  emoji: '🌍',  tripFocus: null,         experience: 'Out and About',     contextLabel: 'Out and About', universal: true },
+  { key: 'drinks',      label: 'Drinks',         emoji: '🍷',  tripFocus: null,         experience: null,                contextLabel: null, drinksSection: true },
+];
+
+let _contextDrillSection = null; // active context drill, null when none
+
+function hasAnyDrinkPref() {
+  return ['beer', 'wine', 'spirits', 'alcohol_free'].some(k => localStorage.getItem('tt_prefs_' + k));
+}
+
+function getContextPhrases(section) {
+  const active = getActivePhrases();
+  if (section.universal) {
+    return active.filter(p =>
+      !p.tripFocus || p.tripFocus.length === 0 ||
+      p.tripFocus.includes('Out and About')
+    );
+  }
+  if (section.drinksSection) {
+    const drinkPrefs = ['Beer','Wine','Spirits','Alcohol-free','Coffee','Tea']
+      .filter(p => localStorage.getItem('tt_prefs_' + normalizePreference(p)));
+    return active.filter(p =>
+      p.preferenceGroup && p.preferenceGroup.some(g => drinkPrefs.includes(g))
+    );
+  }
+  return active.filter(p =>
+    !p.tripFocus || p.tripFocus.length === 0 ||
+    p.tripFocus.includes(section.tripFocus)
+  );
+}
+
+function getContextTriggers(section) {
+  if (!section.experience || typeof TRIGGER_PHRASES === 'undefined') return [];
+  const lang = getCurrentLanguageName();
+  const stage = getCurrentSubstage().stage;
+  const eligibleLevels = getEligibleDepthLevels(stage);
+  return TRIGGER_PHRASES.filter(t =>
+    (t.language === lang || (typeof t.language === 'object' && t.language?.name === lang)) &&
+    t.experience === section.experience &&
+    eligibleLevels.includes(t.depthLevel)
+  );
+}
+
+function getContextListenClips(section) {
+  if (!section.contextLabel || typeof LISTEN_CLIPS === 'undefined') return [];
+  const lang = getCurrentLanguageName();
+  return LISTEN_CLIPS.filter(c =>
+    c.language === lang && c.contextLabel === section.contextLabel && c.audioRecorded
+  );
+}
+
 function renderPracticeTab() {
   const container = document.getElementById('practiceTabContent');
   if (!container) return;
   container.innerHTML = '';
 
-  const foundationComplete = !!localStorage.getItem('tt_foundationComplete');
-  const stage = getCurrentStage();
-  const stageIdx = STAGES.findIndex(s => s.key === stage);
+  const heading = document.createElement('div');
+  heading.className = 'eyebrow';
+  heading.style.cssText = 'margin-bottom:1rem;';
+  heading.textContent = 'Drill by context';
+  container.appendChild(heading);
 
-  // Shared row builder
-  function makeRow(title, subtitle, onclick, locked) {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.85rem 0; border-bottom:1px solid var(--border);'
-      + (locked ? ' opacity:0.3; pointer-events:none;' : ' cursor:pointer;');
-    if (!locked && onclick) row.onclick = onclick;
-    const left = document.createElement('div');
-    left.innerHTML = `<div style="font-size:14px; color:var(--text); line-height:1.3;">${title}</div>`
-      + (subtitle ? `<div style="font-size:12px; color:var(--text-dim); margin-top:0.15rem;">${subtitle}</div>` : '');
-    const chevron = document.createElement('div');
-    chevron.style.cssText = 'font-size:15px; color:var(--text-dim);';
-    chevron.textContent = '›';
-    row.appendChild(left);
-    row.appendChild(chevron);
-    return row;
+  const sections = CONTEXT_DRILL_SECTIONS.filter(s => !s.drinksSection || hasAnyDrinkPref());
+
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;';
+  sections.forEach(section => {
+    const card = document.createElement('button');
+    card.style.cssText = 'display:flex; flex-direction:column; align-items:flex-start; gap:0.4rem; padding:1rem 1.1rem; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; font-size:14px; text-align:left; cursor:pointer; transition:border-color 0.15s; min-height:5rem;';
+    card.onmouseover = () => { card.style.borderColor = 'var(--border-hi)'; };
+    card.onmouseout = () => { card.style.borderColor = 'var(--border)'; };
+    card.onclick = () => startContextDrill(section);
+    card.innerHTML = `<span style="font-size:1.6rem; line-height:1;">${section.emoji}</span><span>${section.label}</span>`;
+    grid.appendChild(card);
+  });
+  container.appendChild(grid);
+}
+
+function startContextDrill(section) {
+  const phrases = getContextPhrases(section);
+  const triggers = getContextTriggers(section);
+  if (phrases.length === 0 && triggers.length === 0) {
+    showContextDrillEmpty(section);
+    return;
   }
+  _contextDrillSection = section;
+  startSessionWithMode('lesson');
+}
 
-  // Listen — show if foundation complete AND at least 8 phrases at score 1+
-  const _lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  const tier1Seen = PHRASES.filter(p => p.lang === _lang && (p.tier || '1') === '1' && getScore(p.id) >= 1).length;
-  if (foundationComplete && tier1Seen >= 8) {
-    container.appendChild(makeRow('Listen', 'Hear French in context', () => startListenMode(), false));
-  }
-
-  // Recognition — show if foundation complete
-  if (foundationComplete) {
-    container.appendChild(makeRow('Recognition', 'Identify what you hear', () => startRecognition(), false));
-  }
-
-  // Experiences — locked until stage wild (index 2) or beyond
-  const expLocked = stageIdx < 2;
-  container.appendChild(makeRow(
-    'Experiences',
-    expLocked ? 'Unlocks at Stage 3' : 'Walk through real interactions',
-    expLocked ? null : () => openExperience('At the Café'),
-    expLocked
-  ));
-
-  if (!container.children.length) {
-    const empty = document.createElement('div');
-    empty.style.cssText = 'font-size:15px; color:var(--text-dim); padding:2rem 0; text-align:center;';
-    empty.textContent = 'Complete more of your Foundation to unlock practice modes.';
-    container.appendChild(empty);
-  }
+function showContextDrillEmpty(section) {
+  const container = document.getElementById('practiceTabContent');
+  if (!container) return;
+  container.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:0.75rem; padding:3rem 1rem; text-align:center;';
+  wrap.innerHTML = `
+    <div style="font-size:3rem; line-height:1;">${section.emoji}</div>
+    <div style="font-size:17px; color:var(--text); line-height:1.5; max-width:300px;">You haven't unlocked any ${section.label} phrases yet.</div>
+    <div style="font-size:13px; color:var(--text-dim); line-height:1.5; max-width:300px;">Keep going in Learn and they'll show up here.</div>
+  `;
+  const back = document.createElement('button');
+  back.className = 'btn-ghost';
+  back.style.marginTop = '1.5rem';
+  back.textContent = 'Back to Practice';
+  back.onclick = () => renderPracticeTab();
+  wrap.appendChild(back);
+  container.appendChild(wrap);
 }
 
 const REFERENCE_GROUPS = [
@@ -20362,12 +20457,18 @@ function openCultureNoteDetail(noteId) {
   showScreen('screenCultureNoteDetail');
 }
 
-function startListenMode() {
+function startListenMode(section) {
   if (localStorage.getItem('tt_devMode')) console.log('[listen] startListenMode called, LISTEN_CLIPS:', typeof LISTEN_CLIPS, Array.isArray(LISTEN_CLIPS) ? LISTEN_CLIPS.length : 'N/A');
   if (typeof LISTEN_CLIPS === 'undefined' || !LISTEN_CLIPS.length) return;
 
   const sessionCount = parseInt(localStorage.getItem('tt_listenSessionCount') || '0', 10);
-  const available = LISTEN_CLIPS.filter(c => c.language === 'French' && c.audioRecorded);
+  const lang = getCurrentLanguageName();
+  let available = LISTEN_CLIPS.filter(c => c.language === lang && c.audioRecorded);
+
+  // Context drill cooldown: filter to the section's contextLabel
+  if (section && section.contextLabel) {
+    available = available.filter(c => c.contextLabel === section.contextLabel);
+  }
 
   // Filter by difficulty based on session count
   let clips;
@@ -20413,7 +20514,11 @@ function exitListenMode() {
   currentAudio?.pause();
   currentAudio = null;
   _listenPaused = false;
+  // If this was a context drill cooldown, return to the Practice tab.
+  const wasContextDrill = !!_contextDrillSection;
+  _contextDrillSection = null;
   goHome();
+  if (wasContextDrill) switchHomeTab('practice');
 }
 
 function toggleListenPause() {
