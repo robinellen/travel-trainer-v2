@@ -1227,8 +1227,9 @@ body::after {
 <div class="screen" id="screenComplete">
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:stretch; padding:1.5rem; gap:0;">
     <div style="max-width:400px; width:100%; margin:0 auto; text-align:center;">
-      <div style="font-size:2.5rem; margin-bottom:1rem;">✦</div>
-      <h2 class="serif" style="font-size:2rem; margin-bottom:1.25rem; font-weight:500;">Session complete.</h2>
+      <div id="completionEyebrow" style="font-size:2.5rem; margin-bottom:1rem;">✦</div>
+      <h2 class="serif" id="completionHeadline" style="font-size:2rem; margin-bottom:1.25rem; font-weight:500;">Session complete.</h2>
+      <p id="completionSubtext" style="font-size:15px; color:var(--text-dim); line-height:1.6; margin-bottom:1.5rem; display:none;"></p>
       <div id="completionGains" style="font-size:17px; color:var(--text); line-height:1.6; margin-bottom:1rem; text-align:left;"></div>
       <div id="completionTrip" style="font-size:15px; color:var(--text-mid); line-height:1.6; margin-bottom:1rem; text-align:left;"></div>
       <div id="completionDirection" style="font-size:15px; color:var(--text-dim); line-height:1.6; margin-bottom:2rem; text-align:left; font-style:italic;"></div>
@@ -19696,6 +19697,17 @@ function showCompletion() {
   if (tripEl) tripEl.textContent = '';
   if (directionEl) directionEl.textContent = '';
 
+  // Reset headline area to defaults — context drill cooldown will override below.
+  const eyebrowEl = document.getElementById('completionEyebrow');
+  const headlineEl = document.getElementById('completionHeadline');
+  const subEl = document.getElementById('completionSubtext');
+  if (eyebrowEl) eyebrowEl.textContent = '✦';
+  if (headlineEl) headlineEl.textContent = 'Session complete.';
+  if (subEl) { subEl.textContent = ''; subEl.style.display = 'none'; }
+  if (gainsEl) gainsEl.style.display = '';
+  if (tripEl) tripEl.style.display = '';
+  if (directionEl) directionEl.style.display = '';
+
   const startScores = state.session._startScores || {};
   const sessionPhraseIds = state.session._sessionPhrases || [];
   const moved = [];
@@ -19786,22 +19798,31 @@ function showCompletion() {
     primaryBtn.onclick = () => goHome();
     secondaryBtn.style.display = 'none';
   } else if (_contextDrillSection) {
-    // Context drill: offer Listen cooldown if clips exist, else just Done.
+    // Context drill: offer Listen cooldown if clips exist, else just Finish.
     const section = _contextDrillSection;
-    const clips = getContextListenClips(section);
+    const clips = getContextDrillListenClips(section);
+    // Hide gains/trip/direction for context drills — show the offer instead.
+    if (gainsEl) gainsEl.style.display = 'none';
+    if (tripEl) tripEl.style.display = 'none';
+    if (directionEl) directionEl.style.display = 'none';
+    if (eyebrowEl) eyebrowEl.textContent = section.emoji;
     if (clips.length) {
-      primaryBtn.textContent = `Listen to more (${clips.length}) →`;
-      primaryBtn.onclick = () => {
-        startListenMode(section);
-      };
+      if (headlineEl) headlineEl.textContent = `Keep going with ${section.label}`;
+      if (subEl) {
+        subEl.textContent = `${clips.length} listening clip${clips.length === 1 ? '' : 's'} available`;
+        subEl.style.display = '';
+      }
+      primaryBtn.textContent = 'Listen now';
+      primaryBtn.onclick = () => startListenMode(section);
       secondaryBtn.style.display = '';
-      secondaryBtn.textContent = 'Done';
+      secondaryBtn.textContent = 'Finish';
       secondaryBtn.onclick = () => {
         _contextDrillSection = null;
         goHome();
         switchHomeTab('practice');
       };
     } else {
+      if (headlineEl) headlineEl.textContent = `${section.label} drill complete`;
       primaryBtn.textContent = 'Done';
       primaryBtn.onclick = () => {
         _contextDrillSection = null;
@@ -20328,29 +20349,27 @@ function renderLearnTab() {
 // ── CONTEXT DRILL SECTIONS ─────────────────────────────────────────
 
 const CONTEXT_DRILL_SECTIONS = [
-  { key: 'restaurant',  label: 'Restaurant',     emoji: '🍽️', tripFocus: 'Restaurant', experience: 'At the Restaurant', contextLabel: 'At the Restaurant' },
-  { key: 'cafe',        label: 'Café',           emoji: '☕',  tripFocus: 'Café',       experience: 'At the Café',       contextLabel: 'At the Café' },
-  { key: 'travel',      label: 'Travel',         emoji: '🚂',  tripFocus: 'Transit',    experience: 'Getting Around',    contextLabel: 'Getting Around' },
-  { key: 'hotel',       label: 'Hotel',          emoji: '🏨',  tripFocus: 'Hotel',      experience: 'At the Hotel',      contextLabel: 'At the Hotel' },
-  { key: 'shopping',    label: 'Shopping',       emoji: '🛍️', tripFocus: 'Shopping',   experience: 'Out and About',     contextLabel: 'Out and About' },
-  { key: 'outandabout', label: 'Out and About',  emoji: '🌍',  tripFocus: null,         experience: 'Out and About',     contextLabel: 'Out and About', universal: true },
-  { key: 'drinks',      label: 'Drinks',         emoji: '🍷',  tripFocus: null,         experience: null,                contextLabel: null, drinksSection: true },
+  { key: 'niceties',    label: 'Niceties',        emoji: '👋',  tripFocus: 'Niceties',   experience: null,                contextLabel: null,              phrasesOnly: true, unlockThreshold: 'always' },
+  { key: 'essentials',  label: 'Building Blocks', emoji: '🧱',  tripFocus: 'Essentials', experience: null,                contextLabel: null,              phrasesOnly: true, unlockThreshold: 'foundationComplete' },
+  { key: 'restaurant',  label: 'Restaurant',      emoji: '🍽️', tripFocus: 'Restaurant', experience: 'At the Restaurant', contextLabel: 'At the Restaurant' },
+  { key: 'cafe',        label: 'Café',            emoji: '☕',  tripFocus: 'Café',       experience: 'At the Café',       contextLabel: 'At the Café' },
+  { key: 'travel',      label: 'Travel',          emoji: '🚂', tripFocus: 'Transit',    experience: 'Getting Around',    contextLabel: 'Getting Around' },
+  { key: 'hotel',       label: 'Hotel',           emoji: '🏨', tripFocus: 'Hotel',      experience: 'At the Hotel',      contextLabel: 'At the Hotel' },
+  { key: 'shopping',    label: 'Shopping',        emoji: '🛍️', tripFocus: 'Shopping',   experience: 'Out and About',     contextLabel: 'Out and About' },
+  { key: 'outandabout', label: 'Out and About',   emoji: '🌍', tripFocus: null,         experience: 'Out and About',     contextLabel: 'Out and About', outAndAbout: true },
+  { key: 'drinks',      label: 'Drinks',          emoji: '🍷', tripFocus: null,         experience: null,                contextLabel: null,              drinksSection: true },
 ];
 
 let _contextDrillSection = null; // active context drill, null when none
+let _lastDrillKey = null;        // last selected section key for selector highlight
 
 function hasAnyDrinkPref() {
-  return ['beer', 'wine', 'spirits', 'alcohol_free'].some(k => localStorage.getItem('tt_prefs_' + k));
+  return ['beer', 'wine', 'spirits', 'alcohol_free', 'coffee', 'tea']
+    .some(k => localStorage.getItem('tt_prefs_' + k));
 }
 
-function getContextPhrases(section) {
+function getContextDrillPhrases(section) {
   const active = getActivePhrases();
-  if (section.universal) {
-    return active.filter(p =>
-      !p.tripFocus || p.tripFocus.length === 0 ||
-      p.tripFocus.includes('Out and About')
-    );
-  }
   if (section.drinksSection) {
     const drinkPrefs = ['Beer','Wine','Spirits','Alcohol-free','Coffee','Tea']
       .filter(p => localStorage.getItem('tt_prefs_' + normalizePreference(p)));
@@ -20358,14 +20377,21 @@ function getContextPhrases(section) {
       p.preferenceGroup && p.preferenceGroup.some(g => drinkPrefs.includes(g))
     );
   }
+  if (section.outAndAbout) {
+    return active.filter(p =>
+      (!p.tripFocus || p.tripFocus.length === 0) &&
+      (p.tier === '2' || p.tier === '3')
+    );
+  }
+  // Standard / phrasesOnly: tripFocus match — no blank tripFocus phrases
   return active.filter(p =>
-    !p.tripFocus || p.tripFocus.length === 0 ||
-    p.tripFocus.includes(section.tripFocus)
+    p.tripFocus && p.tripFocus.includes(section.tripFocus)
   );
 }
 
-function getContextTriggers(section) {
-  if (!section.experience || typeof TRIGGER_PHRASES === 'undefined') return [];
+function getContextDrillTriggers(section) {
+  if (section.phrasesOnly || section.drinksSection || !section.experience) return [];
+  if (typeof TRIGGER_PHRASES === 'undefined') return [];
   const lang = getCurrentLanguageName();
   const stage = getCurrentSubstage().stage;
   const eligibleLevels = getEligibleDepthLevels(stage);
@@ -20376,12 +20402,30 @@ function getContextTriggers(section) {
   );
 }
 
-function getContextListenClips(section) {
+function getContextDrillListenClips(section) {
   if (!section.contextLabel || typeof LISTEN_CLIPS === 'undefined') return [];
   const lang = getCurrentLanguageName();
   return LISTEN_CLIPS.filter(c =>
     c.language === lang && c.contextLabel === section.contextLabel && c.audioRecorded
   );
+}
+
+// Backward-compatible aliases for existing callers
+const getContextPhrases = getContextDrillPhrases;
+const getContextTriggers = getContextDrillTriggers;
+const getContextListenClips = getContextDrillListenClips;
+
+function isContextSectionUnlocked(section) {
+  // Drinks: requires at least one drink preference
+  if (section.drinksSection) return hasAnyDrinkPref();
+  // Explicit thresholds
+  if (section.unlockThreshold === 'always') return true;
+  if (section.unlockThreshold === 'foundationComplete') {
+    return !!localStorage.getItem('tt_foundationComplete');
+  }
+  // Default: visible if there's any content for the user
+  return getContextDrillPhrases(section).length > 0 ||
+         getContextDrillTriggers(section).length > 0;
 }
 
 function renderPracticeTab() {
@@ -20395,25 +20439,35 @@ function renderPracticeTab() {
   heading.textContent = 'Drill by context';
   container.appendChild(heading);
 
-  const sections = CONTEXT_DRILL_SECTIONS.filter(s => !s.drinksSection || hasAnyDrinkPref());
+  const sections = CONTEXT_DRILL_SECTIONS.filter(isContextSectionUnlocked);
 
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:0.6rem;';
+  if (!sections.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'font-size:15px; color:var(--text-dim); padding:2rem 0; text-align:center; line-height:1.5;';
+    empty.textContent = 'Keep going in Learn and contexts will unlock here.';
+    container.appendChild(empty);
+    return;
+  }
+
+  const list = document.createElement('div');
+  list.style.cssText = 'display:flex; flex-direction:column; gap:0.5rem;';
   sections.forEach(section => {
     const card = document.createElement('button');
-    card.style.cssText = 'display:flex; flex-direction:column; align-items:flex-start; gap:0.4rem; padding:1rem 1.1rem; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; font-size:14px; text-align:left; cursor:pointer; transition:border-color 0.15s; min-height:5rem;';
+    const isLast = _lastDrillKey === section.key;
+    card.style.cssText = 'display:flex; align-items:center; gap:0.9rem; padding:1rem 1.1rem; background:var(--card); border:1px solid ' + (isLast ? 'var(--border-hi)' : 'var(--border)') + '; border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; text-align:left; cursor:pointer; transition:border-color 0.15s; width:100%;';
     card.onmouseover = () => { card.style.borderColor = 'var(--border-hi)'; };
-    card.onmouseout = () => { card.style.borderColor = 'var(--border)'; };
+    card.onmouseout = () => { card.style.borderColor = isLast ? 'var(--border-hi)' : 'var(--border)'; };
     card.onclick = () => startContextDrill(section);
-    card.innerHTML = `<span style="font-size:1.6rem; line-height:1;">${section.emoji}</span><span>${section.label}</span>`;
-    grid.appendChild(card);
+    card.innerHTML = `<span style="font-size:1.5rem; line-height:1;">${section.emoji}</span><span style="flex:1;">${section.label}</span><span style="color:var(--text-dim); font-size:15px;">›</span>`;
+    list.appendChild(card);
   });
-  container.appendChild(grid);
+  container.appendChild(list);
 }
 
 function startContextDrill(section) {
-  const phrases = getContextPhrases(section);
-  const triggers = getContextTriggers(section);
+  _lastDrillKey = section.key;
+  const phrases = getContextDrillPhrases(section);
+  const triggers = getContextDrillTriggers(section);
   if (phrases.length === 0 && triggers.length === 0) {
     showContextDrillEmpty(section);
     return;
@@ -20430,13 +20484,13 @@ function showContextDrillEmpty(section) {
   wrap.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:0.75rem; padding:3rem 1rem; text-align:center;';
   wrap.innerHTML = `
     <div style="font-size:3rem; line-height:1;">${section.emoji}</div>
-    <div style="font-size:17px; color:var(--text); line-height:1.5; max-width:300px;">You haven't unlocked any ${section.label} phrases yet.</div>
-    <div style="font-size:13px; color:var(--text-dim); line-height:1.5; max-width:300px;">Keep going in Learn and they'll show up here.</div>
+    <div style="font-size:17px; color:var(--text); line-height:1.5; max-width:300px;">You haven't reached ${section.label} yet.</div>
+    <div style="font-size:13px; color:var(--text-dim); line-height:1.5; max-width:300px;">Keep going in Learn and it'll show up here.</div>
   `;
   const back = document.createElement('button');
   back.className = 'btn-ghost';
   back.style.marginTop = '1.5rem';
-  back.textContent = 'Back to Practice';
+  back.textContent = '← Back';
   back.onclick = () => renderPracticeTab();
   wrap.appendChild(back);
   container.appendChild(wrap);
