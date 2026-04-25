@@ -20442,16 +20442,58 @@ function showContextDrillEmpty(section) {
   container.appendChild(wrap);
 }
 
-const REFERENCE_GROUPS = [
-  { key: 'foundation', label: 'Foundation', tiers: ['1'] },
-  { key: 'S2-A', label: 'Through the Door', substage: 'S2-A' },
-  { key: 'S2-B', label: 'Speaking Up', substage: 'S2-B' },
-  { key: 'S2-C', label: 'Seeing It Through', substage: 'S2-C' },
-  { key: 'S3-A', label: 'Your Words', substage: 'S3-A' },
-  { key: 'S3-B', label: 'Beyond the Table', substage: 'S3-B' },
-  { key: 'S4+', label: 'Advanced', tiers: ['3'] },
-  { key: 'recovery', label: 'Recovery', tiers: ['Recovery'] },
+const REFERENCE_SECTIONS = [
+  { key: 'niceties',    label: 'Niceties',        emoji: '👋', tripFocus: 'Niceties' },
+  { key: 'essentials',  label: 'Building Blocks', emoji: '🧱', tripFocus: 'Essentials' },
+  { key: 'restaurant',  label: 'Restaurant',      emoji: '🍽️', tripFocus: 'Restaurant' },
+  { key: 'cafe',        label: 'Café',            emoji: '☕',  tripFocus: 'Café' },
+  { key: 'travel',      label: 'Travel',          emoji: '🚂',  tripFocus: 'Transit' },
+  { key: 'hotel',       label: 'Hotel',           emoji: '🏨',  tripFocus: 'Hotel' },
+  { key: 'shopping',    label: 'Shopping',        emoji: '🛍️', tripFocus: 'Shopping' },
+  { key: 'outandabout', label: 'Out and About',   emoji: '🌍',  tripFocus: null, outAndAbout: true },
+  { key: 'drinks',      label: 'Drinks',          emoji: '🍷',  tripFocus: null, drinksSection: true },
 ];
+
+// Reference pool: all phrases for the current language, with preference
+// gating (omnivore-only phrases excluded for non-omnivore users, etc.).
+// No stage gating, no score gating — Reference is a complete read-only view.
+function getReferencePhrasesForLanguage() {
+  const lang = langToCode(localStorage.getItem('tt_language') || 'French');
+  return PHRASES.filter(p => {
+    if (p.lang !== lang) return false;
+    if (!p.meaning && !(p.meanings && p.meanings.length)) return false;
+    if (p.tier !== '1' && p.tier !== '2' && p.tier !== '3' && p.tier !== 'Recovery') return false;
+    if (p.preferenceGroup && p.preferenceGroup.length > 0) {
+      // Show phrase only if every required preference group is selected.
+      // Pescatarian users also accept Vegetarian-tagged content.
+      return p.preferenceGroup.every(group => {
+        if (isPreferenceSelected(group)) return true;
+        if (group.toLowerCase() === 'vegetarian' && isPreferenceSelected('Pescatarian')) return true;
+        return false;
+      });
+    }
+    return true;
+  });
+}
+
+function getReferenceSectionPhrases(section, allPhrases) {
+  if (section.drinksSection) {
+    const drinkPrefs = ['Beer','Wine','Spirits','Alcohol-free','Coffee','Tea']
+      .filter(p => localStorage.getItem('tt_prefs_' + normalizePreference(p)));
+    return allPhrases.filter(p =>
+      p.preferenceGroup && p.preferenceGroup.some(g => drinkPrefs.includes(g))
+    );
+  }
+  if (section.outAndAbout) {
+    return allPhrases.filter(p =>
+      (!p.tripFocus || p.tripFocus.length === 0) &&
+      (p.tier === '2' || p.tier === '3' || p.tier === 'Recovery')
+    );
+  }
+  return allPhrases.filter(p =>
+    p.tripFocus && p.tripFocus.includes(section.tripFocus)
+  );
+}
 
 // Reference tab view state: 'landing' = two options, 'phrases' = All Phrases list
 let _refView = 'landing';
@@ -20518,20 +20560,20 @@ function renderReferencePhrases(container) {
   container.appendChild(searchInput);
 
   const query = searchVal.toLowerCase().trim();
-  const lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  let phrases = PHRASES.filter(p =>
-    p.lang === lang &&
-    (p.meaning || (p.meanings && p.meanings.length)) &&
-    (p.tier === '1' || p.tier === '2' || p.tier === '3' || p.tier === 'Recovery')
-  );
+  const allPhrases = getReferencePhrasesForLanguage();
 
   if (query) {
-    phrases = phrases.filter(p =>
+    let phrases = allPhrases.filter(p =>
       p.native.toLowerCase().includes(query) ||
       (p.meaning || '').toLowerCase().includes(query) ||
       (p.meanings || []).some(m => m.toLowerCase().includes(query))
     );
-    phrases.sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+    phrases.sort((a, b) => {
+      if (a.sortOrder == null && b.sortOrder == null) return 0;
+      if (a.sortOrder == null) return 1;
+      if (b.sortOrder == null) return -1;
+      return a.sortOrder - b.sortOrder;
+    });
     phrases.forEach(p => container.appendChild(makePhraseRow(p)));
     if (!phrases.length) {
       const empty = document.createElement('div');
@@ -20540,24 +20582,26 @@ function renderReferencePhrases(container) {
       container.appendChild(empty);
     }
   } else {
-    // All sections collapsed by default on every fresh render of this view.
-    REFERENCE_GROUPS.forEach(group => {
-      let groupPhrases;
-      if (group.substage) {
-        groupPhrases = phrases.filter(p => p.substage === group.substage);
-      } else if (group.tiers) {
-        groupPhrases = phrases.filter(p => group.tiers.includes(p.tier));
-      } else {
-        groupPhrases = [];
-      }
-      if (!groupPhrases.length) return;
-      groupPhrases.sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
+    // Section view — context-based grouping. All sections collapsed.
+    REFERENCE_SECTIONS.forEach(section => {
+      // Drinks section is hidden when the user has no drink preferences set.
+      if (section.drinksSection && !hasAnyDrinkPref()) return;
+
+      let sectionPhrases = getReferenceSectionPhrases(section, allPhrases);
+      if (!sectionPhrases.length) return;
+
+      sectionPhrases.sort((a, b) => {
+        if (a.sortOrder == null && b.sortOrder == null) return 0;
+        if (a.sortOrder == null) return 1;
+        if (b.sortOrder == null) return -1;
+        return a.sortOrder - b.sortOrder;
+      });
 
       const header = document.createElement('div');
       header.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:0.9rem 0; cursor:pointer; -webkit-user-select:none; user-select:none; border-bottom:1px solid var(--border);';
       const headerLabel = document.createElement('div');
-      headerLabel.style.cssText = 'font-size:15px; color:var(--text); display:flex; align-items:center; gap:0.5rem;';
-      headerLabel.innerHTML = `${group.label} <span style="color:var(--text-dim); font-size:13px;">${groupPhrases.length}</span>`;
+      headerLabel.style.cssText = 'font-size:15px; color:var(--text); display:flex; align-items:center; gap:0.6rem;';
+      headerLabel.innerHTML = `<span style="font-size:1.2rem;">${section.emoji}</span><span>${section.label}</span><span style="color:var(--text-dim); font-size:13px;">${sectionPhrases.length}</span>`;
       const chevron = document.createElement('div');
       chevron.style.cssText = 'font-size:13px; color:var(--text-dim);';
       chevron.textContent = '▸';
@@ -20566,7 +20610,7 @@ function renderReferencePhrases(container) {
 
       const sectionBody = document.createElement('div');
       sectionBody.style.display = 'none';
-      groupPhrases.forEach(p => sectionBody.appendChild(makePhraseRow(p)));
+      sectionPhrases.forEach(p => sectionBody.appendChild(makePhraseRow(p)));
 
       header.onclick = () => {
         const nowExpanded = sectionBody.style.display === 'none';
