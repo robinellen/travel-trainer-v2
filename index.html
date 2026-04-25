@@ -16252,8 +16252,13 @@ function getActivePhrases() {
     else return false;
     // Preference filtering: after the gate, only include preference-tagged
     // phrases if the user selected at least one matching preference group.
+    // Pescatarian users also accept Vegetarian-tagged phrases (pescatarian
+    // implies vegetarian-friendly).
     if (prefGateSeen && p.preferenceGroup && p.preferenceGroup.length > 0) {
-      if (!p.preferenceGroup.some(g => isPreferenceSelected(g))) return false;
+      const directMatch = p.preferenceGroup.some(g => isPreferenceSelected(g));
+      const pescatarianAcceptsVeg = isPreferenceSelected('Pescatarian') &&
+        p.preferenceGroup.some(g => g.toLowerCase() === 'vegetarian');
+      if (!directMatch && !pescatarianAcceptsVeg) return false;
     }
     return true;
   });
@@ -16903,11 +16908,25 @@ function openPreferenceGate(resumeCallback) {
   });
 
   const drinkKeywords = ['coffee', 'tea', 'beer', 'wine', 'alcohol', 'spirit'];
-  const dietaryKeywords = ['vegetarian', 'vegan', 'gluten', 'dairy', 'dietary', 'meat'];
+  const dietaryKeywords = ['vegetarian', 'vegan', 'pescatarian', 'omnivore', 'gluten', 'dairy', 'dietary'];
   const transitKeywords = ['train'];
 
   const drinkOptions = allPrefs.filter(g => drinkKeywords.some(k => g.toLowerCase().includes(k)));
-  const dietaryOptions = allPrefs.filter(g => dietaryKeywords.some(k => g.toLowerCase().includes(k)));
+  let dietaryOptions = allPrefs.filter(g => dietaryKeywords.some(k => g.toLowerCase().includes(k)));
+  // Always show Pescatarian even when no phrases are tagged with it yet
+  if (!dietaryOptions.some(g => g.toLowerCase() === 'pescatarian')) {
+    dietaryOptions.push('Pescatarian');
+  }
+  // Pin the dietary pills to a fixed order. Anything not in the list trails.
+  const DIETARY_ORDER = ['Vegetarian', 'Vegan', 'Pescatarian', 'Omnivore', 'Dietary restrictions'];
+  dietaryOptions.sort((a, b) => {
+    const ai = DIETARY_ORDER.indexOf(a);
+    const bi = DIETARY_ORDER.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
   const transitOptions = allPrefs.filter(g => transitKeywords.some(k => g.toLowerCase().includes(k)));
 
   const selectedSet = new Set();
