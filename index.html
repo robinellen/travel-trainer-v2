@@ -1278,6 +1278,23 @@ body::after {
 <!-- ═══════════════════════════════════════════════════
      STAGE COMPLETION CARD
 ═══════════════════════════════════════════════════ -->
+<!-- ═══════════════════════════════════════════════════
+     TRIP PREP MODE
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenTripPrep">
+  <div class="exercise-header">
+    <button class="btn-back" id="tripPrepBackBtn" aria-label="Back">←</button>
+    <div style="flex:1;"></div>
+  </div>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:1.5rem;">
+    <div style="max-width:400px; width:100%; margin:0 auto; text-align:center;">
+      <h2 class="serif" style="font-size:clamp(2rem,7vw,2.4rem); font-weight:500; line-height:1.15; margin-bottom:0.5rem;">Trip Prep</h2>
+      <p style="font-size:15px; color:var(--text-dim); line-height:1.6; margin-bottom:2rem;">Drill everything. No gates, no limits.</p>
+      <div id="tripPrepStepContent"></div>
+    </div>
+  </div>
+</div>
+
 <div class="screen" id="screenStageComplete">
   <div class="exercise-header">
     <button class="btn-back" onclick="goHome()" aria-label="Back">←</button>
@@ -1341,6 +1358,9 @@ body::after {
     </div>
     <div style="display:flex; gap:0.4rem;">
       <button onclick="devToggleFoundationComplete()" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Toggle Foundation Complete</button>
+    </div>
+    <div style="display:flex; gap:0.4rem;">
+      <button onclick="startTripPrep()" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.6rem 0.5rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:13px;cursor:pointer;text-align:center;">Trip Prep Mode</button>
     </div>
 
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55; margin-top:0.5rem;">
@@ -17280,7 +17300,125 @@ function langToCode(lang) {
   return map[lang] || 'fr';
 }
 
+// ── TIER 2 WAVE RELEASE ──────────────────────────────────────────
+// Unassigned Tier 2 phrases enter the pool in milestone-gated waves.
+// Wave unlock opens the pool — SRS controls the per-session introduction
+// rate (3 new per session via the existing builder).
+
+const TIER2_WAVES = [
+  {
+    wave: 0,
+    label: 'Preference phrases',
+    trigger: 'foundationComplete',
+    filter: (p, lang, prefs) =>
+      p.lang === lang &&
+      p.tier === '2' &&
+      p.preferenceGroup && p.preferenceGroup.length > 0 &&
+      p.preferenceGroup.some(g => prefs.includes(g)),
+    skipIfNoPrefs: true,
+  },
+  {
+    wave: 1,
+    label: 'Restaurant and Café phrases',
+    trigger: 'wave0Complete',
+    filter: (p, lang) =>
+      p.lang === lang &&
+      p.tier === '2' &&
+      (!p.preferenceGroup || p.preferenceGroup.length === 0) &&
+      p.tripFocus && (p.tripFocus.includes('Restaurant') || p.tripFocus.includes('Café')),
+  },
+  {
+    wave: 2,
+    label: 'Hotel, Shopping, and Essentials phrases',
+    trigger: 'recognitionUnlocked',
+    filter: (p, lang) =>
+      p.lang === lang &&
+      p.tier === '2' &&
+      (!p.preferenceGroup || p.preferenceGroup.length === 0) &&
+      p.tripFocus && (
+        p.tripFocus.includes('Hotel') ||
+        p.tripFocus.includes('Shopping') ||
+        p.tripFocus.includes('Essentials')
+      ),
+  },
+  {
+    wave: 3,
+    label: 'Transit phrases',
+    trigger: 'stage3Progress',
+    filter: (p, lang) =>
+      p.lang === lang &&
+      p.tier === '2' &&
+      (!p.preferenceGroup || p.preferenceGroup.length === 0) &&
+      p.tripFocus && p.tripFocus.includes('Transit'),
+  },
+];
+
+function getWaveKey(wave, lang) {
+  return `tt_wave${wave}_unlocked_${String(lang || 'French').toLowerCase()}`;
+}
+
+function isWaveUnlocked(wave, lang) {
+  return !!localStorage.getItem(getWaveKey(wave, lang));
+}
+
+function unlockWave(wave, lang) {
+  if (isWaveUnlocked(wave, lang)) return;
+  localStorage.setItem(getWaveKey(wave, lang), 'true');
+  if (localStorage.getItem('tt_devMode')) console.log(`[waves] Wave ${wave} unlocked for ${lang}`);
+}
+
+function getSelectedPreferences() {
+  const allPrefs = ['Vegetarian','Vegan','Pescatarian','Omnivore','Coffee','Tea','Beer','Wine','Spirits','Alcohol-free','Dietary restrictions'];
+  return allPrefs.filter(p => localStorage.getItem('tt_prefs_' + normalizePreference(p)));
+}
+
+function getWavePhrases(wave, langCode, prefs) {
+  const def = TIER2_WAVES.find(w => w.wave === wave);
+  if (!def) return [];
+  return PHRASES.filter(p => def.filter(p, langCode, prefs));
+}
+
+function isFoundationComplete(langCode) {
+  const tier1 = PHRASES.filter(p => p.lang === langCode && (p.tier || '1') === '1');
+  return tier1.length > 0 && tier1.every(p => getScore(p.id) >= 2);
+}
+
+// Called at session end and on app startup. Idempotent — safe to call repeatedly.
+function checkWaveTriggers() {
+  const lang = localStorage.getItem('tt_language') || 'French';
+  const langCode = langToCode(lang);
+  const prefs = getSelectedPreferences();
+
+  // Wave 0 — Foundation Complete
+  if (!isWaveUnlocked(0, lang)) {
+    if (isFoundationComplete(langCode) || localStorage.getItem('tt_foundationComplete')) {
+      unlockWave(0, lang);
+      // No-prefs users skip Wave 0 content entirely → fire Wave 1 immediately
+      if (prefs.length === 0) unlockWave(1, lang);
+    }
+  }
+
+  // Wave 1 — 5 Wave 0 phrases at score 1+
+  if (!isWaveUnlocked(1, lang) && isWaveUnlocked(0, lang) && prefs.length > 0) {
+    const wave0Phrases = getWavePhrases(0, langCode, prefs);
+    const progressed = wave0Phrases.filter(p => getScore(p.id) >= 1).length;
+    if (progressed >= 5) unlockWave(1, lang);
+  }
+
+  // Wave 2 — Stage 3 entry (Recognition unlocked)
+  if (!isWaveUnlocked(2, lang)) {
+    if (getCurrentSubstage().stage >= 3) unlockWave(2, lang);
+  }
+
+  // Wave 3 — Stage 3 progression. Currently fires alongside Wave 2.
+  if (!isWaveUnlocked(3, lang)) {
+    if (getCurrentSubstage().stage >= 3) unlockWave(3, lang);
+  }
+}
+
 function getActivePhrases() {
+  // Trip Prep override: bypass all gates and serve the explicit pool directly.
+  if (_tripPrepPool) return _tripPrepPool;
   const lang = langToCode(localStorage.getItem('tt_language') || 'French');
   const prefGateSeen = !!localStorage.getItem('tt_prefGateSeen');
   return PHRASES.filter(p => {
@@ -17289,7 +17427,19 @@ function getActivePhrases() {
     const tier = p.tier || '1';
     if (tier === '1') { /* manifest check above is sufficient */ }
     else if (tier === 'Recovery') { if (!localStorage.getItem('tt_recoveryUnlocked')) return false; }
-    else if (tier === '2') { if (!localStorage.getItem('tt_recoveryUnlocked')) return false; }
+    else if (tier === '2') {
+      if (!localStorage.getItem('tt_recoveryUnlocked')) return false;
+      // Wave gate: Tier 2 phrases only enter the pool when their wave is unlocked.
+      // The wave's filter must also match (covers preference + tripFocus rules).
+      const _wlang = localStorage.getItem('tt_language') || 'French';
+      const _wlangCode = langToCode(_wlang);
+      const _wprefs = getSelectedPreferences();
+      const inUnlockedWave = TIER2_WAVES.some(waveDef =>
+        isWaveUnlocked(waveDef.wave, _wlang) &&
+        waveDef.filter(p, _wlangCode, _wprefs)
+      );
+      if (!inUnlockedWave) return false;
+    }
     else if (tier === '3') { if (!localStorage.getItem('tt_tier3Unlocked')) return false; }
     else return false;
     // Preference filtering: after the gate, only include preference-tagged
@@ -17699,7 +17849,17 @@ function confirmLeaveDismiss() {
 function confirmLeaveExit() {
   document.getElementById('leaveSessionBackdrop').classList.add('hidden');
   const wasContextDrill = !!_contextDrillSection;
+  const wasTripPrep = _tripPrepActive;
   _contextDrillSection = null;
+  if (wasTripPrep) {
+    _tripPrepActive = false;
+    _tripPrepMode = null;
+    _tripPrepPool = null;
+    _tripPrepRecogQueue = null;
+    showScreen('screenTripPrep');
+    renderTripPrepModeStep();
+    return;
+  }
   goHome();
   if (wasContextDrill) switchHomeTab('practice');
 }
@@ -18072,7 +18232,11 @@ function startSessionWithMode(mode) {
     const isFirstSession = seenPhrases.length === 0;
 
     let newPicks, reviewPicks;
-    if (isFirstSession) {
+    if (_tripPrepPool) {
+      // Trip Prep: take 10 phrases directly from the pre-sorted pool.
+      newPicks = _tripPrepPool.slice(0, 10);
+      reviewPicks = [];
+    } else if (isFirstSession) {
       newPicks = unseenFoundation.slice(0, 5);
       reviewPicks = [];
     } else {
@@ -18588,7 +18752,11 @@ function renderRecognitionPanel(_phrase) {
   showScreen('screenExercise');
   const item = getCurrentItem();
   let trigger = null;
-  if (item && item.intent) trigger = pickTriggerForIntent(item.intent);
+  // Trip Prep: queue items can pin a specific triggerId, bypassing depth gate.
+  if (item && item.triggerId && typeof TRIGGER_PHRASES !== 'undefined') {
+    trigger = TRIGGER_PHRASES.find(t => t.id === item.triggerId);
+  }
+  if (!trigger && item && item.intent) trigger = pickTriggerForIntent(item.intent);
   if (!trigger) trigger = pickRandomTrigger();
   if (!trigger) {
     // No recognition content available — skip silently
@@ -19739,6 +19907,12 @@ function showCompletion() {
   saveState();
 
   showScreen('screenComplete');
+
+  // Trip Prep: short-circuit to the Next 10 / Done continuation card.
+  if (_tripPrepActive) {
+    showTripPrepContinue();
+    return;
+  }
 
   // Build structured debrief: gains, trip tie, direction
   const gainsEl = document.getElementById('completionGains');
@@ -21653,9 +21827,14 @@ function exitListenMode() {
   currentAudio?.pause();
   currentAudio = null;
   _listenPaused = false;
-  // If this was a context drill cooldown, return to the Practice tab.
   const wasContextDrill = !!_contextDrillSection;
+  const wasTripPrep = _tripPrepActive && _tripPrepMode === 'listen';
   _contextDrillSection = null;
+  if (wasTripPrep) {
+    showScreen('screenTripPrep');
+    renderTripPrepModeStep();
+    return;
+  }
   goHome();
   if (wasContextDrill) switchHomeTab('practice');
 }
@@ -22254,6 +22433,228 @@ function devToggleFoundationComplete() {
   }
   updateWelcomeScreen();
   closeDevPanel();
+}
+
+// ── TRIP PREP MODE ──────────────────────────────────────────────
+// Bypasses all stage / wave / preference / SRS gating. Works for any
+// language. Three modes: full mix, recognition only, listen only.
+
+let _tripPrepPool = null;       // pre-sorted phrase pool for full-mix sessions
+let _tripPrepMode = null;       // 'mix' | 'recognition' | 'listen'
+let _tripPrepLang = null;       // 'French' | 'Dutch' | 'German'
+let _tripPrepActive = false;    // session in progress
+let _tripPrepRecogQueue = null; // pre-shuffled trigger phrase pool for recognition-only continuations
+
+function startTripPrep() {
+  closeDevPanel();
+  _tripPrepLang = null;
+  _tripPrepMode = null;
+  _tripPrepActive = false;
+  _tripPrepPool = null;
+  _tripPrepRecogQueue = null;
+  showScreen('screenTripPrep');
+  renderTripPrepLanguageStep();
+}
+
+function renderTripPrepLanguageStep() {
+  const content = document.getElementById('tripPrepStepContent');
+  if (!content) return;
+  content.innerHTML = '';
+  document.getElementById('tripPrepBackBtn').onclick = () => {
+    showScreen('screenWelcome');
+    switchHomeTab('learn');
+  };
+
+  function makeBtn(emoji, label, lang) {
+    const btn = document.createElement('button');
+    btn.style.cssText = 'display:flex; align-items:center; gap:0.9rem; padding:1rem 1.1rem; margin-bottom:0.5rem; width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; text-align:left; cursor:pointer; transition:border-color 0.15s;';
+    btn.onmouseover = () => { btn.style.borderColor = 'var(--border-hi)'; };
+    btn.onmouseout = () => { btn.style.borderColor = 'var(--border)'; };
+    btn.onclick = () => selectTripPrepLanguage(lang);
+    btn.innerHTML = `<span style="font-size:1.6rem;">${emoji}</span><span style="flex:1;">${label}</span><span style="color:var(--text-dim);">›</span>`;
+    return btn;
+  }
+
+  content.appendChild(makeBtn('🇫🇷', 'French', 'French'));
+  content.appendChild(makeBtn('🇳🇱', 'Dutch', 'Dutch'));
+  content.appendChild(makeBtn('🇩🇪', 'German', 'German'));
+}
+
+function selectTripPrepLanguage(lang) {
+  _tripPrepLang = lang;
+  renderTripPrepModeStep();
+}
+
+function renderTripPrepModeStep() {
+  const content = document.getElementById('tripPrepStepContent');
+  if (!content) return;
+  content.innerHTML = '';
+  document.getElementById('tripPrepBackBtn').onclick = () => renderTripPrepLanguageStep();
+
+  function makeMode(emoji, label, desc, mode) {
+    const btn = document.createElement('button');
+    btn.style.cssText = 'display:flex; flex-direction:column; align-items:flex-start; gap:0.3rem; padding:1.1rem 1.25rem; margin-bottom:0.5rem; width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; text-align:left; cursor:pointer; transition:border-color 0.15s;';
+    btn.onmouseover = () => { btn.style.borderColor = 'var(--border-hi)'; };
+    btn.onmouseout = () => { btn.style.borderColor = 'var(--border)'; };
+    btn.onclick = () => startTripPrepMode(mode);
+    btn.innerHTML = `<div style="display:flex; align-items:center; gap:0.6rem; font-size:15px;"><span style="font-size:1.4rem;">${emoji}</span><span>${label}</span></div><div style="font-size:13px; color:var(--text-dim); line-height:1.4; padding-left:2rem;">${desc}</div>`;
+    return btn;
+  }
+
+  content.appendChild(makeMode('🎧', 'Recognition only', 'Hear native speakers. Pick what they said.', 'recognition'));
+  content.appendChild(makeMode('👂', 'Listen mode', 'Real conversations. No testing. Just listen.', 'listen'));
+  content.appendChild(makeMode('🔁', 'Full mix', 'Everything — production, recognition, and listening.', 'mix'));
+}
+
+function startTripPrepMode(mode) {
+  _tripPrepMode = mode;
+  _tripPrepActive = true;
+  // Switch active language so getCurrentLanguageName / getAudio etc. work
+  localStorage.setItem('tt_language', _tripPrepLang);
+
+  if (mode === 'mix') startTripPrepFullMix();
+  else if (mode === 'recognition') startTripPrepRecognition();
+  else if (mode === 'listen') startTripPrepListen();
+}
+
+function startTripPrepFullMix() {
+  const langCode = langToCode(_tripPrepLang);
+  const phrases = PHRASES.filter(p =>
+    p.lang === langCode &&
+    (p.meaning || (p.meanings && p.meanings.length)) &&
+    getAudio(p) &&
+    p.tier
+  );
+  if (!phrases.length) {
+    alert('No phrases available for ' + _tripPrepLang);
+    renderTripPrepModeStep();
+    return;
+  }
+  // Sort: lowest score first, then by sortOrder. Most overdue first.
+  const sorted = phrases.slice().sort((a, b) => {
+    const aScore = getScore(a.id);
+    const bScore = getScore(b.id);
+    if (aScore !== bScore) return aScore - bScore;
+    return (a.sortOrder || 999) - (b.sortOrder || 999);
+  });
+  _tripPrepPool = sorted;
+  // Use the standard session builder; it'll take the first 10 from pool.
+  startSessionWithMode('lesson');
+  // Clear the pool reference now that the session is built — completion
+  // will rebuild fresh from a new pool ordering on Next 10.
+  _tripPrepPool = null;
+}
+
+function startTripPrepRecognition() {
+  const langCode = langToCode(_tripPrepLang);
+  const triggers = (typeof TRIGGER_PHRASES !== 'undefined' ? TRIGGER_PHRASES : [])
+    .filter(t => {
+      const tLang = typeof t.language === 'object' ? t.language?.name : t.language;
+      const tCode = langToCode(tLang || _tripPrepLang);
+      return tCode === langCode && t.fileName;
+    });
+  if (!triggers.length) {
+    alert('No trigger phrases available for ' + _tripPrepLang);
+    renderTripPrepModeStep();
+    return;
+  }
+  // Build a queue of 10 recognition items pinning specific triggers.
+  // Subsequent Next 10 batches use _tripPrepRecogQueue as the rolling pool.
+  if (!_tripPrepRecogQueue || !_tripPrepRecogQueue.length) {
+    _tripPrepRecogQueue = shuffle(triggers.slice());
+  }
+  const batch = _tripPrepRecogQueue.splice(0, 10);
+  // Refill if we ran low
+  if (_tripPrepRecogQueue.length < 10) {
+    _tripPrepRecogQueue = _tripPrepRecogQueue.concat(shuffle(triggers.slice()));
+  }
+
+  state.session.mode = 'lesson';
+  state.session.index = 0;
+  state.session.pendingUnlock = null;
+  state.session._resurfaced = {};
+  state.session._startScores = {};
+  state.session._sessionPhrases = [];
+  state.session.queue = batch.map(t => ({
+    type: 'recognition',
+    triggerId: t.id,
+    intent: t.intent,
+    _priorityInject: true,
+  }));
+
+  showScreen('screenExercise');
+  renderCurrentExercise();
+}
+
+function startTripPrepListen() {
+  const langCode = langToCode(_tripPrepLang);
+  const lang = _tripPrepLang;
+  const clips = (typeof LISTEN_CLIPS !== 'undefined' ? LISTEN_CLIPS : [])
+    .filter(c => c.language === lang && c.audioRecorded);
+  if (!clips.length) {
+    alert('No listen clips available for ' + lang);
+    renderTripPrepModeStep();
+    return;
+  }
+  // Reuse the existing engine but pass an unfiltered pool via a synthetic section.
+  // Direct setup: mirror what startListenMode does but skip its difficulty filter.
+  _listenClips = shuffle(clips).slice(0, Math.max(9, Math.min(clips.length, 20)));
+  _listenClipIdx = 0;
+  _listenPaused = false;
+  clearTimeout(_listenTimer);
+  clearTimeout(_listenAdvanceTimer);
+  showScreen('screenListenMode');
+  document.getElementById('listenModePauseBtn').textContent = '⏸';
+  document.getElementById('listenModeComplete').classList.add('hidden');
+  document.getElementById('listenModeProgressFill').style.width = '0%';
+  const coachKey = 'tt_seenListenModeCoachMark';
+  if (!localStorage.getItem(coachKey)) {
+    _onCoachMarkDismiss = () => {
+      showScreen('screenListenMode');
+      playListenClip();
+    };
+    showCoachMark(coachKey);
+    return;
+  }
+  playListenClip();
+}
+
+// Called from showCompletion when a Trip Prep session ends.
+function showTripPrepContinue() {
+  // Reset standard completion content and overlay our copy.
+  const eyebrowEl = document.getElementById('completionEyebrow');
+  const headlineEl = document.getElementById('completionHeadline');
+  const subEl = document.getElementById('completionSubtext');
+  const gainsEl = document.getElementById('completionGains');
+  const tripEl = document.getElementById('completionTrip');
+  const directionEl = document.getElementById('completionDirection');
+  if (gainsEl) gainsEl.style.display = 'none';
+  if (tripEl) tripEl.style.display = 'none';
+  if (directionEl) directionEl.style.display = 'none';
+  if (eyebrowEl) eyebrowEl.textContent = _tripPrepMode === 'recognition' ? '🎧' : '🔁';
+  if (headlineEl) headlineEl.textContent = 'Trip Prep round complete';
+  if (subEl) {
+    subEl.textContent = `${_tripPrepLang} • ${_tripPrepMode === 'recognition' ? 'Recognition only' : 'Full mix'}`;
+    subEl.style.display = '';
+  }
+
+  const primaryBtn = document.getElementById('completePrimaryBtn');
+  const secondaryBtn = document.getElementById('completeSecondaryBtn');
+  primaryBtn.textContent = 'Next 10 →';
+  primaryBtn.onclick = () => {
+    if (_tripPrepMode === 'recognition') startTripPrepRecognition();
+    else startTripPrepFullMix();
+  };
+  secondaryBtn.style.display = '';
+  secondaryBtn.textContent = 'Done';
+  secondaryBtn.onclick = () => {
+    _tripPrepActive = false;
+    _tripPrepMode = null;
+    _tripPrepPool = null;
+    _tripPrepRecogQueue = null;
+    showScreen('screenTripPrep');
+    renderTripPrepModeStep();
+  };
 }
 
 function devLaunch(module) {
