@@ -22501,8 +22501,36 @@ function renderTripPrepModeStep() {
     return btn;
   }
 
-  content.appendChild(makeMode('🎧', 'Recognition only', 'Hear native speakers. Pick what they said.', 'recognition'));
-  content.appendChild(makeMode('👂', 'Listen mode', 'Real conversations. No testing. Just listen.', 'listen'));
+  function makeUnavailable(label) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex; align-items:center; padding:1.1rem 1.25rem; margin-bottom:0.5rem; width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text-dim); font-family:"Lexend",sans-serif; font-size:13px; line-height:1.4; opacity:0.5;';
+    row.textContent = label;
+    return row;
+  }
+
+  // Check content availability for the selected language
+  const langCode = langToCode(_tripPrepLang);
+  const triggers = (typeof TRIGGER_PHRASES !== 'undefined' ? TRIGGER_PHRASES : [])
+    .filter(t => {
+      const tLang = typeof t.language === 'object' ? t.language?.name : t.language;
+      const tCode = langToCode(tLang || _tripPrepLang);
+      return tCode === langCode && t.fileName;
+    });
+  const clips = (typeof LISTEN_CLIPS !== 'undefined' ? LISTEN_CLIPS : [])
+    .filter(c => c.language === _tripPrepLang && c.audioRecorded);
+
+  if (triggers.length) {
+    content.appendChild(makeMode('🎧', 'Recognition only', 'Hear native speakers. Pick what they said.', 'recognition'));
+  } else {
+    content.appendChild(makeUnavailable(`Recognition coming soon for ${_tripPrepLang}`));
+  }
+
+  if (clips.length) {
+    content.appendChild(makeMode('👂', 'Listen mode', 'Real conversations. No testing. Just listen.', 'listen'));
+  } else {
+    content.appendChild(makeUnavailable(`Listen clips coming soon for ${_tripPrepLang}`));
+  }
+
   content.appendChild(makeMode('🔁', 'Full mix', 'Everything — production, recognition, and listening.', 'mix'));
 }
 
