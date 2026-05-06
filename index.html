@@ -17852,12 +17852,18 @@ function confirmLeaveExit() {
   const wasTripPrep = _tripPrepActive;
   _contextDrillSection = null;
   if (wasTripPrep) {
+    const wasNiceties = _tripPrepScope === 'niceties';
+    const wasLang = _tripPrepLang;
     _tripPrepActive = false;
     _tripPrepMode = null;
     _tripPrepPool = null;
     _tripPrepRecogQueue = null;
     showScreen('screenTripPrep');
-    renderTripPrepModeStep();
+    if (wasNiceties && (wasLang === 'Dutch' || wasLang === 'German')) {
+      renderTripPrepScopeStep();
+    } else {
+      renderTripPrepModeStep();
+    }
     return;
   }
   goHome();
@@ -22442,6 +22448,7 @@ function devToggleFoundationComplete() {
 let _tripPrepPool = null;       // pre-sorted phrase pool for full-mix sessions
 let _tripPrepMode = null;       // 'mix' | 'recognition' | 'listen'
 let _tripPrepLang = null;       // 'French' | 'Dutch' | 'German'
+let _tripPrepScope = null;      // 'niceties' | 'everything' (Dutch/German only)
 let _tripPrepActive = false;    // session in progress
 let _tripPrepRecogQueue = null; // pre-shuffled trigger phrase pool for recognition-only continuations
 
@@ -22449,6 +22456,7 @@ function startTripPrep() {
   closeDevPanel();
   _tripPrepLang = null;
   _tripPrepMode = null;
+  _tripPrepScope = null;
   _tripPrepActive = false;
   _tripPrepPool = null;
   _tripPrepRecogQueue = null;
@@ -22482,14 +22490,64 @@ function renderTripPrepLanguageStep() {
 
 function selectTripPrepLanguage(lang) {
   _tripPrepLang = lang;
-  renderTripPrepModeStep();
+  _tripPrepScope = null;
+  // Dutch and German get a scope step first (Niceties only vs Everything).
+  // French has a natural Learn flow already, so it skips straight to mode.
+  if (lang === 'Dutch' || lang === 'German') {
+    renderTripPrepScopeStep();
+  } else {
+    _tripPrepScope = 'everything';
+    renderTripPrepModeStep();
+  }
+}
+
+function renderTripPrepScopeStep() {
+  const content = document.getElementById('tripPrepStepContent');
+  if (!content) return;
+  content.innerHTML = '';
+  document.getElementById('tripPrepBackBtn').onclick = () => renderTripPrepLanguageStep();
+
+  const heading = document.createElement('div');
+  heading.style.cssText = 'font-size:13px; color:var(--text-dim); margin-bottom:1rem; text-align:center;';
+  heading.textContent = 'How much do you want to drill?';
+  content.appendChild(heading);
+
+  function makeScope(emoji, label, desc, scope) {
+    const btn = document.createElement('button');
+    btn.style.cssText = 'display:flex; flex-direction:column; align-items:flex-start; gap:0.3rem; padding:1.1rem 1.25rem; margin-bottom:0.5rem; width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; text-align:left; cursor:pointer; transition:border-color 0.15s;';
+    btn.onmouseover = () => { btn.style.borderColor = 'var(--border-hi)'; };
+    btn.onmouseout = () => { btn.style.borderColor = 'var(--border)'; };
+    btn.onclick = () => selectTripPrepScope(scope);
+    btn.innerHTML = `<div style="display:flex; align-items:center; gap:0.6rem; font-size:15px;"><span style="font-size:1.4rem;">${emoji}</span><span>${label}</span></div><div style="font-size:13px; color:var(--text-dim); line-height:1.4; padding-left:2rem;">${desc}</div>`;
+    return btn;
+  }
+
+  content.appendChild(makeScope('🌱', 'Niceties only', 'The basics — greetings, yes, no, please, thank you, sorry', 'niceties'));
+  content.appendChild(makeScope('🌍', 'Everything', `All phrases for ${_tripPrepLang}`, 'everything'));
+}
+
+function selectTripPrepScope(scope) {
+  _tripPrepScope = scope;
+  if (scope === 'niceties') {
+    // Niceties skips the mode selector — Tier 1 only, full mix exercises only.
+    startTripPrepMode('mix');
+  } else {
+    renderTripPrepModeStep();
+  }
 }
 
 function renderTripPrepModeStep() {
   const content = document.getElementById('tripPrepStepContent');
   if (!content) return;
   content.innerHTML = '';
-  document.getElementById('tripPrepBackBtn').onclick = () => renderTripPrepLanguageStep();
+  // Back from mode step: scope step for Dutch/German, language step for French.
+  document.getElementById('tripPrepBackBtn').onclick = () => {
+    if (_tripPrepLang === 'Dutch' || _tripPrepLang === 'German') {
+      renderTripPrepScopeStep();
+    } else {
+      renderTripPrepLanguageStep();
+    }
+  };
 
   function makeMode(emoji, label, desc, mode) {
     const btn = document.createElement('button');
@@ -22551,11 +22609,14 @@ function startTripPrepFullMix() {
     p.lang === langCode &&
     (p.meaning || (p.meanings && p.meanings.length)) &&
     getAudio(p) &&
-    p.tier
+    p.tier &&
+    // Niceties scope: Tier 1 only
+    (_tripPrepScope !== 'niceties' || p.tier === '1')
   );
   if (!phrases.length) {
     alert('No phrases available for ' + _tripPrepLang);
-    renderTripPrepModeStep();
+    if (_tripPrepScope === 'niceties') renderTripPrepScopeStep();
+    else renderTripPrepModeStep();
     return;
   }
   // Sort: lowest score first, then by sortOrder. Most overdue first.
@@ -22659,10 +22720,16 @@ function showTripPrepContinue() {
   if (gainsEl) gainsEl.style.display = 'none';
   if (tripEl) tripEl.style.display = 'none';
   if (directionEl) directionEl.style.display = 'none';
-  if (eyebrowEl) eyebrowEl.textContent = _tripPrepMode === 'recognition' ? '🎧' : '🔁';
-  if (headlineEl) headlineEl.textContent = 'Trip Prep round complete';
+
+  const isNiceties = _tripPrepScope === 'niceties';
+  if (eyebrowEl) eyebrowEl.textContent = isNiceties ? '🌱' : (_tripPrepMode === 'recognition' ? '🎧' : '🔁');
+  if (headlineEl) headlineEl.textContent = isNiceties ? 'Niceties round complete' : 'Trip Prep round complete';
   if (subEl) {
-    subEl.textContent = `${_tripPrepLang} • ${_tripPrepMode === 'recognition' ? 'Recognition only' : 'Full mix'}`;
+    if (isNiceties) {
+      subEl.innerHTML = `${_tripPrepLang} • Niceties only<br><span style="color:var(--text-mid);">Ready for more? Try Everything next time.</span>`;
+    } else {
+      subEl.textContent = `${_tripPrepLang} • ${_tripPrepMode === 'recognition' ? 'Recognition only' : 'Full mix'}`;
+    }
     subEl.style.display = '';
   }
 
@@ -22681,7 +22748,12 @@ function showTripPrepContinue() {
     _tripPrepPool = null;
     _tripPrepRecogQueue = null;
     showScreen('screenTripPrep');
-    renderTripPrepModeStep();
+    // Niceties returns to the scope selector; Everything to the mode selector.
+    if (_tripPrepScope === 'niceties' && (_tripPrepLang === 'Dutch' || _tripPrepLang === 'German')) {
+      renderTripPrepScopeStep();
+    } else {
+      renderTripPrepModeStep();
+    }
   };
 }
 
