@@ -22449,6 +22449,7 @@ let _tripPrepPool = null;       // pre-sorted phrase pool for full-mix sessions
 let _tripPrepMode = null;       // 'mix' | 'recognition' | 'listen'
 let _tripPrepLang = null;       // 'French' | 'Dutch' | 'German'
 let _tripPrepScope = null;      // 'niceties' | 'everything' (Dutch/German only)
+let _tripPrepStartingScore = 0; // 0 = from scratch, 1 = pre-set scores so speak exercises fire
 let _tripPrepActive = false;    // session in progress
 let _tripPrepRecogQueue = null; // pre-shuffled trigger phrase pool for recognition-only continuations
 
@@ -22457,6 +22458,7 @@ function startTripPrep() {
   _tripPrepLang = null;
   _tripPrepMode = null;
   _tripPrepScope = null;
+  _tripPrepStartingScore = 0;
   _tripPrepActive = false;
   _tripPrepPool = null;
   _tripPrepRecogQueue = null;
@@ -22524,6 +22526,38 @@ function renderTripPrepScopeStep() {
 
   content.appendChild(makeScope('🌱', 'Niceties only', 'The basics — greetings, yes, no, please, thank you, sorry', 'niceties'));
   content.appendChild(makeScope('🌍', 'Everything', `All phrases for ${_tripPrepLang}`, 'everything'));
+
+  // Starting score selector — controls whether brand-new phrases get pre-set
+  // to score 1 so speak exercises fire. Persists across renders via _tripPrepStartingScore.
+  const startWrap = document.createElement('div');
+  startWrap.style.cssText = 'margin-top:1.5rem; padding-top:1rem; border-top:1px solid var(--border); text-align:left;';
+  const startLabel = document.createElement('div');
+  startLabel.style.cssText = 'font-size:12px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.6rem;';
+  startLabel.textContent = 'Starting point:';
+  startWrap.appendChild(startLabel);
+
+  function makeRadio(score, title, desc) {
+    const row = document.createElement('label');
+    row.style.cssText = 'display:flex; align-items:flex-start; gap:0.6rem; padding:0.5rem 0; cursor:pointer; -webkit-user-select:none; user-select:none;';
+    const dot = document.createElement('span');
+    dot.style.cssText = 'width:14px; height:14px; border-radius:50%; border:1.5px solid var(--text-dim); flex-shrink:0; margin-top:0.2rem; display:flex; align-items:center; justify-content:center;';
+    if (_tripPrepStartingScore === score) {
+      dot.style.borderColor = 'var(--text)';
+      dot.innerHTML = '<span style="width:7px; height:7px; border-radius:50%; background:var(--text);"></span>';
+    }
+    const text = document.createElement('div');
+    text.innerHTML = `<div style="font-size:14px; color:var(--text);">${title}</div><div style="font-size:12px; color:var(--text-dim); line-height:1.4; margin-top:0.1rem;">${desc}</div>`;
+    row.appendChild(dot);
+    row.appendChild(text);
+    row.onclick = () => {
+      _tripPrepStartingScore = score;
+      renderTripPrepScopeStep();
+    };
+    return row;
+  }
+  startWrap.appendChild(makeRadio(0, 'From scratch', 'Score 0 — listening exercises only'));
+  startWrap.appendChild(makeRadio(1, 'I know these basics', 'Score 1 — includes speaking exercises'));
+  content.appendChild(startWrap);
 }
 
 function selectTripPrepScope(scope) {
@@ -22619,14 +22653,32 @@ function startTripPrepFullMix() {
     else renderTripPrepModeStep();
     return;
   }
-  // Sort: lowest score first, then by sortOrder. Most overdue first.
-  const sorted = phrases.slice().sort((a, b) => {
+
+  // Starting score: pre-set unseen phrases to score 1 so speak exercises fire.
+  // Only upgrades from 0; never downgrades existing scores.
+  if (_tripPrepStartingScore === 1) {
+    let bumped = 0;
+    phrases.forEach(p => {
+      if (getScore(p.id) === 0) {
+        state.scores[p.id] = 1;
+        bumped++;
+      }
+    });
+    if (bumped > 0) saveState();
+  }
+
+  // Pool ordering:
+  //   Seen phrases (score >= 1) first, in SRS order (lowest score, then sortOrder)
+  //   Unseen phrases (score 0) shuffled — prevents the same top-N from being
+  //   served every session when the whole pool starts at 0
+  const seen = phrases.filter(p => getScore(p.id) >= 1).sort((a, b) => {
     const aScore = getScore(a.id);
     const bScore = getScore(b.id);
     if (aScore !== bScore) return aScore - bScore;
     return (a.sortOrder || 999) - (b.sortOrder || 999);
   });
-  _tripPrepPool = sorted;
+  const unseen = shuffle(phrases.filter(p => getScore(p.id) === 0));
+  _tripPrepPool = [...seen, ...unseen];
   // Use the standard session builder; it'll take the first 10 from pool.
   startSessionWithMode('lesson');
   // Clear the pool reference now that the session is built — completion
