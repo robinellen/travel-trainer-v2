@@ -22346,9 +22346,9 @@ let _activeRecognitionTrigger = null;
 let _activeRecognitionAudio = null;
 
 function getTriggerLabel(trigger) {
-  return (trigger.displayLabel && trigger.displayLabel.trim())
-    ? trigger.displayLabel
-    : trigger.intent;
+  if (trigger.englishTranslation && trigger.englishTranslation.trim()) return trigger.englishTranslation;
+  if (trigger.displayLabel && trigger.displayLabel.trim()) return trigger.displayLabel;
+  return trigger.intent;
 }
 
 function highlightSignalWord(phraseText, signalWords) {
