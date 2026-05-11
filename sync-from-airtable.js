@@ -118,6 +118,7 @@ function recordToTrigger(record) {
   return {
     id: record.id,
     triggerPhrase: f['Trigger Phrase'] || '',
+    englishTranslation: f['English Translation'] || '',
     signal: f['Signal'] || '',
     signalWord: f['Signal Word'] || '',
     signalWordDefinition: f['Signal Word Definition'] || '',
