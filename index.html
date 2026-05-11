@@ -973,6 +973,7 @@ body::after {
         <div id="recogSignalWordDef" style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem; display:none;"></div>
         <div id="recogSignalWordNote" style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem; display:none;"></div>
         <div id="recogFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;"></div>
+        <div id="recogMeaning" style="font-size:14px; color:var(--text-dim); font-style:italic; margin-top:0.5rem; display:none;"></div>
       </div>
       <div class="mt-auto">
         <button class="btn-primary hidden" id="recogNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
@@ -1176,6 +1177,7 @@ body::after {
       <div id="recogStdSignalWordDef" style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem; display:none;"></div>
       <div id="recogStdSignalWordNote" style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem; display:none;"></div>
       <div id="recogStdFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;"></div>
+      <div id="recogStdMeaning" style="font-size:14px; color:var(--text-dim); font-style:italic; margin-top:0.5rem; display:none;"></div>
     </div>
     <div class="mt-auto">
       <button class="btn-primary hidden" id="recogStdNextBtn" onclick="advanceRecognitionStd()" style="margin-top:1.25rem;">Continue →</button>
@@ -19582,7 +19584,7 @@ function getRecognitionPool() {
   const stage = getCurrentSubstage().stage;
   const eligibleLevels = getEligibleDepthLevels(stage);
   return TRIGGER_PHRASES.filter(t =>
-    t.audioRecorded &&
+    t.fileName &&
     t.intent &&
     eligibleLevels.includes(t.depthLevel) &&
     (t.language === lang || (typeof t.language === 'object' && t.language?.name === lang))
@@ -19687,30 +19689,22 @@ function pickRecognitionDistractors(trigger, count) {
   const targetSituation = trigger.experience || '';
   const adjacent = SITUATION_ADJACENCY[targetSituation] || [];
 
-  // Deduplicate by intent — one label per intent
   const seenIntents = new Set();
-  function pickUnique(list) {
-    const result = [];
-    for (const t of list) {
-      const label = getTriggerLabel(t);
-      if (!seenIntents.has(t.intent)) {
-        seenIntents.add(t.intent);
-        result.push(label);
-      }
+  const labels = [];
+  function take(list) {
+    for (const t of shuffle(list)) {
+      if (labels.length >= count) return;
+      if (seenIntents.has(t.intent)) continue;
+      seenIntents.add(t.intent);
+      labels.push(getTriggerLabel(t));
     }
-    return result;
   }
 
-  const sameSituation = shuffle(pool.filter(t => t.experience === targetSituation));
-  const adjacentPool = shuffle(pool.filter(t => adjacent.includes(t.experience) && !sameSituation.some(s => s.intent === t.intent)));
-  const anyPool = shuffle(pool.filter(t => t.experience !== targetSituation && !adjacent.includes(t.experience)));
+  take(pool.filter(t => t.experience === targetSituation));
+  if (labels.length < count) take(pool.filter(t => adjacent.includes(t.experience)));
+  if (labels.length < count) take(pool);
 
-  const labels = [
-    ...pickUnique(sameSituation),
-    ...pickUnique(adjacentPool),
-    ...pickUnique(anyPool),
-  ];
-  return labels.slice(0, count);
+  return labels;
 }
 
 function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
@@ -19802,6 +19796,11 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       if (labelEl) labelEl.textContent = labelText;
       // Change 3: full phrase with signal word highlighted
       fullEl.innerHTML = highlightSignalWord(trigger.triggerPhrase, trigger.signalWord);
+      const meaningEl = document.getElementById(prefix + 'Meaning');
+      if (meaningEl) {
+        meaningEl.textContent = trigger.signal || '';
+        meaningEl.style.display = trigger.signal ? '' : 'none';
+      }
       revealEl.classList.remove('hidden');
       nextBtn.classList.remove('hidden');
       _onCoachMarkDismiss = () => showScreen('screenExercise');
