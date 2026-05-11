@@ -60,6 +60,14 @@ function parseArray(value) {
     .filter(Boolean);
 }
 
+function buildAudioFilenames(primary, variantsRaw) {
+  const variants = (variantsRaw || '')
+    .split(/\n/)
+    .map(s => s.trim())
+    .filter(Boolean);
+  return [primary, ...variants].filter(Boolean);
+}
+
 // ── Phrases ──
 
 function recordToPhrase(record) {
@@ -90,6 +98,7 @@ function recordToPhrase(record) {
     capabilityLabel: f['Capability Label'] || '',
     alsoAccepted: parseArray(f['Also Accepted']),
     audioFileName: f['Audio Filename'] || f['File Name'] || '',
+    audioFilenames: buildAudioFilenames(f['Audio Filename'] || f['File Name'] || '', f['Audio Filename Variants']),
     situations: parseArray(f['Situations']),
     situationEarly: parseArray(f['Situation (Early)']),
     situationLate: parseArray(f['Situation (Late)']),
@@ -132,6 +141,7 @@ function recordToTrigger(record) {
     romanization: f['Romanization'] || '',
     distractors: parseArray(f['Distractors']),
     fileName: f['Audio Filename'] || f['File Name'] || '',
+    audioFilenames: buildAudioFilenames(f['Audio Filename'] || f['File Name'] || '', f['Audio Filename Variants']),
     audioRecorded: f['Audio Recorded'] === true,
     sortOrder: f['Sort Order'] || null,
     difficulty: f['Sort Order'] || 0,
@@ -174,6 +184,7 @@ function recordToListenClip(record) {
     clipType: f['Clip Type'] || '',
     language: f['Language'] || 'French',
     fileName: f['Audio Filename'] || f['File Name'] || '',
+    audioFilenames: buildAudioFilenames(f['Audio Filename'] || f['File Name'] || '', f['Audio Filename Variants']),
     audioRecorded: f['Audio Recorded'] === true,
     difficulty: f['Difficulty'] || '',
     sortOrder: f['Sort Order'] || null,
