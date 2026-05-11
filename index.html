@@ -23016,11 +23016,12 @@ function toggleListenPause() {
 // (prefixed with T). Those live in audio/trigger-phrases/.
 function getListenClipAudioPath(clip) {
   if (!clip || !clip.fileName) return null;
-  // LC-prefixed files live in audio/listen-clips/, T-prefixed in
-  // audio/trigger-phrases/, everything else at the audio/ root.
   let prefix = 'audio/';
-  if (clip.fileName.startsWith('LC')) prefix = 'audio/listen-clips/';
-  else if (clip.fileName.startsWith('T')) prefix = 'audio/trigger-phrases/';
+  if (clip.fileName.startsWith('LC') || clip.fileName.startsWith('ListenClips_')) {
+    prefix = 'audio/listen-clips/';
+  } else if (clip.fileName.startsWith('T') || clip.fileName.startsWith('TriggerPhrases_')) {
+    prefix = 'audio/trigger-phrases/';
+  }
   return prefix + clip.fileName;
 }
 
