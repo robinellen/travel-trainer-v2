@@ -1297,6 +1297,19 @@ body::after {
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════
+     TRIP PREP — KNOW BEFORE YOU GO
+═══════════════════════════════════════════════════ -->
+<div class="screen" id="screenTripPrepKBYG">
+  <div class="exercise-header">
+    <button class="btn-back" onclick="returnToTripPrepModeStep()" aria-label="Back">←</button>
+    <div style="flex:1; font-size:17px; color:var(--text); padding-left:0.5rem;">Know before you go</div>
+  </div>
+  <div class="p-screen" style="flex:1; display:flex; flex-direction:column; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:1rem 1.5rem 2rem;">
+    <div id="tripPrepKBYGContent" style="display:flex; flex-direction:column;"></div>
+  </div>
+</div>
+
 <div class="screen" id="screenStageComplete">
   <div class="exercise-header">
     <button class="btn-back" onclick="goHome()" aria-label="Back">←</button>
@@ -26409,12 +26422,12 @@ function renderTripPrepModeStep() {
     }
   };
 
-  function makeMode(emoji, label, desc, mode) {
+  function makeMode(emoji, label, desc, modeOrFn) {
     const btn = document.createElement('button');
     btn.style.cssText = 'display:flex; flex-direction:column; align-items:flex-start; gap:0.3rem; padding:1.1rem 1.25rem; margin-bottom:0.5rem; width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; text-align:left; cursor:pointer; transition:border-color 0.15s;';
     btn.onmouseover = () => { btn.style.borderColor = 'var(--border-hi)'; };
     btn.onmouseout = () => { btn.style.borderColor = 'var(--border)'; };
-    btn.onclick = () => startTripPrepMode(mode);
+    btn.onclick = typeof modeOrFn === 'function' ? modeOrFn : () => startTripPrepMode(modeOrFn);
     btn.innerHTML = `<div style="display:flex; align-items:center; gap:0.6rem; font-size:15px;"><span style="font-size:1.4rem;">${emoji}</span><span>${label}</span></div><div style="font-size:13px; color:var(--text-dim); line-height:1.4; padding-left:2rem;">${desc}</div>`;
     return btn;
   }
@@ -26450,6 +26463,77 @@ function renderTripPrepModeStep() {
   }
 
   content.appendChild(makeMode('🔁', 'Full mix', 'Everything — production, recognition, and listening.', 'mix'));
+  content.appendChild(makeMode('✈️', 'Know Before You Go', 'Culture notes for this destination', openTripPrepKBYG));
+}
+
+function returnToTripPrepModeStep() {
+  showScreen('screenTripPrep');
+  renderTripPrepModeStep();
+}
+
+function openTripPrepKBYG() {
+  const notes = (typeof CULTURE_NOTES === 'undefined' ? [] : CULTURE_NOTES)
+    .filter(n => n.language === _tripPrepLang);
+
+  // Group by category, sort within group by sortOrder
+  const groups = {};
+  notes.forEach(n => {
+    const cat = n.category || 'Other';
+    (groups[cat] = groups[cat] || []).push(n);
+  });
+  Object.values(groups).forEach(arr =>
+    arr.sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99))
+  );
+
+  // Canonical category order; unknown categories fall at the end alphabetically
+  const canonicalOrder = ['Restaurant Customs', 'Café Etiquette', 'Tipping', 'Money', 'Language'];
+  const orderedCats = [
+    ...canonicalOrder.filter(c => groups[c]),
+    ...Object.keys(groups).filter(c => !canonicalOrder.includes(c)).sort(),
+  ];
+
+  const container = document.getElementById('tripPrepKBYGContent');
+  container.innerHTML = '';
+
+  if (!notes.length) {
+    container.innerHTML = `<div style="text-align:center; color:var(--text-dim); font-size:15px; padding:2rem 0;">No notes yet for ${_tripPrepLang}.</div>`;
+  } else {
+    orderedCats.forEach((cat, catIdx) => {
+      const label = document.createElement('div');
+      label.style.cssText = `font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim); margin:${catIdx === 0 ? '0' : '1.5rem'} 0 0.5rem;`;
+      label.textContent = cat;
+      container.appendChild(label);
+
+      groups[cat].forEach(note => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background:rgba(255,255,255,0.06); border-radius:16px; padding:1.1rem 1.25rem; margin-bottom:0.6rem;';
+
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex; align-items:center; gap:0.75rem; margin-bottom:0.6rem;';
+        header.innerHTML = `<div style="font-size:28px; line-height:1; flex-shrink:0;">${note.emoji || ''}</div><div style="font-size:17px; color:var(--text); font-weight:500; line-height:1.3;">${note.title || ''}</div>`;
+        card.appendChild(header);
+
+        const body = document.createElement('div');
+        body.style.cssText = 'font-size:15px; color:var(--text); line-height:1.6;';
+        const paragraphs = (note.body || '').split(/\n\n+/).map(p => p.trim()).filter(Boolean);
+        paragraphs.forEach((text, i) => {
+          const p = document.createElement('p');
+          p.style.cssText = i < paragraphs.length - 1 ? 'margin:0 0 0.75rem;' : 'margin:0;';
+          p.textContent = text;
+          body.appendChild(p);
+        });
+        card.appendChild(body);
+
+        container.appendChild(card);
+      });
+    });
+  }
+
+  // Reset scroll to top
+  const scrollContainer = container.parentElement;
+  if (scrollContainer) scrollContainer.scrollTop = 0;
+
+  showScreen('screenTripPrepKBYG');
 }
 
 function startTripPrepMode(mode) {
