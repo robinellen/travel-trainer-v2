@@ -21785,7 +21785,7 @@ function getContextDrillListenClips(section) {
   if (!section.contextLabel || typeof LISTEN_CLIPS === 'undefined') return [];
   const lang = getCurrentLanguageName();
   return LISTEN_CLIPS.filter(c =>
-    c.language === lang && c.contextLabel === section.contextLabel && c.audioRecorded
+    c.language === lang && c.contextLabel === section.contextLabel && c.fileName
   );
 }
 
@@ -22930,7 +22930,7 @@ function startListenMode(section) {
 
   const sessionCount = parseInt(localStorage.getItem('tt_listenSessionCount') || '0', 10);
   const lang = getCurrentLanguageName();
-  let available = LISTEN_CLIPS.filter(c => c.language === lang && c.audioRecorded);
+  let available = LISTEN_CLIPS.filter(c => c.language === lang && c.fileName);
 
   // Context drill cooldown: filter to the section's contextLabel
   if (section && section.contextLabel) {
@@ -23757,7 +23757,7 @@ function renderTripPrepModeStep() {
       return tCode === langCode && t.fileName;
     });
   const clips = (typeof LISTEN_CLIPS !== 'undefined' ? LISTEN_CLIPS : [])
-    .filter(c => c.language === _tripPrepLang && c.audioRecorded);
+    .filter(c => c.language === _tripPrepLang && c.fileName);
 
   if (triggers.length) {
     content.appendChild(makeMode('🎧', 'Recognition only', 'Hear native speakers. Pick what they said.', 'recognition'));
@@ -23879,7 +23879,7 @@ function startTripPrepListen() {
   const langCode = langToCode(_tripPrepLang);
   const lang = _tripPrepLang;
   const clips = (typeof LISTEN_CLIPS !== 'undefined' ? LISTEN_CLIPS : [])
-    .filter(c => c.language === lang && c.audioRecorded);
+    .filter(c => c.language === lang && c.fileName);
   if (!clips.length) {
     alert('No listen clips available for ' + lang);
     renderTripPrepModeStep();
