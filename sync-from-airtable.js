@@ -60,12 +60,30 @@ function parseArray(value) {
     .filter(Boolean);
 }
 
+function existingFilesIn(folder) {
+  try {
+    return new Set(fs.readdirSync(path.join(__dirname, folder)).filter(f => f.endsWith('.mp3')));
+  } catch (e) { return new Set(); }
+}
+const _audioRootFiles = existingFilesIn('audio');
+const _triggerFiles = existingFilesIn('audio/trigger-phrases');
+const _listenClipFiles = existingFilesIn('audio/listen-clips');
+
+function audioFileExists(filename) {
+  if (!filename) return false;
+  if (filename.startsWith('LC') || filename.startsWith('ListenClips_')) return _listenClipFiles.has(filename);
+  if (filename.startsWith('T') || filename.startsWith('TriggerPhrases_')) return _triggerFiles.has(filename);
+  return _audioRootFiles.has(filename);
+}
+
 function buildAudioFilenames(primary, variantsRaw) {
   const variants = (variantsRaw || '')
     .split(/\n/)
     .map(s => s.trim())
     .filter(Boolean);
-  return [primary, ...variants].filter(Boolean);
+  // Only include filenames that actually exist on disk so the runtime
+  // picker never routes to a missing file.
+  return [primary, ...variants].filter(Boolean).filter(audioFileExists);
 }
 
 // ── Phrases ──
