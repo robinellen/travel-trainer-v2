@@ -21366,12 +21366,10 @@ const LANG_CODES = { fr: 'fr-FR' };
 // same voice. Switching to a different record re-picks.
 let _currentAudioPickRecordId = null;
 let _currentAudioPickUrl = null;
+let _sessionVoicePicks = { male: 0, female: 0 };
 
-function pickAudioFilename(record) {
-  if (!record) return null;
-  const list = Array.isArray(record.audioFilenames) ? record.audioFilenames.filter(Boolean) : [];
-  if (list.length > 0) return list[Math.floor(Math.random() * list.length)];
-  return record.audioFileName || record.fileName || null;
+function resetSessionVoicePicks() {
+  _sessionVoicePicks = { male: 0, female: 0 };
 }
 
 function audioPathFor(filename) {
@@ -21385,9 +21383,33 @@ function pickAudioUrl(record) {
   if (!record) return null;
   const id = record.id || null;
   if (id && id === _currentAudioPickRecordId) return _currentAudioPickUrl;
-  const filename = pickAudioFilename(record);
-  if (!filename) return null;
-  const url = audioPathFor(filename);
+
+  const files = Array.isArray(record.audioFilenames) ? record.audioFilenames.filter(Boolean) : [];
+  let url;
+  if (files.length === 0) {
+    const fallback = record.audioFileName || record.fileName;
+    if (!fallback) return null;
+    url = audioPathFor(fallback);
+  } else if (files.length === 1) {
+    url = audioPathFor(files[0]);
+  } else {
+    // files[0] = male (primary), files[1] = female (v2). Bias toward the
+    // less-used voice this session — 75/25 when one is ahead, 50/50 when tied.
+    const malePicks = _sessionVoicePicks.male;
+    const femalePicks = _sessionVoicePicks.female;
+    let chooseIndex;
+    if (malePicks === femalePicks) {
+      chooseIndex = Math.random() < 0.5 ? 0 : 1;
+    } else if (malePicks > femalePicks) {
+      chooseIndex = Math.random() < 0.75 ? 1 : 0;
+    } else {
+      chooseIndex = Math.random() < 0.75 ? 0 : 1;
+    }
+    if (chooseIndex === 0) _sessionVoicePicks.male++;
+    else _sessionVoicePicks.female++;
+    url = audioPathFor(files[chooseIndex]);
+  }
+
   _currentAudioPickRecordId = id;
   _currentAudioPickUrl = url;
   return url;
@@ -22001,6 +22023,7 @@ function startSessionWithMode(mode) {
   state.session._resurfaced = {};        // phraseId → true if already resurfaced this session
   state.session._startScores = {};       // phraseId → score at session start
   state.session._sessionPhrases = [];    // phrase ids in this session for win screen
+  resetSessionVoicePicks();
 
   let activePhrases = getActivePhrases();
 
@@ -26432,6 +26455,7 @@ function renderTripPrepModeStep() {
 function startTripPrepMode(mode) {
   _tripPrepMode = mode;
   _tripPrepActive = true;
+  resetSessionVoicePicks();
   // Switch active language so getCurrentLanguageName / getAudio etc. work
   localStorage.setItem('tt_language', _tripPrepLang);
 
