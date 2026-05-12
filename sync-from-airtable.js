@@ -115,6 +115,7 @@ function recordToPhrase(record) {
     isBuildupChunk: f['Is Buildup Chunk'] === true,
     capabilityLabel: f['Capability Label'] || '',
     alsoAccepted: parseArray(f['Also Accepted']),
+    pendingPackSystem: f['Pending Pack System'] === true,
     audioFileName: f['Audio Filename'] || f['File Name'] || '',
     audioFilenames: buildAudioFilenames(f['Audio Filename'] || f['File Name'] || '', f['Audio Filename Variants']),
     situations: parseArray(f['Situations']),
