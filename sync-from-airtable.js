@@ -142,8 +142,11 @@ function recordToTrigger(record) {
   const langName = langRaw ? (typeof langRaw === 'object' ? langRaw.name : langRaw) : 'French';
   const intentRaw = f['Intent'];
   const intentName = intentRaw ? (typeof intentRaw === 'object' ? intentRaw.name : intentRaw) : '';
+  const tierRaw = f['Tier'];
+  const tier = tierRaw ? (typeof tierRaw === 'object' ? tierRaw.name : tierRaw) : '';
   return {
     id: record.id,
+    tier,
     triggerPhrase: f['Trigger Phrase'] || '',
     englishTranslation: f['English Translation'] || '',
     signal: f['Signal'] || '',
@@ -192,8 +195,11 @@ function recordToSituation(record) {
 
 function recordToListenClip(record) {
   const f = record.fields;
+  const tierRaw = f['Tier'];
+  const tier = tierRaw ? (typeof tierRaw === 'object' ? tierRaw.name : tierRaw) : '';
   return {
     id: record.id,
+    tier,
     frenchText: f['French Text'] || '',
     englishTranslation: f['English Translation'] || '',
     anchorPhrase: f['Anchor Phrase'] || '',

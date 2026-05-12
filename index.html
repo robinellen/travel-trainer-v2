@@ -21568,6 +21568,8 @@ function getActivePhrases() {
       if (!inUnlockedWave) return false;
     }
     else if (tier === '3') { if (!localStorage.getItem('tt_tier3Unlocked')) return false; }
+    else if (tier === '4') { if (!localStorage.getItem('tt_tier4Unlocked')) return false; }
+    else if (tier === '5') { if (!localStorage.getItem('tt_tier5Unlocked')) return false; }
     else return false;
     // Preference filtering: after the gate, only include preference-tagged
     // phrases if the user selected at least one matching preference group.
@@ -22080,6 +22082,24 @@ function checkUnlocks() {
     if (tier2.length && tier2.every(p => getScore(p.id) >= 2)) {
       localStorage.setItem('tt_tier3Unlocked', 'true');
       return 'tier3';
+    }
+  }
+
+  // Tier 4 unlocks when ALL Tier 3 phrases reach score 2+
+  if (!localStorage.getItem('tt_tier4Unlocked') && localStorage.getItem('tt_tier3Unlocked')) {
+    const tier3 = playable.filter(p => p.tier === '3');
+    if (tier3.length && tier3.every(p => getScore(p.id) >= 2)) {
+      localStorage.setItem('tt_tier4Unlocked', 'true');
+      return 'tier4';
+    }
+  }
+
+  // Tier 5 unlocks when ALL Tier 4 phrases reach score 2+
+  if (!localStorage.getItem('tt_tier5Unlocked') && localStorage.getItem('tt_tier4Unlocked')) {
+    const tier4 = playable.filter(p => p.tier === '4');
+    if (tier4.length && tier4.every(p => getScore(p.id) >= 2)) {
+      localStorage.setItem('tt_tier5Unlocked', 'true');
+      return 'tier5';
     }
   }
 
@@ -26621,15 +26641,25 @@ let _tripPrepPool = null;       // pre-sorted phrase pool for full-mix sessions
 let _tripPrepMode = null;       // 'mix' | 'recognition' | 'listen'
 let _tripPrepLang = null;       // 'French' | 'Dutch' | 'German'
 let _tripPrepScope = null;      // 'niceties' | 'everything' (Dutch/German only)
+let _tripPrepTier = null;       // '1' | '2' | '3' | '4' | '5'
 let _tripPrepStartingScore = 0; // 0 = from scratch, 1 = pre-set scores so speak exercises fire
 let _tripPrepActive = false;    // session in progress
 let _tripPrepRecogQueue = null; // pre-shuffled trigger phrase pool for recognition-only continuations
+
+const TRIP_PREP_TIERS = [
+  { value: '1', label: 'Tier 1 — Foundation' },
+  { value: '2', label: 'Tier 2 — First Steps' },
+  { value: '3', label: 'Tier 3 — Getting By' },
+  { value: '4', label: 'Tier 4 — Handling It' },
+  { value: '5', label: 'Tier 5 — Fluent Moments' },
+];
 
 function startTripPrep() {
   closeDevPanel();
   _tripPrepLang = null;
   _tripPrepMode = null;
   _tripPrepScope = null;
+  _tripPrepTier = null;
   _tripPrepStartingScore = 0;
   _tripPrepActive = false;
   _tripPrepPool = null;
@@ -26665,13 +26695,14 @@ function renderTripPrepLanguageStep() {
 function selectTripPrepLanguage(lang) {
   _tripPrepLang = lang;
   _tripPrepScope = null;
+  _tripPrepTier = null;
   // Dutch and German get a scope step first (Niceties only vs Everything).
-  // French has a natural Learn flow already, so it skips straight to mode.
+  // French goes straight to the tier picker.
   if (lang === 'Dutch' || lang === 'German') {
     renderTripPrepScopeStep();
   } else {
     _tripPrepScope = 'everything';
-    renderTripPrepModeStep();
+    renderTripPrepTierStep();
   }
 }
 
@@ -26735,18 +26766,20 @@ function renderTripPrepScopeStep() {
 function selectTripPrepScope(scope) {
   _tripPrepScope = scope;
   if (scope === 'niceties') {
-    // Niceties skips the mode selector — Tier 1 only, full mix exercises only.
+    // Niceties skips both the tier picker and mode selector — Tier 1 only,
+    // full mix exercises only.
+    _tripPrepTier = '1';
     startTripPrepMode('mix');
   } else {
-    renderTripPrepModeStep();
+    renderTripPrepTierStep();
   }
 }
 
-function renderTripPrepModeStep() {
+function renderTripPrepTierStep() {
   const content = document.getElementById('tripPrepStepContent');
   if (!content) return;
   content.innerHTML = '';
-  // Back from mode step: scope step for Dutch/German, language step for French.
+  // Back from tier step: scope step for Dutch/German, language step for French.
   document.getElementById('tripPrepBackBtn').onclick = () => {
     if (_tripPrepLang === 'Dutch' || _tripPrepLang === 'German') {
       renderTripPrepScopeStep();
@@ -26754,6 +26787,38 @@ function renderTripPrepModeStep() {
       renderTripPrepLanguageStep();
     }
   };
+
+  const heading = document.createElement('div');
+  heading.style.cssText = 'font-size:13px; color:var(--text-dim); margin-bottom:1rem; text-align:center;';
+  heading.textContent = 'Pick a tier';
+  content.appendChild(heading);
+
+  function makeTier(value, label) {
+    const btn = document.createElement('button');
+    btn.style.cssText = 'display:flex; align-items:center; padding:1rem 1.25rem; margin-bottom:0.5rem; width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; text-align:left; cursor:pointer; transition:border-color 0.15s;';
+    btn.onmouseover = () => { btn.style.borderColor = 'var(--border-hi)'; };
+    btn.onmouseout = () => { btn.style.borderColor = 'var(--border)'; };
+    btn.onclick = () => selectTripPrepTier(value);
+    btn.innerHTML = `<span style="flex:1;">${label}</span><span style="color:var(--text-dim);">›</span>`;
+    return btn;
+  }
+
+  TRIP_PREP_TIERS.forEach(t => content.appendChild(makeTier(t.value, t.label)));
+}
+
+function selectTripPrepTier(tier) {
+  _tripPrepTier = tier;
+  renderTripPrepModeStep();
+}
+
+function renderTripPrepModeStep() {
+  const content = document.getElementById('tripPrepStepContent');
+  if (!content) return;
+  content.innerHTML = '';
+  // Back from mode step: scope step for Dutch/German, language step for French.
+  // Back from mode step always returns to the tier step (the immediately
+  // preceding step for all paths that reach mode selection).
+  document.getElementById('tripPrepBackBtn').onclick = () => renderTripPrepTierStep();
 
   function makeMode(emoji, label, desc, modeOrFn) {
     const btn = document.createElement('button');
@@ -26772,27 +26837,28 @@ function renderTripPrepModeStep() {
     return row;
   }
 
-  // Check content availability for the selected language
+  // Check content availability for the selected language + tier.
   const langCode = langToCode(_tripPrepLang);
+  const tier = _tripPrepTier || '1';
   const triggers = (typeof TRIGGER_PHRASES !== 'undefined' ? TRIGGER_PHRASES : [])
     .filter(t => {
       const tLang = typeof t.language === 'object' ? t.language?.name : t.language;
       const tCode = langToCode(tLang || _tripPrepLang);
-      return tCode === langCode && t.fileName;
+      return tCode === langCode && t.fileName && t.tier === tier;
     });
   const clips = (typeof LISTEN_CLIPS !== 'undefined' ? LISTEN_CLIPS : [])
-    .filter(c => c.language === _tripPrepLang && c.fileName);
+    .filter(c => c.language === _tripPrepLang && c.fileName && c.tier === tier);
 
   if (triggers.length) {
     content.appendChild(makeMode('🎧', 'Recognition only', 'Hear native speakers. Pick what they said.', 'recognition'));
   } else {
-    content.appendChild(makeUnavailable(`Recognition coming soon for ${_tripPrepLang}`));
+    content.appendChild(makeUnavailable(`Recognition coming soon for ${_tripPrepLang} Tier ${tier}`));
   }
 
   if (clips.length) {
     content.appendChild(makeMode('👂', 'Listen mode', 'Real conversations. No testing. Just listen.', 'listen'));
   } else {
-    content.appendChild(makeUnavailable(`Listen clips coming soon for ${_tripPrepLang}`));
+    content.appendChild(makeUnavailable(`Listen clips coming soon for ${_tripPrepLang} Tier ${tier}`));
   }
 
   content.appendChild(makeMode('🔁', 'Full mix', 'Everything — production, recognition, and listening.', 'mix'));
@@ -26883,18 +26949,17 @@ function startTripPrepMode(mode) {
 
 function startTripPrepFullMix() {
   const langCode = langToCode(_tripPrepLang);
+  const tier = _tripPrepTier || '1';
+  // Tier filter — Recovery phrases ride along in Tier 1 sessions per spec.
   const phrases = PHRASES.filter(p =>
     p.lang === langCode &&
     (p.meaning || (p.meanings && p.meanings.length)) &&
     getAudio(p) &&
-    p.tier &&
-    // Niceties scope: Tier 1 only
-    (_tripPrepScope !== 'niceties' || p.tier === '1')
+    (p.tier === tier || (tier === '1' && p.tier === 'Recovery'))
   );
   if (!phrases.length) {
-    alert('No phrases available for ' + _tripPrepLang);
-    if (_tripPrepScope === 'niceties') renderTripPrepScopeStep();
-    else renderTripPrepModeStep();
+    alert('No phrases available for ' + _tripPrepLang + ' Tier ' + tier);
+    renderTripPrepTierStep();
     return;
   }
 
@@ -26911,18 +26976,8 @@ function startTripPrepFullMix() {
     if (bumped > 0) saveState();
   }
 
-  // Pool ordering:
-  //   Seen phrases (score >= 1) first, in SRS order (lowest score, then sortOrder)
-  //   Unseen phrases (score 0) shuffled — prevents the same top-N from being
-  //   served every session when the whole pool starts at 0
-  const seen = phrases.filter(p => getScore(p.id) >= 1).sort((a, b) => {
-    const aScore = getScore(a.id);
-    const bScore = getScore(b.id);
-    if (aScore !== bScore) return aScore - bScore;
-    return (a.sortOrder || 999) - (b.sortOrder || 999);
-  });
-  const unseen = shuffle(phrases.filter(p => getScore(p.id) === 0));
-  _tripPrepPool = [...seen, ...unseen];
+  // Within a tier selection, serve in Sort Order ascending.
+  _tripPrepPool = phrases.slice().sort((a, b) => (a.sortOrder || 9999) - (b.sortOrder || 9999));
   // Use the standard session builder; it'll take the first 10 from pool.
   startSessionWithMode('lesson');
   // Clear the pool reference now that the session is built — completion
@@ -26932,26 +26987,29 @@ function startTripPrepFullMix() {
 
 function startTripPrepRecognition() {
   const langCode = langToCode(_tripPrepLang);
+  const tier = _tripPrepTier || '1';
   const triggers = (typeof TRIGGER_PHRASES !== 'undefined' ? TRIGGER_PHRASES : [])
     .filter(t => {
       const tLang = typeof t.language === 'object' ? t.language?.name : t.language;
       const tCode = langToCode(tLang || _tripPrepLang);
-      return tCode === langCode && t.fileName;
-    });
+      return tCode === langCode && t.fileName && t.tier === tier;
+    })
+    .sort((a, b) => (a.sortOrder || 9999) - (b.sortOrder || 9999));
   if (!triggers.length) {
-    alert('No trigger phrases available for ' + _tripPrepLang);
-    renderTripPrepModeStep();
+    alert('No trigger phrases available for ' + _tripPrepLang + ' Tier ' + tier);
+    renderTripPrepTierStep();
     return;
   }
   // Build a queue of 10 recognition items pinning specific triggers.
   // Subsequent Next 10 batches use _tripPrepRecogQueue as the rolling pool.
+  // Sort Order ascending — no shuffle within a tier selection.
   if (!_tripPrepRecogQueue || !_tripPrepRecogQueue.length) {
-    _tripPrepRecogQueue = shuffle(triggers.slice());
+    _tripPrepRecogQueue = triggers.slice();
   }
   const batch = _tripPrepRecogQueue.splice(0, 10);
   // Refill if we ran low
   if (_tripPrepRecogQueue.length < 10) {
-    _tripPrepRecogQueue = _tripPrepRecogQueue.concat(shuffle(triggers.slice()));
+    _tripPrepRecogQueue = _tripPrepRecogQueue.concat(triggers.slice());
   }
 
   state.session.mode = 'lesson';
@@ -26974,16 +27032,17 @@ function startTripPrepRecognition() {
 function startTripPrepListen() {
   const langCode = langToCode(_tripPrepLang);
   const lang = _tripPrepLang;
+  const tier = _tripPrepTier || '1';
   const clips = (typeof LISTEN_CLIPS !== 'undefined' ? LISTEN_CLIPS : [])
-    .filter(c => c.language === lang && c.fileName);
+    .filter(c => c.language === lang && c.fileName && c.tier === tier)
+    .sort((a, b) => (a.sortOrder || 9999) - (b.sortOrder || 9999));
   if (!clips.length) {
-    alert('No listen clips available for ' + lang);
-    renderTripPrepModeStep();
+    alert('No listen clips available for ' + lang + ' Tier ' + tier);
+    renderTripPrepTierStep();
     return;
   }
-  // Reuse the existing engine but pass an unfiltered pool via a synthetic section.
-  // Direct setup: mirror what startListenMode does but skip its difficulty filter.
-  _listenClips = shuffle(clips).slice(0, Math.max(9, Math.min(clips.length, 20)));
+  // Within a tier, serve in Sort Order ascending — no shuffle.
+  _listenClips = clips.slice(0, Math.max(9, Math.min(clips.length, 20)));
   _listenClipIdx = 0;
   _listenPaused = false;
   clearTimeout(_listenTimer);
