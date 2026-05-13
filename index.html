@@ -26533,16 +26533,20 @@ function hasAnyDrinkPref() {
 
 function getContextDrillPhrases(section, tier) {
   const active = getActivePhrases();
-  let pool;
+  // Anywhere phrases ride along with every section's pool.
+  const anywherePool = active.filter(p => p.contextLabel === 'Anywhere');
+  let sectionPool;
   if (section.drinksSection) {
     const drinkPrefs = ['Beer','Wine','Spirits','Alcohol-free','Coffee','Tea']
       .filter(p => localStorage.getItem('tt_prefs_' + normalizePreference(p)));
-    pool = active.filter(p =>
+    sectionPool = active.filter(p =>
       p.preferenceGroup && p.preferenceGroup.some(g => drinkPrefs.includes(g))
     );
   } else {
-    pool = active.filter(p => p.contextLabel === section.contextLabel);
+    sectionPool = active.filter(p => p.contextLabel === section.contextLabel);
   }
+  // Merge section pool with Anywhere phrases, dedup by id.
+  const pool = [...new Map([...sectionPool, ...anywherePool].map(p => [p.id, p])).values()];
   // Strict tier filter — exact match only. When tier is omitted, return the
   // whole pool so existing callers (e.g. section unlock checks) still work.
   if (tier == null) return pool;
