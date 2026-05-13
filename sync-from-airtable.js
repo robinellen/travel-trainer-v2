@@ -95,6 +95,10 @@ function recordToPhrase(record) {
   const lang = LANG_CODE[langName] || 'fr';
   const tierRaw = f['Tier'];
   const tier = tierRaw ? (typeof tierRaw === 'object' ? tierRaw.name : tierRaw) : null;
+  const contextLabelRaw = f['Context Label'];
+  const contextLabel = contextLabelRaw
+    ? (typeof contextLabelRaw === 'object' ? contextLabelRaw.name : contextLabelRaw)
+    : '';
   const emoji = f['Emoji'] || f['emoji'] || '';
 
   return {
@@ -103,6 +107,7 @@ function recordToPhrase(record) {
     flag: LANG_FLAG[lang] || '',
     langLabel: langName,
     tier,
+    contextLabel,
     sortOrder: f['Sort Order'] || null,
     alwaysCapitalize: f['Always Capitalize'] === true,
     emoji,
