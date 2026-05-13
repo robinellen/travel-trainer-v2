@@ -23773,6 +23773,7 @@ function confirmLeaveExit() {
     _tripPrepMode = null;
     _tripPrepPool = null;
     _tripPrepRecogQueue = null;
+    _tripPrepSpeakingQueue = null;
     showScreen('screenTripPrep');
     if (wasNiceties && (wasLang === 'Dutch' || wasLang === 'German')) {
       renderTripPrepScopeStep();
@@ -28374,13 +28375,14 @@ function devToggleFoundationComplete() {
 // language. Three modes: full mix, recognition only, listen only.
 
 let _tripPrepPool = null;       // pre-sorted phrase pool for full-mix sessions
-let _tripPrepMode = null;       // 'mix' | 'recognition' | 'listen'
+let _tripPrepMode = null;       // 'mix' | 'recognition' | 'listen' | 'speaking'
 let _tripPrepLang = null;       // 'French' | 'Dutch' | 'German'
 let _tripPrepScope = null;      // 'niceties' | 'everything' (Dutch/German only)
 let _tripPrepTier = null;       // '1' | '2' | '3' | '4' | '5'
 let _tripPrepStartingScore = 0; // 0 = from scratch, 1 = pre-set scores so speak exercises fire
 let _tripPrepActive = false;    // session in progress
 let _tripPrepRecogQueue = null; // pre-shuffled trigger phrase pool for recognition-only continuations
+let _tripPrepSpeakingQueue = null; // rolling phrase pool for speaking-only continuations
 
 const TRIP_PREP_TIERS = [
   { value: '1', label: 'Tier 1 — Foundation' },
@@ -28400,6 +28402,7 @@ function startTripPrep() {
   _tripPrepActive = false;
   _tripPrepPool = null;
   _tripPrepRecogQueue = null;
+  _tripPrepSpeakingQueue = null;
   showScreen('screenTripPrep');
   renderTripPrepLanguageStep();
 }
@@ -28584,6 +28587,13 @@ function renderTripPrepModeStep() {
     });
   const clips = (typeof LISTEN_CLIPS !== 'undefined' ? LISTEN_CLIPS : [])
     .filter(c => c.language === _tripPrepLang && c.fileName && c.tier === tier);
+  const speakablePhrases = PHRASES.filter(p =>
+    p.lang === langCode &&
+    (p.meaning || (p.meanings && p.meanings.length)) &&
+    getAudio(p) &&
+    !p.pendingPackSystem &&
+    (p.tier === tier || (tier === '1' && p.tier === 'Recovery'))
+  );
 
   if (triggers.length) {
     content.appendChild(makeMode('🎧', 'Recognition only', 'Hear native speakers. Pick what they said.', 'recognition'));
@@ -28595,6 +28605,12 @@ function renderTripPrepModeStep() {
     content.appendChild(makeMode('👂', 'Listen mode', 'Real conversations. No testing. Just listen.', 'listen'));
   } else {
     content.appendChild(makeUnavailable(`Listen clips coming soon for ${_tripPrepLang} Tier ${tier}`));
+  }
+
+  if (speakablePhrases.length) {
+    content.appendChild(makeMode('🗣️', 'Speaking only', 'Say each phrase out loud. Production practice.', 'speaking'));
+  } else {
+    content.appendChild(makeUnavailable(`Speaking coming soon for ${_tripPrepLang} Tier ${tier}`));
   }
 
   content.appendChild(makeMode('🔁', 'Full mix', 'Everything — production, recognition, and listening.', 'mix'));
@@ -28681,6 +28697,60 @@ function startTripPrepMode(mode) {
   if (mode === 'mix') startTripPrepFullMix();
   else if (mode === 'recognition') startTripPrepRecognition();
   else if (mode === 'listen') startTripPrepListen();
+  else if (mode === 'speaking') startTripPrepSpeaking();
+}
+
+// Speaking-only Trip Prep: serves 10 speak_from_french touches per round
+// from the tier-filtered phrase pool. Phrases at score 0 get a temporary
+// in-memory bump to 1 so the speak exercise fires — no saveState, so the
+// bump itself doesn't persist (only real correct answers do, via the
+// normal scoring path).
+function startTripPrepSpeaking() {
+  const langCode = langToCode(_tripPrepLang);
+  const tier = _tripPrepTier || '1';
+  const phrases = PHRASES.filter(p =>
+    p.lang === langCode &&
+    (p.meaning || (p.meanings && p.meanings.length)) &&
+    getAudio(p) &&
+    !p.pendingPackSystem &&
+    (p.tier === tier || (tier === '1' && p.tier === 'Recovery'))
+  ).sort((a, b) => (a.sortOrder || 9999) - (b.sortOrder || 9999));
+
+  if (!phrases.length) {
+    alert('No phrases available for ' + _tripPrepLang + ' Tier ' + tier);
+    renderTripPrepTierStep();
+    return;
+  }
+
+  // Rolling pool across Next 10 batches, mirroring Recognition's pattern.
+  if (!_tripPrepSpeakingQueue || !_tripPrepSpeakingQueue.length) {
+    _tripPrepSpeakingQueue = phrases.slice();
+  }
+  const batch = _tripPrepSpeakingQueue.splice(0, 10);
+  if (_tripPrepSpeakingQueue.length < 10) {
+    _tripPrepSpeakingQueue = _tripPrepSpeakingQueue.concat(phrases.slice());
+  }
+
+  // Bypass the score>=1 gate by bumping in-memory scores. Intentionally NOT
+  // calling saveState — only the user's actual answers should persist.
+  batch.forEach(p => {
+    if (getScore(p.id) === 0) state.scores[p.id] = 1;
+  });
+
+  state.session.mode = 'lesson';
+  state.session.index = 0;
+  state.session.pendingUnlock = null;
+  state.session._resurfaced = {};
+  state.session._startScores = {};
+  state.session._sessionPhrases = batch.map(p => p.id);
+  state.session.queue = batch.map(p => ({
+    phraseId: p.id,
+    type: 'speak_from_french',
+    _isFinal: true,
+  }));
+
+  showScreen('screenExercise');
+  renderCurrentExercise();
 }
 
 function startTripPrepFullMix() {
@@ -28815,13 +28885,23 @@ function showTripPrepContinue() {
   if (directionEl) directionEl.style.display = 'none';
 
   const isNiceties = _tripPrepScope === 'niceties';
-  if (eyebrowEl) eyebrowEl.textContent = isNiceties ? '🌱' : (_tripPrepMode === 'recognition' ? '🎧' : '🔁');
+  const modeEmoji = {
+    recognition: '🎧',
+    speaking: '🗣️',
+    mix: '🔁',
+  }[_tripPrepMode] || '🔁';
+  const modeLabel = {
+    recognition: 'Recognition only',
+    speaking: 'Speaking only',
+    mix: 'Full mix',
+  }[_tripPrepMode] || 'Full mix';
+  if (eyebrowEl) eyebrowEl.textContent = isNiceties ? '🌱' : modeEmoji;
   if (headlineEl) headlineEl.textContent = isNiceties ? 'Niceties round complete' : 'Trip Prep round complete';
   if (subEl) {
     if (isNiceties) {
       subEl.innerHTML = `${_tripPrepLang} • Niceties only<br><span style="color:var(--text-mid);">Ready for more? Try Everything next time.</span>`;
     } else {
-      subEl.textContent = `${_tripPrepLang} • ${_tripPrepMode === 'recognition' ? 'Recognition only' : 'Full mix'}`;
+      subEl.textContent = `${_tripPrepLang} • ${modeLabel}`;
     }
     subEl.style.display = '';
   }
@@ -28831,6 +28911,7 @@ function showTripPrepContinue() {
   primaryBtn.textContent = 'Next 10 →';
   primaryBtn.onclick = () => {
     if (_tripPrepMode === 'recognition') startTripPrepRecognition();
+    else if (_tripPrepMode === 'speaking') startTripPrepSpeaking();
     else startTripPrepFullMix();
   };
   secondaryBtn.style.display = '';
@@ -28840,6 +28921,7 @@ function showTripPrepContinue() {
     _tripPrepMode = null;
     _tripPrepPool = null;
     _tripPrepRecogQueue = null;
+    _tripPrepSpeakingQueue = null;
     showScreen('screenTripPrep');
     // Niceties returns to the scope selector; Everything to the mode selector.
     if (_tripPrepScope === 'niceties' && (_tripPrepLang === 'Dutch' || _tripPrepLang === 'German')) {
