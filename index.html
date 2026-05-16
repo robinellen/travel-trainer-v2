@@ -24174,8 +24174,9 @@ function startSessionWithMode(mode) {
 
     let newPicks, reviewPicks;
     if (_tripPrepPool) {
-      // Trip Prep: take 10 phrases directly from the pre-sorted pool.
-      newPicks = _tripPrepPool.slice(0, 10);
+      // Trip Prep: serve the full pre-sorted pool in one continuous round.
+      // When the queue exhausts, the completion hook restarts this mode.
+      newPicks = _tripPrepPool.slice();
       reviewPicks = [];
     } else if (isFirstSession) {
       newPicks = unseenFoundation.slice(0, 5);
@@ -25712,8 +25713,9 @@ function nextExercise() {
 
 function advanceSession() {
   // Hard cap: end the session once SESSION_HARD_CAP exercises have been completed,
-  // even if resurfaced retries are still queued. Only enforced for lesson mode.
-  if (state.session.mode === 'lesson' && state.session.index >= SESSION_HARD_CAP) {
+  // even if resurfaced retries are still queued. Only enforced for lesson mode
+  // outside Trip Prep — Trip Prep runs continuously until the user taps X.
+  if (state.session.mode === 'lesson' && !_tripPrepActive && state.session.index >= SESSION_HARD_CAP) {
     showCompletion();
     return;
   }
@@ -25842,13 +25844,16 @@ function showCompletion() {
 
   saveState();
 
-  showScreen('screenComplete');
-
-  // Trip Prep: short-circuit to the Next 10 / Done continuation card.
+  // Trip Prep: cycle continuously — restart the same mode rather than
+  // showing a completion screen. The only exit is the X button.
   if (_tripPrepActive) {
-    showTripPrepContinue();
+    if (_tripPrepMode === 'recognition') startTripPrepRecognition();
+    else if (_tripPrepMode === 'speaking') startTripPrepSpeaking();
+    else startTripPrepFullMix();
     return;
   }
+
+  showScreen('screenComplete');
 
   // Build structured debrief: gains, trip tie, direction
   const gainsEl = document.getElementById('completionGains');
@@ -27919,13 +27924,24 @@ function showListenClipTextFallback(clip) {
 function playListenClip() {
   if (_listenPaused) return;
   if (_listenClipIdx >= _listenClips.length) {
-    onListenModeComplete();
-    return;
+    // Trip Prep: loop back to the start instead of ending the session.
+    if (_tripPrepActive) {
+      _listenClipIdx = 0;
+    } else {
+      onListenModeComplete();
+      return;
+    }
   }
 
   const clip = _listenClips[_listenClipIdx];
   const total = _listenClips.length;
-  document.getElementById('listenModeProgressFill').style.width = Math.round((_listenClipIdx / total) * 100) + '%';
+  const progressEl = document.getElementById('listenModeProgressFill');
+  if (_tripPrepActive) {
+    // Hide progress bar — implies a fixed end that doesn't exist in Trip Prep.
+    progressEl.style.width = '0%';
+  } else {
+    progressEl.style.width = Math.round((_listenClipIdx / total) * 100) + '%';
+  }
 
   // Reset UI: show context label, hide French + English, show play button
   _listenEnglishRevealed = false;
@@ -28809,28 +28825,21 @@ function startTripPrepSpeaking() {
     return;
   }
 
-  // Rolling pool across Next 10 batches, mirroring Recognition's pattern.
-  if (!_tripPrepSpeakingQueue || !_tripPrepSpeakingQueue.length) {
-    _tripPrepSpeakingQueue = phrases.slice();
-  }
-  const batch = _tripPrepSpeakingQueue.splice(0, 10);
-  if (_tripPrepSpeakingQueue.length < 10) {
-    _tripPrepSpeakingQueue = _tripPrepSpeakingQueue.concat(phrases.slice());
-  }
-
   // Bypass the score>=1 gate by bumping in-memory scores. Intentionally NOT
   // calling saveState — only the user's actual answers should persist.
-  batch.forEach(p => {
+  phrases.forEach(p => {
     if (getScore(p.id) === 0) state.scores[p.id] = 1;
   });
 
+  // Full pool queue — Trip Prep runs continuously and the completion hook
+  // rebuilds this on each cycle.
   state.session.mode = 'lesson';
   state.session.index = 0;
   state.session.pendingUnlock = null;
   state.session._resurfaced = {};
   state.session._startScores = {};
-  state.session._sessionPhrases = batch.map(p => p.id);
-  state.session.queue = batch.map(p => ({
+  state.session._sessionPhrases = phrases.map(p => p.id);
+  state.session.queue = phrases.map(p => ({
     phraseId: p.id,
     type: 'speak_from_french',
     _isFinal: true,
@@ -28896,25 +28905,15 @@ function startTripPrepRecognition() {
     renderTripPrepTierStep();
     return;
   }
-  // Build a queue of 10 recognition items pinning specific triggers.
-  // Subsequent Next 10 batches use _tripPrepRecogQueue as the rolling pool.
-  // Sort Order ascending — no shuffle within a tier selection.
-  if (!_tripPrepRecogQueue || !_tripPrepRecogQueue.length) {
-    _tripPrepRecogQueue = triggers.slice();
-  }
-  const batch = _tripPrepRecogQueue.splice(0, 10);
-  // Refill if we ran low
-  if (_tripPrepRecogQueue.length < 10) {
-    _tripPrepRecogQueue = _tripPrepRecogQueue.concat(triggers.slice());
-  }
-
+  // Build a queue across ALL triggers — Trip Prep runs continuously and
+  // the completion hook will rebuild this pool when the queue exhausts.
   state.session.mode = 'lesson';
   state.session.index = 0;
   state.session.pendingUnlock = null;
   state.session._resurfaced = {};
   state.session._startScores = {};
   state.session._sessionPhrases = [];
-  state.session.queue = batch.map(t => ({
+  state.session.queue = triggers.map(t => ({
     type: 'recognition',
     triggerId: t.id,
     intent: t.intent,
@@ -28937,8 +28936,8 @@ function startTripPrepListen() {
     renderTripPrepTierStep();
     return;
   }
-  // Within a tier, serve in Sort Order ascending — no shuffle.
-  _listenClips = clips.slice(0, Math.max(9, Math.min(clips.length, 20)));
+  // Full pool in Sort Order — Trip Prep cycles continuously, no cap.
+  _listenClips = clips.slice();
   _listenClipIdx = 0;
   _listenPaused = false;
   clearTimeout(_listenTimer);
@@ -28959,66 +28958,8 @@ function startTripPrepListen() {
   playListenClip();
 }
 
-// Called from showCompletion when a Trip Prep session ends.
-function showTripPrepContinue() {
-  // Reset standard completion content and overlay our copy.
-  const eyebrowEl = document.getElementById('completionEyebrow');
-  const headlineEl = document.getElementById('completionHeadline');
-  const subEl = document.getElementById('completionSubtext');
-  const gainsEl = document.getElementById('completionGains');
-  const tripEl = document.getElementById('completionTrip');
-  const directionEl = document.getElementById('completionDirection');
-  if (gainsEl) gainsEl.style.display = 'none';
-  if (tripEl) tripEl.style.display = 'none';
-  if (directionEl) directionEl.style.display = 'none';
-
-  const isNiceties = _tripPrepScope === 'niceties';
-  const modeEmoji = {
-    recognition: '🎧',
-    speaking: '🗣️',
-    mix: '🔁',
-  }[_tripPrepMode] || '🔁';
-  const modeLabel = {
-    recognition: 'Recognition only',
-    speaking: 'Speaking only',
-    mix: 'Full mix',
-  }[_tripPrepMode] || 'Full mix';
-  if (eyebrowEl) eyebrowEl.textContent = isNiceties ? '🌱' : modeEmoji;
-  if (headlineEl) headlineEl.textContent = isNiceties ? 'Niceties round complete' : 'Trip Prep round complete';
-  if (subEl) {
-    if (isNiceties) {
-      subEl.innerHTML = `${_tripPrepLang} • Niceties only<br><span style="color:var(--text-mid);">Ready for more? Try Everything next time.</span>`;
-    } else {
-      subEl.textContent = `${_tripPrepLang} • ${modeLabel}`;
-    }
-    subEl.style.display = '';
-  }
-
-  const primaryBtn = document.getElementById('completePrimaryBtn');
-  const secondaryBtn = document.getElementById('completeSecondaryBtn');
-  primaryBtn.textContent = 'Next 10 →';
-  primaryBtn.onclick = () => {
-    if (_tripPrepMode === 'recognition') startTripPrepRecognition();
-    else if (_tripPrepMode === 'speaking') startTripPrepSpeaking();
-    else startTripPrepFullMix();
-  };
-  secondaryBtn.style.display = '';
-  secondaryBtn.textContent = 'Done';
-  secondaryBtn.onclick = () => {
-    _tripPrepActive = false;
-    _tripPrepMode = null;
-    _tripPrepPool = null;
-    _tripPrepRecogQueue = null;
-    _tripPrepSpeakingQueue = null;
-    showScreen('screenTripPrep');
-    // Niceties returns to the scope selector; Everything to the mode selector.
-    if (_tripPrepScope === 'niceties' && (_tripPrepLang === 'Dutch' || _tripPrepLang === 'German')) {
-      renderTripPrepScopeStep();
-    } else {
-      renderTripPrepModeStep();
-    }
-  };
-}
+// (showTripPrepContinue removed — Trip Prep now cycles continuously and the
+// only exit is the X button via confirmLeaveExit.)
 
 function devLaunch(module) {
   closeDevPanel();
