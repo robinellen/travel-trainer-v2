@@ -113,7 +113,7 @@ function recordToPhrase(record) {
     emoji,
     meaning: f['English Meaning'] || '',
     meanings: parseArray(f['Meanings']),
-    native: f['Phrase (Native)'] || '',
+    native: f['Phrase Native'] || '',
     romanization: f['Romanization'] || null,
     note: f['Note'] || '',
     hasBuildup: f['Has Buildup'] === true,
