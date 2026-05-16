@@ -26537,7 +26537,7 @@ function hasAnyDrinkPref() {
     .some(k => localStorage.getItem('tt_prefs_' + k));
 }
 
-function getContextDrillPhrases(section, tier) {
+function getContextDrillPhrases(section, difficulty) {
   const active = getActivePhrases();
   // Anywhere phrases ride along with every section's pool.
   const anywherePool = active.filter(p => p.contextLabel === 'Anywhere');
@@ -26553,13 +26553,14 @@ function getContextDrillPhrases(section, tier) {
   }
   // Merge section pool with Anywhere phrases, dedup by id.
   const pool = [...new Map([...sectionPool, ...anywherePool].map(p => [p.id, p])).values()];
-  // Strict tier filter — exact match only. When tier is omitted, return the
-  // whole pool so existing callers (e.g. section unlock checks) still work.
-  if (tier == null) return pool;
-  return pool.filter(p => String(p.tier) === String(tier));
+  // When difficulty is omitted, return the whole pool so existing callers
+  // (e.g. section unlock checks) still work.
+  if (difficulty == null) return pool;
+  const tiers = getTiersForDifficulty(difficulty);
+  return pool.filter(p => tiers.includes(String(p.tier)));
 }
 
-function getContextDrillTriggers(section, tier) {
+function getContextDrillTriggers(section, difficulty) {
   if (section.drinksSection || !section.experience) return [];
   if (typeof TRIGGER_PHRASES === 'undefined') return [];
   const lang = getCurrentLanguageName();
@@ -26567,18 +26568,20 @@ function getContextDrillTriggers(section, tier) {
     (t.language === lang || (typeof t.language === 'object' && t.language?.name === lang)) &&
     t.experience === section.experience
   );
-  if (tier == null) return pool;
-  return pool.filter(t => String(t.tier) === String(tier));
+  if (difficulty == null) return pool;
+  const tiers = getTiersForDifficulty(difficulty);
+  return pool.filter(t => tiers.includes(String(t.tier)));
 }
 
-function getContextDrillListenClips(section, tier) {
+function getContextDrillListenClips(section, difficulty) {
   if (!section.clipContext || typeof LISTEN_CLIPS === 'undefined') return [];
   const lang = getCurrentLanguageName();
   const pool = LISTEN_CLIPS.filter(c =>
     c.language === lang && c.contextLabel === section.clipContext && c.fileName
   );
-  if (tier == null) return pool;
-  return pool.filter(c => String(c.tier) === String(tier));
+  if (difficulty == null) return pool;
+  const tiers = getTiersForDifficulty(difficulty);
+  return pool.filter(c => tiers.includes(String(c.tier)));
 }
 
 // Backward-compatible aliases for existing callers
@@ -28395,19 +28398,27 @@ let _tripPrepMode = null;       // 'mix' | 'recognition' | 'listen' | 'speaking'
 let _tripPrepLang = null;       // 'French' | 'Dutch' | 'German'
 let _tripPrepScope = null;      // 'niceties' | 'everything' (Dutch/German only)
 let _tripPrepSection = null;    // CONTEXT_DRILL_SECTIONS entry, or null = All contexts
-let _tripPrepTier = null;       // '1' | '2' | '3' | '4' | '5'
+let _tripPrepDifficulty = null; // 'easy' | 'hard'
 let _tripPrepStartingScore = 0; // 0 = from scratch, 1 = pre-set scores so speak exercises fire
 let _tripPrepActive = false;    // session in progress
 let _tripPrepRecogQueue = null; // pre-shuffled trigger phrase pool for recognition-only continuations
 let _tripPrepSpeakingQueue = null; // rolling phrase pool for speaking-only continuations
 
-const TRIP_PREP_TIERS = [
-  { value: '1', label: 'Tier 1 — Foundation' },
-  { value: '2', label: 'Tier 2 — First Steps' },
-  { value: '3', label: 'Tier 3 — Getting By' },
-  { value: '4', label: 'Tier 4 — Handling It' },
-  { value: '5', label: 'Tier 5 — Fluent Moments' },
+const TRIP_PREP_DIFFICULTIES = [
+  { value: 'easy', emoji: '🟢', label: 'Easy', desc: 'Tier 1 + Tier 2' },
+  { value: 'hard', emoji: '🔴', label: 'Hard', desc: 'Tier 3, 4, and 5' },
 ];
+
+function getTiersForDifficulty(difficulty) {
+  return difficulty === 'easy' ? ['1', '2'] : ['3', '4', '5'];
+}
+
+// Effective tier list for the active Trip Prep selection. Niceties
+// shortcut always maps to Tier 1 only regardless of difficulty.
+function getTripPrepTiers() {
+  if (_tripPrepScope === 'niceties') return ['1'];
+  return getTiersForDifficulty(_tripPrepDifficulty || 'easy');
+}
 
 function startTripPrep() {
   closeDevPanel();
@@ -28415,7 +28426,7 @@ function startTripPrep() {
   _tripPrepMode = null;
   _tripPrepScope = null;
   _tripPrepSection = null;
-  _tripPrepTier = null;
+  _tripPrepDifficulty = null;
   _tripPrepStartingScore = 0;
   _tripPrepActive = false;
   _tripPrepPool = null;
@@ -28453,7 +28464,7 @@ function selectTripPrepLanguage(lang) {
   _tripPrepLang = lang;
   _tripPrepScope = null;
   _tripPrepSection = null;
-  _tripPrepTier = null;
+  _tripPrepDifficulty = null;
   // Dutch and German get a scope step first (Niceties only vs Everything).
   // French skips scope and goes straight to the context picker.
   if (lang === 'Dutch' || lang === 'German') {
@@ -28524,9 +28535,10 @@ function renderTripPrepScopeStep() {
 function selectTripPrepScope(scope) {
   _tripPrepScope = scope;
   if (scope === 'niceties') {
-    // Niceties bypasses context and tier — Tier 1 only, full mix exercises.
+    // Niceties bypasses context and difficulty — Tier 1 only, full mix
+    // exercises. getTripPrepTiers() reads _tripPrepScope and returns ['1'].
     _tripPrepSection = null;
-    _tripPrepTier = '1';
+    _tripPrepDifficulty = null;
     startTripPrepMode('mix');
   } else {
     renderTripPrepContextStep();
@@ -28588,7 +28600,7 @@ function selectTripPrepContext(section) {
   // Context change invalidates any in-flight rolling pools.
   _tripPrepRecogQueue = null;
   _tripPrepSpeakingQueue = null;
-  renderTripPrepTierStep();
+  renderTripPrepDifficultyStep();
 }
 
 // Section-aware predicates for the Trip Prep pools. Each returns true when
@@ -28617,35 +28629,53 @@ function tripPrepClipMatchesContext(c) {
   return c.contextLabel === section.clipContext;
 }
 
-function renderTripPrepTierStep() {
+function renderTripPrepDifficultyStep() {
   const content = document.getElementById('tripPrepStepContent');
   if (!content) return;
   content.innerHTML = '';
-  // Back from tier step always returns to the context step — context is the
-  // immediately preceding step for every path that reaches the tier picker.
   document.getElementById('tripPrepBackBtn').onclick = () => renderTripPrepContextStep();
 
   const heading = document.createElement('div');
   heading.style.cssText = 'font-size:13px; color:var(--text-dim); margin-bottom:1rem; text-align:center;';
-  heading.textContent = 'Pick a tier';
+  heading.textContent = 'Pick a difficulty';
   content.appendChild(heading);
 
-  function makeTier(value, label) {
-    const btn = document.createElement('button');
-    btn.style.cssText = 'display:flex; align-items:center; padding:1rem 1.25rem; margin-bottom:0.5rem; width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; text-align:left; cursor:pointer; transition:border-color 0.15s;';
-    btn.onmouseover = () => { btn.style.borderColor = 'var(--border-hi)'; };
-    btn.onmouseout = () => { btn.style.borderColor = 'var(--border)'; };
-    btn.onclick = () => selectTripPrepTier(value);
-    btn.innerHTML = `<span style="flex:1;">${label}</span><span style="color:var(--text-dim);">›</span>`;
+  const langCode = langToCode(_tripPrepLang);
+  // Count phrases per difficulty for the active language + context selection.
+  function countPhrasesFor(diffValue) {
+    const tiers = getTiersForDifficulty(diffValue);
+    return PHRASES.filter(p =>
+      p.lang === langCode &&
+      (p.meaning || (p.meanings && p.meanings.length)) &&
+      getAudio(p) &&
+      !p.pendingPackSystem &&
+      (tiers.includes(String(p.tier)) || (tiers.includes('1') && p.tier === 'Recovery')) &&
+      tripPrepPhraseMatchesContext(p)
+    ).length;
+  }
+
+  function makeDifficulty(diff, count) {
+    const empty = count === 0;
+    const btn = document.createElement(empty ? 'div' : 'button');
+    btn.style.cssText = `display:flex; flex-direction:column; align-items:flex-start; gap:0.25rem; padding:1.1rem 1.25rem; margin-bottom:0.5rem; width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; text-align:left; ${empty ? 'opacity:0.5;' : 'cursor:pointer; transition:border-color 0.15s;'}`;
+    if (!empty) {
+      btn.onmouseover = () => { btn.style.borderColor = 'var(--border-hi)'; };
+      btn.onmouseout = () => { btn.style.borderColor = 'var(--border)'; };
+      btn.onclick = () => selectTripPrepDifficulty(diff.value);
+    }
+    const subline = empty ? 'Nothing here yet' : `${count} phrase${count === 1 ? '' : 's'} · ${diff.desc}`;
+    btn.innerHTML = `<div style="display:flex; align-items:center; gap:0.6rem; font-size:15px;"><span style="font-size:1.4rem;">${diff.emoji}</span><span>${diff.label}</span></div><div style="font-size:13px; color:var(--text-dim); line-height:1.4; padding-left:2rem;">${subline}</div>`;
     return btn;
   }
 
-  TRIP_PREP_TIERS.forEach(t => content.appendChild(makeTier(t.value, t.label)));
+  TRIP_PREP_DIFFICULTIES.forEach(diff => {
+    content.appendChild(makeDifficulty(diff, countPhrasesFor(diff.value)));
+  });
 }
 
-function selectTripPrepTier(tier) {
-  _tripPrepTier = tier;
-  // Tier change invalidates any in-flight rolling pools.
+function selectTripPrepDifficulty(difficulty) {
+  _tripPrepDifficulty = difficulty;
+  // Difficulty change invalidates any in-flight rolling pools.
   _tripPrepRecogQueue = null;
   _tripPrepSpeakingQueue = null;
   renderTripPrepModeStep();
@@ -28655,10 +28685,9 @@ function renderTripPrepModeStep() {
   const content = document.getElementById('tripPrepStepContent');
   if (!content) return;
   content.innerHTML = '';
-  // Back from mode step: scope step for Dutch/German, language step for French.
-  // Back from mode step always returns to the tier step (the immediately
-  // preceding step for all paths that reach mode selection).
-  document.getElementById('tripPrepBackBtn').onclick = () => renderTripPrepTierStep();
+  // Back from mode step always returns to the difficulty step (the
+  // immediately preceding step for all paths that reach mode selection).
+  document.getElementById('tripPrepBackBtn').onclick = () => renderTripPrepDifficultyStep();
 
   function makeMode(emoji, label, desc, modeOrFn) {
     const btn = document.createElement('button');
@@ -28677,42 +28706,43 @@ function renderTripPrepModeStep() {
     return row;
   }
 
-  // Check content availability for the selected language + tier.
+  // Check content availability for the selected language + difficulty.
   const langCode = langToCode(_tripPrepLang);
-  const tier = _tripPrepTier || '1';
+  const tiers = getTripPrepTiers();
+  const diffLabel = _tripPrepScope === 'niceties' ? 'Niceties' : (_tripPrepDifficulty === 'hard' ? 'Hard' : 'Easy');
   const triggers = (typeof TRIGGER_PHRASES !== 'undefined' ? TRIGGER_PHRASES : [])
     .filter(t => {
       const tLang = typeof t.language === 'object' ? t.language?.name : t.language;
       const tCode = langToCode(tLang || _tripPrepLang);
-      return tCode === langCode && t.fileName && t.tier === tier && tripPrepTriggerMatchesContext(t);
+      return tCode === langCode && t.fileName && tiers.includes(String(t.tier)) && tripPrepTriggerMatchesContext(t);
     });
   const clips = (typeof LISTEN_CLIPS !== 'undefined' ? LISTEN_CLIPS : [])
-    .filter(c => c.language === _tripPrepLang && c.fileName && c.tier === tier && tripPrepClipMatchesContext(c));
+    .filter(c => c.language === _tripPrepLang && c.fileName && tiers.includes(String(c.tier)) && tripPrepClipMatchesContext(c));
   const speakablePhrases = PHRASES.filter(p =>
     p.lang === langCode &&
     (p.meaning || (p.meanings && p.meanings.length)) &&
     getAudio(p) &&
     !p.pendingPackSystem &&
-    (p.tier === tier || (tier === '1' && p.tier === 'Recovery')) &&
+    (tiers.includes(String(p.tier)) || (tiers.includes('1') && p.tier === 'Recovery')) &&
     tripPrepPhraseMatchesContext(p)
   );
 
   if (triggers.length) {
     content.appendChild(makeMode('🎧', 'Recognition only', 'Hear native speakers. Pick what they said.', 'recognition'));
   } else {
-    content.appendChild(makeUnavailable(`Recognition coming soon for ${_tripPrepLang} Tier ${tier}`));
+    content.appendChild(makeUnavailable(`Recognition coming soon for ${_tripPrepLang} ${diffLabel}`));
   }
 
   if (clips.length) {
     content.appendChild(makeMode('👂', 'Listen mode', 'Real conversations. No testing. Just listen.', 'listen'));
   } else {
-    content.appendChild(makeUnavailable(`Listen clips coming soon for ${_tripPrepLang} Tier ${tier}`));
+    content.appendChild(makeUnavailable(`Listen clips coming soon for ${_tripPrepLang} ${diffLabel}`));
   }
 
   if (speakablePhrases.length) {
     content.appendChild(makeMode('🗣️', 'Speaking only', 'Say each phrase out loud. Production practice.', 'speaking'));
   } else {
-    content.appendChild(makeUnavailable(`Speaking coming soon for ${_tripPrepLang} Tier ${tier}`));
+    content.appendChild(makeUnavailable(`Speaking coming soon for ${_tripPrepLang} ${diffLabel}`));
   }
 
   content.appendChild(makeMode('🔁', 'Full mix', 'Everything — production, recognition, and listening.', 'mix'));
@@ -28809,19 +28839,19 @@ function startTripPrepMode(mode) {
 // normal scoring path).
 function startTripPrepSpeaking() {
   const langCode = langToCode(_tripPrepLang);
-  const tier = _tripPrepTier || '1';
+  const tiers = getTripPrepTiers();
   const phrases = PHRASES.filter(p =>
     p.lang === langCode &&
     (p.meaning || (p.meanings && p.meanings.length)) &&
     getAudio(p) &&
     !p.pendingPackSystem &&
-    (p.tier === tier || (tier === '1' && p.tier === 'Recovery')) &&
+    (tiers.includes(String(p.tier)) || (tiers.includes('1') && p.tier === 'Recovery')) &&
     tripPrepPhraseMatchesContext(p)
   ).sort((a, b) => (a.sortOrder || 9999) - (b.sortOrder || 9999));
 
   if (!phrases.length) {
-    alert('No phrases available for ' + _tripPrepLang + ' Tier ' + tier);
-    renderTripPrepTierStep();
+    alert('No phrases available for ' + _tripPrepLang);
+    renderTripPrepDifficultyStep();
     return;
   }
 
@@ -28851,20 +28881,20 @@ function startTripPrepSpeaking() {
 
 function startTripPrepFullMix() {
   const langCode = langToCode(_tripPrepLang);
-  const tier = _tripPrepTier || '1';
-  // Tier filter — Recovery phrases ride along in Tier 1 sessions per spec.
-  // Pending Pack System records are excluded from Trip Prep entirely.
+  const tiers = getTripPrepTiers();
+  // Difficulty filter — Recovery phrases ride along whenever Tier 1 is in
+  // the selection. Pending Pack System records are excluded entirely.
   const phrases = PHRASES.filter(p =>
     p.lang === langCode &&
     (p.meaning || (p.meanings && p.meanings.length)) &&
     getAudio(p) &&
     !p.pendingPackSystem &&
-    (p.tier === tier || (tier === '1' && p.tier === 'Recovery')) &&
+    (tiers.includes(String(p.tier)) || (tiers.includes('1') && p.tier === 'Recovery')) &&
     tripPrepPhraseMatchesContext(p)
   );
   if (!phrases.length) {
-    alert('No phrases available for ' + _tripPrepLang + ' Tier ' + tier);
-    renderTripPrepTierStep();
+    alert('No phrases available for ' + _tripPrepLang);
+    renderTripPrepDifficultyStep();
     return;
   }
 
@@ -28892,17 +28922,17 @@ function startTripPrepFullMix() {
 
 function startTripPrepRecognition() {
   const langCode = langToCode(_tripPrepLang);
-  const tier = _tripPrepTier || '1';
+  const tiers = getTripPrepTiers();
   const triggers = (typeof TRIGGER_PHRASES !== 'undefined' ? TRIGGER_PHRASES : [])
     .filter(t => {
       const tLang = typeof t.language === 'object' ? t.language?.name : t.language;
       const tCode = langToCode(tLang || _tripPrepLang);
-      return tCode === langCode && t.fileName && t.tier === tier && tripPrepTriggerMatchesContext(t);
+      return tCode === langCode && t.fileName && tiers.includes(String(t.tier)) && tripPrepTriggerMatchesContext(t);
     })
     .sort((a, b) => (a.sortOrder || 9999) - (b.sortOrder || 9999));
   if (!triggers.length) {
-    alert('No trigger phrases available for ' + _tripPrepLang + ' Tier ' + tier);
-    renderTripPrepTierStep();
+    alert('No trigger phrases available for ' + _tripPrepLang);
+    renderTripPrepDifficultyStep();
     return;
   }
   // Build a queue across ALL triggers — Trip Prep runs continuously and
@@ -28927,13 +28957,13 @@ function startTripPrepRecognition() {
 function startTripPrepListen() {
   const langCode = langToCode(_tripPrepLang);
   const lang = _tripPrepLang;
-  const tier = _tripPrepTier || '1';
+  const tiers = getTripPrepTiers();
   const clips = (typeof LISTEN_CLIPS !== 'undefined' ? LISTEN_CLIPS : [])
-    .filter(c => c.language === lang && c.fileName && c.tier === tier && tripPrepClipMatchesContext(c))
+    .filter(c => c.language === lang && c.fileName && tiers.includes(String(c.tier)) && tripPrepClipMatchesContext(c))
     .sort((a, b) => (a.sortOrder || 9999) - (b.sortOrder || 9999));
   if (!clips.length) {
-    alert('No listen clips available for ' + lang + ' Tier ' + tier);
-    renderTripPrepTierStep();
+    alert('No listen clips available for ' + lang);
+    renderTripPrepDifficultyStep();
     return;
   }
   // Full pool in Sort Order — Trip Prep cycles continuously, no cap.
