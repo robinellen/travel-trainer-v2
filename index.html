@@ -19,7 +19,7 @@
   --text-mid:     #9b9aa4;
   --text-dim:     #a0a0aa;
   --fr:           #5b9bd5;
-  --green:        #4caf7d;
+  --green:        #4caf7d;2
   --green-bg:     rgba(76,175,125,0.1);
   --green-border: rgba(76,175,125,0.4);
   --red:          #e05c4b;
@@ -26401,20 +26401,20 @@ function renderLearnTab() {
             <div style="font-size:13px; color:var(--text-dim);">15 essential phrases</div>
           </div>
         </button>
-        <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.25rem; width:100%; display:flex; align-items:center; gap:1rem; opacity:0.35;">
+        <button onclick="selectLanguage('nl')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.25rem; cursor:pointer; transition:all 0.2s; width:100%; display:flex; align-items:center; gap:1rem; text-align:left;">
           <span style="font-size:1.8rem;">🇳🇱</span>
           <div>
             <div style="font-size:15px; color:var(--text); font-weight:400;">Dutch</div>
-            <div style="font-size:13px; color:var(--text-dim);">Coming soon</div>
+            <div style="font-size:13px; color:var(--text-dim);">100 phrases</div>
           </div>
-        </div>
-        <div style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.25rem; width:100%; display:flex; align-items:center; gap:1rem; opacity:0.35;">
+        </button>
+        <button onclick="selectLanguage('de')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.1rem 1.25rem; cursor:pointer; transition:all 0.2s; width:100%; display:flex; align-items:center; gap:1rem; text-align:left;">
           <span style="font-size:1.8rem;">🇩🇪</span>
           <div>
             <div style="font-size:15px; color:var(--text); font-weight:400;">German</div>
-            <div style="font-size:13px; color:var(--text-dim);">Coming soon</div>
+            <div style="font-size:13px; color:var(--text-dim);">101 phrases</div>
           </div>
-        </div>
+        </button>
       </div>
     `;
     return;
@@ -26939,6 +26939,8 @@ function selectLanguage(code) {
   // It must be set before any routing so renderLearnTab never falls back
   // to the language picker again.
   if (code === 'fr') localStorage.setItem('tt_language', 'French');
+  else if (code === 'nl') localStorage.setItem('tt_language', 'Dutch');
+  else if (code === 'de') localStorage.setItem('tt_language', 'German');
   checkTripDateAndProceed();
 }
 
