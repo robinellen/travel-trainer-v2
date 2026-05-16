@@ -125,11 +125,12 @@ function generateBuildupChunks(phraseText, langCode, existingPhraseNatives) {
 function buildRuntimeChunks(parentAudioFilename, chunkTexts) {
   if (!parentAudioFilename || !chunkTexts || !chunkTexts.length) return [];
   const stem = parentAudioFilename.replace(/\.mp3$/i, '');
-  return chunkTexts.map((text, i) => ({
-    text,
-    audioFileName: `${stem}_chunk_${i + 1}.mp3`,
-    recordingNote: '',
-  })).filter(c => audioFileExists(c.audioFileName));
+  return chunkTexts.map((text, i) => {
+    const primary = `${stem}_chunk_${i + 1}.mp3`;
+    const variant = `${stem}_chunk_${i + 1}_v2.mp3`;
+    const audioFilenames = [primary, variant].filter(audioFileExists);
+    return { text, audioFileName: primary, audioFilenames, recordingNote: '' };
+  }).filter(c => audioFileExists(c.audioFileName));
 }
 
 // ── Phrases ──
@@ -442,6 +443,9 @@ function gitCommitAndPush() {
       .map(c => ({
         text: c.native,
         audioFileName: c.audioFileName,
+        // audioFilenames was already built by recordToPhrase (primary + any
+        // variants from Audio Filename Variants), filtered to files on disk.
+        audioFilenames: c.audioFilenames || [c.audioFileName].filter(Boolean),
         recordingNote: c.recordingNote || '',
       }))
       .filter(c => audioFileExists(c.audioFileName));
