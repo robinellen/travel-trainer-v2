@@ -23796,12 +23796,17 @@ function checkUnlocks() {
   const tier1 = playable.filter(p => (p.tier || '1') === '1');
   const recovery = playable.filter(p => p.tier === 'Recovery');
 
-  // Recovery unlocks when ALL playable tier 1 phrases are at score 3+
-  // AND the buildup prerequisite word Désolé is at score 2+.
+  // Recovery unlocks when ALL playable Tier 1 phrases reach score 3+.
+  // If the active language has a Recovery-tagged phrase, it must also reach
+  // score 2+; if no Recovery phrase exists for the language yet, unlock anyway.
   if (!localStorage.getItem('tt_recoveryUnlocked')) {
     if (tier1.length && tier1.every(p => getScore(p.id) >= 3)) {
-      const desole = PHRASES.find(p => p.native === 'Désolé' && (p.tier || '1') === '1' && p.audioRecorded);
-      if (desole && getScore(desole.id) >= 2) {
+      const recoveryPhrase = playable.find(p => p.tier === 'Recovery');
+      if (!recoveryPhrase) {
+        localStorage.setItem('tt_recoveryUnlocked', 'true');
+        return 'recovery';
+      }
+      if (getScore(recoveryPhrase.id) >= 2) {
         localStorage.setItem('tt_recoveryUnlocked', 'true');
         return 'recovery';
       }
