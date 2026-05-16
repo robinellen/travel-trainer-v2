@@ -86,6 +86,52 @@ function buildAudioFilenames(primary, variantsRaw) {
   return [primary, ...variants].filter(Boolean).filter(audioFileExists);
 }
 
+// ── Backward-chaining buildup helpers ──────────────────────────────
+// Function words (LLR-approved list) — chunks must contain ≥1 content word.
+const _FUNCTION_WORDS = {
+  fr: new Set(['le','la','les','un','une','des','de','du','d','l','à','a','au','aux','et','ou','en','dans','sur','pour','par','avec','sans','que','qui','ce','se','si','ne','pas','plus','y','je','tu','il','elle','nous','vous','ils','elles','me','te','lui','mon','ton','son','ma','ta','sa','mes','tes','ses']),
+  nl: new Set(['de','het','een','van','in','op','aan','te','bij','voor','met','uit','naar','over','door','om','als','dat','die','dit','deze','der','den','er','ze','we','ik','je','hij','zij','hun','hen','mijn','jouw','zijn','haar','ons','onze']),
+  de: new Set(['der','die','das','ein','eine','einem','einen','einer','eines','des','dem','den','von','in','auf','an','zu','bei','mit','aus','nach','über','durch','für','um','als','dass','und','oder','aber','ich','du','er','sie','wir','ihr','mein','dein','sein','ihr','unser','euer']),
+};
+
+function generateBuildupChunks(phraseText, langCode, existingPhraseNatives) {
+  const normalized = (phraseText || '')
+    .replace(/\.\.\.+\s*$/, '')
+    .trim()
+    .replace(/\s*—\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const tokens = normalized.split(' ').filter(t => t.length > 0);
+  if (tokens.length <= 2) return [];
+  const all = [];
+  for (let startIdx = tokens.length - 2; startIdx >= 0; startIdx--) {
+    all.push(tokens.slice(startIdx).join(' '));
+  }
+  const candidates = all.slice(0, -1);
+  const funcWords = _FUNCTION_WORDS[langCode] || new Set();
+  const existing = new Set((existingPhraseNatives || []).map(s => (s || '').toLowerCase().trim()));
+  return candidates.filter(chunk => {
+    if (chunk.includes('...')) return false;
+    if (existing.has(chunk.toLowerCase().trim())) return false;
+    const toks = chunk.toLowerCase().split(/[\s,!?]+/).filter(t => t.length);
+    if (!toks.some(t => !funcWords.has(t))) return false;
+    return true;
+  });
+}
+
+// Build a buildupChunks array for a trigger/clip from its parent audio
+// filename + computed chunks. Only includes chunks whose audio file is on
+// disk so the player never reaches for a missing file.
+function buildRuntimeChunks(parentAudioFilename, chunkTexts) {
+  if (!parentAudioFilename || !chunkTexts || !chunkTexts.length) return [];
+  const stem = parentAudioFilename.replace(/\.mp3$/i, '');
+  return chunkTexts.map((text, i) => ({
+    text,
+    audioFileName: `${stem}_chunk_${i + 1}.mp3`,
+    recordingNote: '',
+  })).filter(c => audioFileExists(c.audioFileName));
+}
+
 // ── Phrases ──
 
 function recordToPhrase(record) {
@@ -118,6 +164,8 @@ function recordToPhrase(record) {
     note: f['Note'] || '',
     hasBuildup: f['Has Buildup'] === true,
     isBuildupChunk: f['Is Buildup Chunk'] === true,
+    buildupParent: f['Buildup Parent'] || '',
+    recordingNote: f['Recording Note'] || '',
     capabilityLabel: f['Capability Label'] || '',
     alsoAccepted: parseArray(f['Also Accepted']),
     pendingPackSystem: f['Pending Pack System'] === true,
@@ -170,6 +218,7 @@ function recordToTrigger(record) {
     fileName: f['Audio Filename'] || f['File Name'] || '',
     audioFilenames: buildAudioFilenames(f['Audio Filename'] || f['File Name'] || '', f['Audio Filename Variants']),
     audioRecorded: f['Audio Recorded'] === true,
+    hasBuildup: f['Has Buildup'] === true,
     sortOrder: f['Sort Order'] || null,
     difficulty: f['Sort Order'] || 0,
     voice: f['Voice'] || '',
@@ -206,7 +255,7 @@ function recordToListenClip(record) {
   return {
     id: record.id,
     tier,
-    frenchText: f['French Text'] || '',
+    frenchText: f['Listen Clip'] || '',
     englishTranslation: f['English Translation'] || '',
     anchorPhrase: f['Anchor Phrase'] || '',
     contextLabel: f['Context Label'] || '',
@@ -216,6 +265,7 @@ function recordToListenClip(record) {
     fileName: f['Audio Filename'] || f['File Name'] || '',
     audioFilenames: buildAudioFilenames(f['Audio Filename'] || f['File Name'] || '', f['Audio Filename Variants']),
     audioRecorded: f['Audio Recorded'] === true,
+    hasBuildup: f['Has Buildup'] === true,
     difficulty: f['Difficulty'] || '',
     sortOrder: f['Sort Order'] || null,
   };
@@ -368,8 +418,57 @@ function gitCommitAndPush() {
   const phrases = allPhrases.filter(p => !p.isBuildupChunk && p.tier);
   console.log(`Excluded ${allPhrases.length - phrases.length} buildup chunks`);
 
+  // Index chunk records by their Buildup Parent and attach buildupChunks
+  // arrays to every parent phrase. Chunks are ordered by the numeric suffix
+  // in their Audio Filename (_chunk_1, _chunk_2, …) so the runtime sequence
+  // matches the canonical short→long progression from Phase 2.
+  const chunkRecords = allPhrases.filter(p => p.isBuildupChunk && p.buildupParent);
+  const chunksByParent = {};
+  chunkRecords.forEach(c => {
+    (chunksByParent[c.buildupParent] = chunksByParent[c.buildupParent] || []).push(c);
+  });
+  function chunkOrder(c) {
+    const m = (c.audioFileName || '').match(/_chunk_(\d+)\.mp3$/i);
+    return m ? parseInt(m[1], 10) : 9999;
+  }
+  let attachedPhraseChunks = 0;
+  phrases.forEach(p => {
+    if (!p.hasBuildup) return;
+    const kids = chunksByParent[p.id];
+    if (!kids || !kids.length) { p.buildupChunks = []; return; }
+    p.buildupChunks = kids
+      .slice()
+      .sort((a, b) => chunkOrder(a) - chunkOrder(b))
+      .map(c => ({
+        text: c.native,
+        audioFileName: c.audioFileName,
+        recordingNote: c.recordingNote || '',
+      }))
+      .filter(c => audioFileExists(c.audioFileName));
+    attachedPhraseChunks += p.buildupChunks.length;
+  });
+  console.log(`Attached buildupChunks to ${phrases.filter(p => p.hasBuildup).length} phrase parents (${attachedPhraseChunks} chunks total)`);
+
+  // Trigger / Listen Clip chunks are computed at sync time from the parent
+  // text using the same algorithm; no separate Airtable records exist for them.
+  // Dedup against the per-language pool of standalone phrase natives.
+  const phraseNativesByLang = { fr: [], nl: [], de: [] };
+  phrases.forEach(p => {
+    if (p.lang && p.native) (phraseNativesByLang[p.lang] = phraseNativesByLang[p.lang] || []).push(p.native);
+  });
+
   // Process trigger phrases
   const triggerPhrases = triggerRecords.map(recordToTrigger);
+  let attachedTriggerChunks = 0, triggersWithBuildup = 0;
+  triggerPhrases.forEach(t => {
+    if (!t.hasBuildup || !t.fileName || !t.triggerPhrase) { t.buildupChunks = []; return; }
+    const code = LANG_CODE[t.language] || null;
+    if (!code) { t.buildupChunks = []; return; }
+    const texts = generateBuildupChunks(t.triggerPhrase, code, phraseNativesByLang[code] || []);
+    t.buildupChunks = buildRuntimeChunks(t.fileName, texts);
+    if (t.buildupChunks.length) { triggersWithBuildup++; attachedTriggerChunks += t.buildupChunks.length; }
+  });
+  console.log(`Computed buildupChunks for ${triggersWithBuildup} trigger phrases (${attachedTriggerChunks} chunks total)`);
 
   // Process experiences
   const experiences = experienceRecords.map(recordToExperience);
@@ -379,6 +478,17 @@ function gitCommitAndPush() {
 
   // Process listen clips
   const listenClips = listenClipRecords.map(recordToListenClip);
+  let attachedClipChunks = 0, clipsWithBuildup = 0;
+  listenClips.forEach(c => {
+    const native = c.frenchText || '';
+    if (!c.hasBuildup || !c.fileName || !native) { c.buildupChunks = []; return; }
+    const code = LANG_CODE[c.language] || null;
+    if (!code) { c.buildupChunks = []; return; }
+    const texts = generateBuildupChunks(native, code, phraseNativesByLang[code] || []);
+    c.buildupChunks = buildRuntimeChunks(c.fileName, texts);
+    if (c.buildupChunks.length) { clipsWithBuildup++; attachedClipChunks += c.buildupChunks.length; }
+  });
+  console.log(`Computed buildupChunks for ${clipsWithBuildup} listen clips (${attachedClipChunks} chunks total)`);
 
   // Process culture notes
   const cultureNotes = cultureNoteRecords
