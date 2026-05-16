@@ -34253,11 +34253,19 @@ function startTripPrepSpeaking() {
   state.session._resurfaced = {};
   state.session._startScores = {};
   state.session._sessionPhrases = phrases.map(p => p.id);
-  state.session.queue = phrases.map(p => ({
-    phraseId: p.id,
-    type: 'speak_from_french',
-    _isFinal: true,
-  }));
+  // Prepend buildup_sequence items for phrases the learner hasn't scaffolded
+  // yet. renderCurrentExercise() already dispatches buildup_sequence →
+  // renderBuildupSequence(phrase); after the chunks play and the full phrase
+  // audio ends, it auto-advances into the speak exercise below.
+  state.session.queue = phrases.flatMap(p => {
+    const needsBuildup = p.hasBuildup
+      && p.buildupChunks && p.buildupChunks.length > 0
+      && !(state.seenBuildupIntro && state.seenBuildupIntro[p.id]);
+    const speak = { phraseId: p.id, type: 'speak_from_french', _isFinal: true };
+    return needsBuildup
+      ? [{ phraseId: p.id, type: 'buildup_sequence' }, speak]
+      : [speak];
+  });
 
   showScreen('screenExercise');
   renderCurrentExercise();
