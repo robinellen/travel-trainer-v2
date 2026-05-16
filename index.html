@@ -868,11 +868,11 @@ body::after {
         <div class="phrase-meaning-label" id="speakMeaning" style="margin-bottom:0.6rem;"></div>
         <div class="phrase-native" id="speakNative" style="margin-bottom:0.3rem; cursor:pointer;" onclick="replayAtNaturalSpeed()"><span id="speakNativeText"></span> <span style="font-size:13px; opacity:0.4; vertical-align:middle;">&#9655;</span></div>
         <button id="speakShowPhrase" class="hidden btn-text" onclick="revealSpeakPhrase()" style="margin-bottom:0.3rem">Show phrase</button>
-        <div class="phrase-romanization hidden" id="speakRoman"></div>
+        <div id="speakRoman" style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-top:0.4rem; opacity:0; transition:opacity 200ms ease;"></div>
       </div>
       <div id="speakHelpers" class="hidden" style="display:flex; justify-content:center; gap:1.25rem; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
         <button id="speakSlowerBtn" onclick="hearSlower()" class="btn-text">Hear it slower</button>
-        <button id="speakPronounceBtn" onclick="showPronunciation()" class="btn-text">See pronunciation</button>
+        <button id="speakPronounceBtn" onclick="togglePronunciation()" class="btn-text">Show pronunciation</button>
       </div>
       <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
         <button class="mic-btn" id="micBtn" onclick="toggleMic()">
@@ -25202,7 +25202,6 @@ function renderSpeakPanel(phrase, opts = {}) {
   document.getElementById('speakResult').className = 'result-bar';
   document.getElementById('speakNextBtn').classList.add('hidden');
   document.getElementById('speakHelpers').classList.add('hidden');
-  document.getElementById('speakRoman').classList.add('hidden');
 
   // Store phrase ref for helper functions
   _currentSpeakPhrase = phrase;
@@ -25217,7 +25216,18 @@ function renderSpeakPanel(phrase, opts = {}) {
   const scaffoldingRemoved = _sub.stage >= 4;
 
   document.getElementById('speakMeaning').textContent = getMeaning(phrase).toUpperCase();
-  document.getElementById('speakRoman').textContent = stripHtmlTags(phrase.romanization || '');
+
+  // Reset romanization: hidden, no text leak. Button starts as "Show".
+  const roman = (phrase.romanization || '').trim();
+  const romanEl = document.getElementById('speakRoman');
+  const pronounceBtn = document.getElementById('speakPronounceBtn');
+  romanEl.textContent = stripHtmlTags(roman);
+  romanEl.style.opacity = '0';
+  romanEl.style.display = roman ? '' : 'none';
+  pronounceBtn.textContent = 'Show pronunciation';
+  // Hide the button when there is nothing to reveal, or when scaffolding
+  // is off (Stage 4+ / speak-from-English are audio-only by design).
+  pronounceBtn.style.display = (roman && !scaffoldingRemoved && !fromEnglish) ? '' : 'none';
 
   const speakNative = document.getElementById('speakNative');
   const showPhraseBtn = document.getElementById('speakShowPhrase');
@@ -25228,8 +25238,8 @@ function renderSpeakPanel(phrase, opts = {}) {
     document.getElementById('speakNativeText').textContent = '';
     speakNative.classList.add('hidden');
     showPhraseBtn.classList.add('hidden');
-    // Also hide romanization at Stage 4+
-    if (scaffoldingRemoved) document.getElementById('speakRoman').classList.add('hidden');
+    // Romanization visibility for scaffoldingRemoved / fromEnglish handled
+    // above via pronounceBtn.style.display = 'none'.
   } else if (score <= 1) {
     // Score 0-1: French text visible automatically
     document.getElementById('speakNativeText').textContent = displayNative(phrase, 'card');
@@ -25322,9 +25332,12 @@ function revealSpeakPhrase() {
   document.getElementById('speakShowPhrase').classList.add('hidden');
 }
 
-function showPronunciation() {
-  document.getElementById('speakRoman').classList.remove('hidden');
-  document.getElementById('speakPronounceBtn').style.display = 'none';
+function togglePronunciation() {
+  const romanEl = document.getElementById('speakRoman');
+  const btn = document.getElementById('speakPronounceBtn');
+  const showing = romanEl.style.opacity === '1';
+  romanEl.style.opacity = showing ? '0' : '1';
+  btn.textContent = showing ? 'Show pronunciation' : 'Hide pronunciation';
 }
 
 function toggleMic() {
