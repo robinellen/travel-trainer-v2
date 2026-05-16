@@ -31769,7 +31769,10 @@ function onTierUnlockContinue() {
 }
 
 function showCompletion() {
-  // Check for tier unlocks before showing completion screen
+  // Check for tier unlocks before showing completion screen.
+  // Run wave triggers first so Wave 1 can fire as soon as five Wave 0 phrases
+  // reach score 1+ this session, before the tier-unlock evaluation downstream.
+  checkWaveTriggers();
   const tierUnlock = checkUnlocks();
   if (tierUnlock && !state.seenTierUnlock[tierUnlock]) {
     state.seenTierUnlock[tierUnlock] = true;
@@ -35097,6 +35100,9 @@ function devShowScores() {
 
 function initApp() {
   loadState();
+  // Restore any wave unlocks that should have fired before this session
+  // (idempotent — only sets flags that aren't already set).
+  checkWaveTriggers();
   updateWelcomeProgress();
 }
 
