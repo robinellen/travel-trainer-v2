@@ -29930,28 +29930,59 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   if (nextBtn) nextBtn.onclick = onContinue;
 
   // Auto-play audio on screen load. If this trigger has buildup chunks the
-  // learner hasn't seen yet, play the scaffold chunks first (cold audio, no
-  // text shown — the signal-word anchor above stays visible) and then the
-  // full trigger as the stimulus.
+  // learner hasn't seen yet, play scaffold chunks first (with a "Listen
+  // and repeat" label and disabled answer buttons), then the full trigger
+  // as the stimulus. seenBuildupIntro and answer-enable both fire only
+  // after the full trigger audio ends so the gate is durable even if the
+  // learner exits between chunks and stimulus.
   playHintEl.textContent = 'Listening...';
   const needsTriggerBuildup = trigger
     && trigger.hasBuildup
     && trigger.buildupChunks && trigger.buildupChunks.length > 0
     && !(state.seenBuildupIntro && state.seenBuildupIntro[trigger.id]);
-  function playPrimary() {
-    playRecognitionAudio(trigger, circle, () => {
-      playHintEl.textContent = 'Tap to hear again';
+
+  function setAnswersEnabled(enabled) {
+    Array.from(optsEl.querySelectorAll('.mc-option')).forEach(btn => {
+      btn.disabled = !enabled;
+      btn.style.opacity = enabled ? '' : '0.4';
+      btn.style.pointerEvents = enabled ? '' : 'none';
     });
   }
-  if (needsTriggerBuildup) {
-    playChunkSequence(trigger.buildupChunks, { gapMs: 400 }).then(() => {
+  function showBuildupLabel() {
+    if (document.getElementById(prefix + 'BuildupLabel')) return;
+    const label = document.createElement('div');
+    label.id = prefix + 'BuildupLabel';
+    label.textContent = 'Listen and repeat';
+    label.style.cssText = 'font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); text-align:center; margin-bottom:0.75rem;';
+    const anchor = document.getElementById(prefix + 'SignalAnchor');
+    if (anchor && anchor.parentElement) anchor.parentElement.insertBefore(label, anchor);
+  }
+  function hideBuildupLabel() {
+    const el = document.getElementById(prefix + 'BuildupLabel');
+    if (el) el.remove();
+  }
+  function onStimulusEnd() {
+    playHintEl.textContent = 'Tap to hear again';
+    if (needsTriggerBuildup) {
+      // Mark complete only after the full stimulus has played, then enable.
       if (!state.seenBuildupIntro) state.seenBuildupIntro = {};
       state.seenBuildupIntro[trigger.id] = true;
       if (typeof saveState === 'function') saveState();
-      playPrimary();
+      setAnswersEnabled(true);
+    }
+  }
+  // Defensive: clear any stale label from a prior render that may have
+  // exited mid-buildup before the cleanup step ran.
+  hideBuildupLabel();
+  if (needsTriggerBuildup) {
+    setAnswersEnabled(false);
+    showBuildupLabel();
+    playChunkSequence(trigger.buildupChunks, { gapMs: 400 }).then(() => {
+      hideBuildupLabel();
+      playRecognitionAudio(trigger, circle, onStimulusEnd);
     });
   } else {
-    playPrimary();
+    playRecognitionAudio(trigger, circle, onStimulusEnd);
   }
 
   // Show "Hear it slower" at Tier 1-2 (score < 3), hide at Tier 3+
@@ -33219,20 +33250,32 @@ function playCurrentListenClip() {
   const frenchEl = document.getElementById('listenModeFrench');
 
   // Buildup pre-sequence: when the learner has not yet heard this clip's
-  // scaffold, play each chunk (silent — no French text shown) then continue
-  // into the full clip with the normal post-audio reveal.
+  // scaffold, play each chunk (no French text shown — just a "Listen and
+  // repeat" label above the context) then continue into the full clip with
+  // the normal post-audio reveal.
   const needsClipBuildup = clip.hasBuildup
     && clip.buildupChunks && clip.buildupChunks.length > 0
     && !(state.seenBuildupIntro && state.seenBuildupIntro[clip.id]);
+  // Defensive: clear any stale label left over from a previous clip that
+  // exited mid-buildup.
+  const staleLabel = document.getElementById('clipBuildupLabel');
+  if (staleLabel) staleLabel.remove();
   if (needsClipBuildup) {
+    const label = document.createElement('div');
+    label.id = 'clipBuildupLabel';
+    label.textContent = 'Listen and repeat';
+    label.style.cssText = 'font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); text-align:center; margin-bottom:0.5rem;';
+    const ctxEl = document.getElementById('listenModeContext');
+    if (ctxEl && ctxEl.parentElement) ctxEl.parentElement.insertBefore(label, ctxEl);
     playChunkSequence(clip.buildupChunks, { gapMs: 400 }).then(() => {
+      const lbl = document.getElementById('clipBuildupLabel');
+      if (lbl) lbl.remove();
       if (_listenPaused) return;
       if (!state.seenBuildupIntro) state.seenBuildupIntro = {};
       state.seenBuildupIntro[clip.id] = true;
       if (typeof saveState === 'function') saveState();
-      // Recurse without the buildup gate firing again — saveState above
-      // sets the seenBuildupIntro flag so the conditional now evaluates
-      // to false on this second pass.
+      // Recurse — saveState above sets seenBuildupIntro so the conditional
+      // now evaluates false and we fall through to the main clip playback.
       playCurrentListenClip();
     });
     return;
