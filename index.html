@@ -27490,28 +27490,50 @@ let _buildupPhrase = null;
 
 // Generic backward-chain chunk playback. Plays each chunk's audio in order,
 // optionally calling onChunkStart/onChunkEnd hooks so callers can display
-// chunk text in the panel. Resolves when the sequence completes.
+// chunk text in the panel. Resolves when the sequence completes or is
+// cancelled via cancelChunkSequence(). Only one sequence runs at a time;
+// a new call cancels any previous in-flight sequence.
+let _activeChunkSequenceToken = null;
+
+function cancelChunkSequence() {
+  if (_activeChunkSequenceToken) {
+    _activeChunkSequenceToken.cancelled = true;
+    if (_activeChunkSequenceToken.audio) {
+      try { _activeChunkSequenceToken.audio.pause(); } catch (e) {}
+    }
+    _activeChunkSequenceToken = null;
+  }
+}
+
 function playChunkSequence(chunks, opts) {
   opts = opts || {};
   const gap = (opts.gapMs == null) ? 400 : opts.gapMs;
+  // Any previous sequence still in flight is preempted.
+  cancelChunkSequence();
+  const token = { cancelled: false, audio: null };
+  _activeChunkSequenceToken = token;
   return new Promise(resolve => {
-    let cancelled = false;
-    let activeAudio = null;
-    function cancel() {
-      cancelled = true;
-      if (activeAudio) { try { activeAudio.pause(); } catch (e) {} }
-    }
     function step(i) {
-      if (cancelled) return resolve({ cancelled: true });
-      if (i >= chunks.length) return resolve({ cancelled: false });
+      if (token.cancelled) return resolve({ cancelled: true });
+      if (i >= chunks.length) {
+        if (_activeChunkSequenceToken === token) _activeChunkSequenceToken = null;
+        return resolve({ cancelled: false });
+      }
       const chunk = chunks[i];
       if (opts.onChunkStart) opts.onChunkStart(chunk, i);
       const url = (typeof audioPathFor === 'function') ? audioPathFor(chunk.audioFileName) : null;
-      if (!url) return setTimeout(() => { if (opts.onChunkEnd) opts.onChunkEnd(chunk, i); step(i + 1); }, gap);
+      if (!url) {
+        return setTimeout(() => {
+          if (token.cancelled) return resolve({ cancelled: true });
+          if (opts.onChunkEnd) opts.onChunkEnd(chunk, i);
+          step(i + 1);
+        }, gap);
+      }
       const audio = new Audio(url);
-      activeAudio = audio;
+      token.audio = audio;
       const done = () => {
-        activeAudio = null;
+        token.audio = null;
+        if (token.cancelled) return resolve({ cancelled: true });
         if (opts.onChunkEnd) opts.onChunkEnd(chunk, i);
         setTimeout(() => step(i + 1), gap);
       };
@@ -27519,9 +27541,6 @@ function playChunkSequence(chunks, opts) {
       audio.onerror = done;
       audio.play().catch(done);
     }
-    // Expose a cancel hook on the returned promise so the caller can abort
-    // the sequence (e.g. on screen change or session exit).
-    resolve.__cancel = cancel;
     step(0);
   });
 }
@@ -27726,6 +27745,9 @@ function confirmLeaveDismiss() {
 }
 function confirmLeaveExit() {
   document.getElementById('leaveSessionBackdrop').classList.add('hidden');
+  // Stop any in-flight buildup chunk audio so a half-played sequence
+  // doesn't keep firing chunks after the user has left the screen.
+  if (typeof cancelChunkSequence === 'function') cancelChunkSequence();
   const wasContextDrill = !!_contextDrillSection;
   const wasTripPrep = _tripPrepActive;
   _contextDrillSection = null;
