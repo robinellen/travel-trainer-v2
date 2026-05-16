@@ -949,6 +949,21 @@ body::after {
     </div>
 
 
+    <!-- ── SCENARIO RESPONSE panel ── -->
+    <div id="panelScenario" class="hidden" style="flex:1; display:flex; flex-direction:column;">
+      <div id="scenarioGoal" style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius); padding:0.9rem 1.1rem; margin-bottom:1.5rem; font-size:15px; color:var(--text); line-height:1.4; text-align:center; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;"></div>
+      <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.6rem; text-align:center;">What would you say?</div>
+      <div class="mc-options" id="scenarioOptions"></div>
+      <div id="scenarioReveal" class="hidden" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
+        <div id="scenarioRevealNative" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text); line-height:1.4; margin-bottom:0.35rem;"></div>
+        <div id="scenarioRevealRoman" style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-bottom:0.25rem;"></div>
+        <div id="scenarioRevealMeaning" style="font-size:13px; color:var(--text-dim); line-height:1.4;"></div>
+      </div>
+      <div class="mt-auto">
+        <button class="btn-primary hidden" id="scenarioNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
+      </div>
+    </div>
+
     <!-- ── RECOGNITION panel ── -->
     <!-- ── BUILDUP SEQUENCE panel (backward chaining scaffold) ── -->
     <div id="panelBuildup" class="hidden" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:1rem;">
@@ -29645,6 +29660,13 @@ function buildPhraseTouches(phrase) {
         : ['speak_from_french', 'speak_from_french'];
     }
   }
+  // Scenario response — final touch for phrases with a situation goal once
+  // the learner has reached Stage 2+ and score 2+. Appending it makes it
+  // the queue builder's _isFinal touch (the scoring step).
+  const _stage = (typeof getCurrentSubstage === 'function') ? getCurrentSubstage().stage : 1;
+  if (phrase.situationText && score >= 2 && _stage >= 2) {
+    touches = [...touches, 'scenario_response'];
+  }
   return needsBuildup ? ['buildup_sequence', ...touches] : touches;
 }
 
@@ -30610,7 +30632,7 @@ function updateExerciseHeader() {
 }
 
 function hidePanels() {
-  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelRecognition', 'panelBuildup'].forEach(id => {
+  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelRecognition', 'panelBuildup', 'panelScenario'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
@@ -30646,6 +30668,7 @@ function renderCurrentExercise() {
   else if (type === 'speak_from_english') renderSpeakPanel(phrase, { fromEnglish: true });
   else if (type === 'situation') renderSituationPanel(phrase);
   else if (type === 'recognition') renderRecognitionPanel(phrase);
+  else if (type === 'scenario_response') renderScenarioPanel(phrase);
 }
 
 
@@ -30860,6 +30883,101 @@ function showListenRevealAfterTask(isCorrect, phrase) {
     }
   };
   btn.classList.remove('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// SCENARIO RESPONSE
+// Goal-driven MC: learner sees a short imperative ("Order a coffee.")
+// and picks the native phrase that fulfills it. Final-touch only — fires
+// at score 2+ on phrases with situationText, Stage 2+.
+// ═══════════════════════════════════════════════════════════════════
+
+// Distractors: same contextLabel + same language, different native + meaning.
+// Falls back to same-tier same-language pool if fewer than 3 candidates.
+function getScenarioDistractors(phrase, count) {
+  const all = getActivePhrases().filter(p =>
+    p.id !== phrase.id &&
+    p.lang === phrase.lang &&
+    p.tier !== 'Recovery' &&
+    p.native &&
+    p.native.toLowerCase() !== (phrase.native || '').toLowerCase() &&
+    getMeaning(p).toLowerCase() !== getMeaning(phrase).toLowerCase()
+  );
+  const sameContext = phrase.contextLabel
+    ? shuffle(all.filter(p => p.contextLabel === phrase.contextLabel))
+    : [];
+  const result = sameContext.slice(0, count);
+  if (result.length < count) {
+    // Fall back to same-tier pool to top up.
+    const used = new Set(result.map(p => p.id));
+    const tier = phrase.tier || '1';
+    const sameTier = shuffle(all.filter(p => !used.has(p.id) && (p.tier || '1') === tier));
+    result.push(...sameTier.slice(0, count - result.length));
+  }
+  if (result.length < count) {
+    // Last resort: any active phrase in the same language.
+    const used = new Set(result.map(p => p.id));
+    const broader = shuffle(all.filter(p => !used.has(p.id)));
+    result.push(...broader.slice(0, count - result.length));
+  }
+  return result;
+}
+
+function renderScenarioPanel(phrase) {
+  document.getElementById('panelScenario').classList.remove('hidden');
+  // First-encounter coach mark — fires once per learner lifetime.
+  _onCoachMarkDismiss = () => showScreen('screenExercise');
+  showCoachMark('tt_seenScenarioResponseCoachMark');
+
+  document.getElementById('scenarioGoal').textContent = phrase.situationText || '';
+  document.getElementById('scenarioReveal').classList.add('hidden');
+  document.getElementById('scenarioNextBtn').classList.add('hidden');
+
+  const distractors = getScenarioDistractors(phrase, 3);
+  const options = shuffle([phrase, ...distractors]);
+  const container = document.getElementById('scenarioOptions');
+  container.innerHTML = '';
+
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-option';
+    btn.style.fontFamily = "'Cormorant Garamond', serif";
+    btn.style.fontStyle = 'italic';
+    btn.textContent = displayNative(opt, 'card');
+    btn.dataset.phraseId = opt.id;
+    btn.onclick = () => {
+      // Lock all buttons after first tap.
+      container.querySelectorAll('.mc-option').forEach(b => { b.onclick = null; b.style.pointerEvents = 'none'; });
+      const correct = opt.id === phrase.id;
+      btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
+      if (!correct) {
+        container.querySelectorAll('.mc-option').forEach(b => {
+          if (b.dataset.phraseId === phrase.id) b.className = 'mc-option reveal';
+        });
+      }
+      // Reveal the correct phrase's native + romanization + meaning.
+      document.getElementById('scenarioRevealNative').textContent = displayNative(phrase, 'card');
+      const romanEl = document.getElementById('scenarioRevealRoman');
+      const roman = stripHtmlTags(phrase.romanization || '');
+      romanEl.textContent = roman;
+      romanEl.style.display = roman ? '' : 'none';
+      document.getElementById('scenarioRevealMeaning').textContent = getMeaning(phrase);
+      document.getElementById('scenarioReveal').classList.remove('hidden');
+
+      // Scoring — only fires when this is the queue's final touch for the
+      // phrase (which it is, since buildPhraseTouches appends it last).
+      bumpIfFinal(phrase.id, 0, correct);
+      if (!correct) {
+        const item = getCurrentItem();
+        resurfaceIfEligible(phrase.id, item ? item.type : 'scenario_response');
+      }
+
+      const nextBtn = document.getElementById('scenarioNextBtn');
+      nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
+      nextBtn.classList.remove('hidden');
+    };
+    container.appendChild(btn);
+  });
 }
 
 // ── Meaning task ──
@@ -33861,6 +33979,7 @@ const COACH_MARK_COPY = {
   'tt_seenExperiencePass3CoachMark': 'Your turn. Respond at each step as if you\'re really there.',
   'tt_seenExperiencePracticeCoachMark': 'Practice mode. Run through the whole interaction from start to finish.',
   'tt_seenListenModeCoachMark': 'These are real conversations. You\'re not being tested — just listen and see how much you catch.',
+  'tt_seenScenarioResponseCoachMark': 'Read the situation, then pick what you\'d actually say. Match the goal, not the literal translation.',
 };
 
 function showCoachMark(storageKey) {

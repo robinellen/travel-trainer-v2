@@ -163,6 +163,7 @@ function recordToPhrase(record) {
     native: f['Phrase Native'] || '',
     romanization: f['Romanization'] || null,
     note: f['Note'] || '',
+    situationText: f['Situation Text'] || '',
     hasBuildup: f['Has Buildup'] === true,
     isBuildupChunk: f['Is Buildup Chunk'] === true,
     buildupParent: f['Buildup Parent'] || '',
