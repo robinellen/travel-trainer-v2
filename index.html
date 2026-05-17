@@ -1414,6 +1414,12 @@ body::after {
     <button onclick="devSkipToCafePass3()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:15px;cursor:pointer;text-align:left;">Skip to café Pass 3 <span style="color:var(--text-dim); font-size:13px;">(triggers on open)</span></button>
     <button onclick="devSkipToCafePractice()" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:15px;cursor:pointer;text-align:left;">Skip to café practice <span style="color:var(--text-dim); font-size:13px;">(set pass 3)</span></button>
 
+    <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-top:0.25rem;">TIER 2 WAVES</div>
+    <div style="display:flex; gap:0.5rem;">
+      <button onclick="devUnlockAllWaves()" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:15px;cursor:pointer;text-align:left;">Unlock all waves</button>
+      <button onclick="devResetWaves()" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:15px;cursor:pointer;text-align:left;">Reset waves</button>
+    </div>
+
     <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-top:0.25rem;">FOUNDATION COMPLETE FLAG</div>
     <div style="display:flex; gap:0.5rem;">
       <button onclick="devSetFoundationComplete(true)" style="flex:1; background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.75rem 1rem;color:var(--text);font-family:'Lexend',sans-serif;font-size:15px;cursor:pointer;text-align:left;">Set complete</button>
@@ -36826,7 +36832,27 @@ function devSetAllScore3() {
   closeDevPanel();
 }
 
+function devUnlockAllWaves() {
+  const lang = localStorage.getItem('tt_language') || 'French';
+  // Wave 3 (Transit) is no longer in TIER2_WAVES, but unlockWave is a thin
+  // setItem so passing it is harmless legacy support.
+  [0, 1, 2, 3].forEach(w => unlockWave(w, lang));
+  saveState();
+  closeDevPanel();
+  if (typeof renderLearnTab === 'function') renderLearnTab();
+}
+
+function devResetWaves() {
+  const lang = localStorage.getItem('tt_language') || 'French';
+  [0, 1, 2, 3].forEach(w => localStorage.removeItem(getWaveKey(w, lang)));
+  closeDevPanel();
+  if (typeof renderLearnTab === 'function') renderLearnTab();
+}
+
 function devResetAll() {
+  // Wave keys are also caught by the generic tt_* sweep below, but call the
+  // explicit reset first so the contract is durable if the sweep ever changes.
+  devResetWaves();
   // Clear everything the app owns: phrase scores, recognition scores per
   // Intent, coach mark flags (including tt_seenRecogCoachMark and
   // tt_seenRepeatCoachMark), the foundation complete flag, and any
