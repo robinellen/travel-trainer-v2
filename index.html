@@ -32605,9 +32605,10 @@ function buildPhraseTouches(phrase) {
   if (phrase.emojiExercise && score < 2) {
     touches = [...touches, 'emoji_exercise'];
   }
-  // Anticipation — fires before everything else on first encounter (gated by
-  // a separate seenAnticipation map, never reuses seenBuildupIntro).
-  const needsAnticipation = !(state.seenAnticipation && state.seenAnticipation[phrase.id]);
+  // Anticipation is a retrieval exercise, not an introduction — gate on
+  // score >= 2 so the learner has something to retrieve. Fires once then
+  // seenAnticipation[id] suppresses it forever.
+  const needsAnticipation = !(state.seenAnticipation && state.seenAnticipation[phrase.id]) && score >= 2;
   const head = [];
   if (needsAnticipation) head.push('anticipation');
   if (needsBuildup) head.push('buildup_sequence');

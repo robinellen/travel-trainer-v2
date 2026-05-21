@@ -73,7 +73,7 @@ const _listenClipFiles = existingFilesIn('audio/listen-clips');
 function audioFileExists(filename) {
   if (!filename) return false;
   if (filename.startsWith('LC') || filename.startsWith('ListenClips_')) return _listenClipFiles.has(filename);
-  if (filename.startsWith('T') || filename.startsWith('TriggerPhrases_')) return _triggerFiles.has(filename);
+  if (filename.startsWith('T') || filename.startsWith('TriggerPhrases_') || filename.startsWith('MinimalPairs_')) return _triggerFiles.has(filename);
   return _audioRootFiles.has(filename);
 }
 
@@ -320,6 +320,10 @@ function recordToMinimalPair(record) {
   const langName = langRaw ? (typeof langRaw === 'object' ? langRaw.name : langRaw) : 'French';
   const tierRaw = f['Tier'];
   const tier = tierRaw ? (typeof tierRaw === 'object' ? tierRaw.name : tierRaw) : '';
+  const primaryA = f['Audio Filename A'] || '';
+  const primaryB = f['Audio Filename B'] || '';
+  const variantOf = name => name ? name.replace(/\.mp3$/i, '_v2.mp3') : '';
+  const filenamesFor = primary => [primary, variantOf(primary)].filter(Boolean).filter(audioFileExists);
   return {
     id: record.id,
     wordA: f['Word A'] || '',
@@ -328,8 +332,10 @@ function recordToMinimalPair(record) {
     englishB: f['English B'] || '',
     language: langName,
     tier,
-    audioFilenameA: f['Audio Filename A'] || '',
-    audioFilenameB: f['Audio Filename B'] || '',
+    audioFilenameA: primaryA,
+    audioFilenameB: primaryB,
+    audioFilenamesA: filenamesFor(primaryA),
+    audioFilenamesB: filenamesFor(primaryB),
     hasAudioA: f['Has Audio A'] === true,
     hasAudioB: f['Has Audio B'] === true,
   };
