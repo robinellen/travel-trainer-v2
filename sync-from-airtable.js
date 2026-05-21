@@ -10,6 +10,7 @@ const EXPERIENCES_TABLE = 'Experiences';
 const SITUATIONS_TABLE = 'tbldojSHHVbgGTPjD';
 const LISTEN_CLIPS_TABLE = 'tbl8riiiNg48tDyWm';
 const CULTURE_NOTES_TABLE = 'tblmRuAFbE8SUmRuk';
+const MINIMAL_PAIRS_TABLE = 'tblGdjogrnvXZJ11Q';
 const HTML_FILE = path.join(__dirname, 'index.html');
 
 const LANG_CODE = { French: 'fr', Dutch: 'nl', German: 'de' };
@@ -169,6 +170,8 @@ function recordToPhrase(record) {
     buildupParent: f['Buildup Parent'] || '',
     recordingNote: f['Recording Note'] || '',
     capabilityLabel: f['Capability Label'] || '',
+    exclusionGroup: f['Exclusion Group'] || '',
+    emojiExercise: f['Emoji Exercise'] === true,
     alsoAccepted: parseArray(f['Also Accepted']),
     pendingPackSystem: f['Pending Pack System'] === true,
     audioFileName: f['Audio Filename'] || f['File Name'] || '',
@@ -311,7 +314,28 @@ function recordToExperience(record) {
 
 // ── HTML update ──
 
-function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes, allPhrases) {
+function recordToMinimalPair(record) {
+  const f = record.fields;
+  const langRaw = f['Language'];
+  const langName = langRaw ? (typeof langRaw === 'object' ? langRaw.name : langRaw) : 'French';
+  const tierRaw = f['Tier'];
+  const tier = tierRaw ? (typeof tierRaw === 'object' ? tierRaw.name : tierRaw) : '';
+  return {
+    id: record.id,
+    wordA: f['Word A'] || '',
+    wordB: f['Word B'] || '',
+    englishA: f['English A'] || '',
+    englishB: f['English B'] || '',
+    language: langName,
+    tier,
+    audioFilenameA: f['Audio Filename A'] || '',
+    audioFilenameB: f['Audio Filename B'] || '',
+    hasAudioA: f['Has Audio A'] === true,
+    hasAudioB: f['Has Audio B'] === true,
+  };
+}
+
+function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes, allPhrases, minimalPairs) {
   let html = fs.readFileSync(HTML_FILE, 'utf8');
 
   // Replace PHRASES array
@@ -367,8 +391,17 @@ function updateHtmlFile(phrases, triggerPhrases, experiences, situations, listen
     html = html.replace('const LISTEN_CLIPS = ', cnBlock + '\n\n' + 'const LISTEN_CLIPS = ');
   }
 
+  // Replace or insert MINIMAL_PAIRS array
+  const mpPattern = /const MINIMAL_PAIRS = \[[\s\S]*?\];/;
+  const mpBlock = 'const MINIMAL_PAIRS = ' + JSON.stringify(minimalPairs || [], null, 2) + ';';
+  if (mpPattern.test(html)) {
+    html = html.replace(mpPattern, mpBlock);
+  } else {
+    html = html.replace('const CULTURE_NOTES = ', mpBlock + '\n\n' + 'const CULTURE_NOTES = ');
+  }
+
   fs.writeFileSync(HTML_FILE, html, 'utf8');
-  console.log(`Updated index.html with ${phrases.length} phrases, ${triggerPhrases.length} trigger phrases, ${experiences.length} experiences, ${situations.length} situations, ${listenClips.length} listen clips, ${cultureNotes.length} culture notes`);
+  console.log(`Updated index.html with ${phrases.length} phrases, ${triggerPhrases.length} trigger phrases, ${experiences.length} experiences, ${situations.length} situations, ${listenClips.length} listen clips, ${cultureNotes.length} culture notes, ${(minimalPairs || []).length} minimal pairs`);
 
   // Regenerate audio manifest from all phrases with audio (including buildup chunks)
   const manifest = {};
@@ -404,16 +437,17 @@ function gitCommitAndPush() {
   console.log('Fetching records from Airtable...');
 
   // Fetch all six tables in parallel
-  const [phraseRecords, triggerRecords, experienceRecords, situationRecords, listenClipRecords, cultureNoteRecords] = await Promise.all([
+  const [phraseRecords, triggerRecords, experienceRecords, situationRecords, listenClipRecords, cultureNoteRecords, minimalPairRecords] = await Promise.all([
     fetchAllRecords(PHRASES_TABLE),
     fetchAllRecords(TRIGGER_TABLE),
     fetchAllRecords(EXPERIENCES_TABLE),
     fetchAllRecords(SITUATIONS_TABLE),
     fetchAllRecords(LISTEN_CLIPS_TABLE),
     fetchAllRecords(CULTURE_NOTES_TABLE),
+    fetchAllRecords(MINIMAL_PAIRS_TABLE),
   ]);
 
-  console.log(`Fetched ${phraseRecords.length} phrases, ${triggerRecords.length} trigger phrases, ${experienceRecords.length} experiences, ${situationRecords.length} situations, ${listenClipRecords.length} listen clips, ${cultureNoteRecords.length} culture notes`);
+  console.log(`Fetched ${phraseRecords.length} phrases, ${triggerRecords.length} trigger phrases, ${experienceRecords.length} experiences, ${situationRecords.length} situations, ${listenClipRecords.length} listen clips, ${cultureNoteRecords.length} culture notes, ${minimalPairRecords.length} minimal pairs`);
 
   // Process phrases
   const allPhrases = phraseRecords.map(recordToPhrase);
@@ -500,6 +534,9 @@ function gitCommitAndPush() {
     .map(recordToCultureNote)
     .sort((a, b) => (a.sortOrder || 99) - (b.sortOrder || 99));
 
+  // Process minimal pairs
+  const minimalPairs = minimalPairRecords.map(recordToMinimalPair);
+
   // Debug logging
   const recovery = phrases.filter(p => p.tier === 'Recovery');
   console.log(`Recovery phrases (${recovery.length}):`, recovery.map(p => p.native));
@@ -527,6 +564,6 @@ function gitCommitAndPush() {
     Object.entries(cultureNotes.reduce((acc, n) => { acc[n.language] = (acc[n.language]||0)+1; return acc; }, {}))
   ));
 
-  updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes, allPhrases);
+  updateHtmlFile(phrases, triggerPhrases, experiences, situations, listenClips, cultureNotes, allPhrases, minimalPairs);
   gitCommitAndPush();
 })();
