@@ -33008,12 +33008,21 @@ function startSessionWithMode(mode) {
     // so dedupe any per-phrase 'match_pairs' touches down to a single item.
     // Force _isFinal:true on the kept item so each correct pair scores via
     // bumpIfFinal regardless of which phrase originally queued the touch.
+    // Reposition to ~60% through the queue so it's not stranded at the end
+    // (the round-robin builder drains tail touches last, so without this
+    // move match_pairs would sit in the deepest slot and rarely fire).
     {
       let kept = false;
       for (let i = queue.length - 1; i >= 0; i--) {
         if (queue[i].type !== 'match_pairs') continue;
         if (kept) queue.splice(i, 1);
         else { kept = true; queue[i]._isFinal = true; }
+      }
+      const mpIdx = queue.findIndex(item => item.type === 'match_pairs');
+      if (mpIdx !== -1) {
+        const [mpItem] = queue.splice(mpIdx, 1);
+        const insertAt = Math.floor(queue.length * 0.6);
+        queue.splice(insertAt, 0, mpItem);
       }
     }
 
@@ -34019,25 +34028,27 @@ function pickMatchPairsPool(targetCount) {
 }
 
 function renderMatchPairsPanel() {
+  const target = 5 + Math.floor(Math.random() * 2); // 5 or 6
+  const pool = pickMatchPairsPool(target);
+
+  // Minimum viable set is 4. A 1–3 phrase grid is broken — skip silently
+  // without flashing the panel or burning the coach mark.
+  if (pool.length < 4) {
+    state.session.index++;
+    if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
+    return;
+  }
+
   _onCoachMarkDismiss = () => showScreen('screenExercise');
   showCoachMark('tt_seenMatchPairsCoachMark');
 
   document.getElementById('panelMatchPairs').classList.remove('hidden');
   showScreen('screenExercise');
-  const target = 5 + Math.floor(Math.random() * 2); // 5 or 6
-  const pool = pickMatchPairsPool(target);
   const leftCol = document.getElementById('matchPairsLeft');
   const rightCol = document.getElementById('matchPairsRight');
   leftCol.innerHTML = '';
   rightCol.innerHTML = '';
   document.getElementById('matchPairsNextBtn').classList.add('hidden');
-
-  if (!pool.length) {
-    // No eligible phrases — skip silently.
-    state.session.index++;
-    if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
-    return;
-  }
 
   const meanings = shuffle(pool.slice());
   _matchPairsState = { pool, matched: new Set(), selectedLeft: null };
@@ -34138,6 +34149,18 @@ function getEmojiDistractors(phrase, count) {
 }
 
 function renderEmojiPanel(phrase) {
+  // Need 4 emojiExercise-tagged phrases in the active language at score < 2
+  // (the target + 3 distractors). Below that, the 4-tile grid can't be built
+  // without repeating the target or padding with off-language emojis.
+  const emojiPool = getActivePhrases().filter(p =>
+    p.emojiExercise && getScore(p.id) < 2 && p.emoji
+  );
+  if (emojiPool.length < 4) {
+    state.session.index++;
+    if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
+    return;
+  }
+
   _onCoachMarkDismiss = () => showScreen('screenExercise');
   showCoachMark('tt_seenEmojiExerciseCoachMark');
 
