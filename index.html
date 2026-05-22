@@ -32673,6 +32673,11 @@ function isEligibleForSpeakFromEnglish(phrase) {
   return true;
 }
 
+// Session-scoped flag: limit buildup sequences to one per session so
+// multiple back-to-back auto-advancing chunk plays don't blur into one
+// continuous stream of audio. Reset in startSessionWithMode().
+let _buildupFiredThisSession = false;
+
 function buildPhraseTouches(phrase) {
   // Only three exercise types fire right now:
   //   listen_meaning      (Listen and Pick - English)
@@ -32683,10 +32688,12 @@ function buildPhraseTouches(phrase) {
 
   // Backward-chaining buildup: prepend a buildup_sequence touch if the
   // phrase has buildupChunks and the learner has not seen them yet. This
-  // fires once per phrase per learner (seenBuildupIntro persists in state).
+  // fires once per phrase per learner (seenBuildupIntro persists in state)
+  // AND at most once per session (_buildupFiredThisSession).
   const needsBuildup = phrase.hasBuildup
     && phrase.buildupChunks && phrase.buildupChunks.length > 0
-    && !(state.seenBuildupIntro && state.seenBuildupIntro[phrase.id]);
+    && !(state.seenBuildupIntro && state.seenBuildupIntro[phrase.id])
+    && !_buildupFiredThisSession;
 
   // Recovery phrase: buildup runs on first encounter via checkAndStartBuildup
   // (the legacy hardcoded path) unless the new buildupChunks pipeline already
@@ -32694,7 +32701,11 @@ function buildPhraseTouches(phrase) {
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
     const base = score === 0 ? ['listen_meaning'] : ['speak_from_french'];
-    return needsBuildup ? ['buildup_sequence', ...base] : base;
+    if (needsBuildup) {
+      _buildupFiredThisSession = true;
+      return ['buildup_sequence', ...base];
+    }
+    return base;
   }
 
   const score = getScore(phrase.id);
@@ -32747,7 +32758,10 @@ function buildPhraseTouches(phrase) {
   const needsAnticipation = !(state.seenAnticipation && state.seenAnticipation[phrase.id]) && score >= 2;
   const head = [];
   if (needsAnticipation) head.push('anticipation');
-  if (needsBuildup) head.push('buildup_sequence');
+  if (needsBuildup) {
+    _buildupFiredThisSession = true;
+    head.push('buildup_sequence');
+  }
   return [...head, ...touches];
 }
 
@@ -32973,6 +32987,7 @@ function startSessionWithMode(mode) {
   state.session._resurfaced = {};        // phraseId → true if already resurfaced this session
   state.session._startScores = {};       // phraseId → score at session start
   state.session._sessionPhrases = [];    // phrase ids in this session for win screen
+  _buildupFiredThisSession = false;      // one buildup_sequence per session, max
   resetSessionVoicePicks();
 
   let activePhrases = getActivePhrases();
