@@ -33327,18 +33327,31 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       btn.style.pointerEvents = enabled ? '' : 'none';
     });
   }
+  // Absolute-positioned overlay so toggling the label never changes the
+  // header height (which would otherwise push the play circle and choices
+  // around). Created lazily, reused across renders, only display-toggled.
+  function buildupLabelContainer() {
+    if (prefix === 'recog') return document.getElementById('panelRecognition');
+    if (prefix === 'recogStd') return document.querySelector('#screenRecognition > .p-screen');
+    return null;
+  }
   function showBuildupLabel() {
-    if (document.getElementById(prefix + 'BuildupLabel')) return;
-    const label = document.createElement('div');
-    label.id = prefix + 'BuildupLabel';
-    label.textContent = 'Listen and repeat';
-    label.style.cssText = 'font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); text-align:center; margin-bottom:0.75rem;';
-    const anchor = document.getElementById(prefix + 'SignalAnchor');
-    if (anchor && anchor.parentElement) anchor.parentElement.insertBefore(label, anchor);
+    let label = document.getElementById(prefix + 'BuildupLabel');
+    if (!label) {
+      const host = buildupLabelContainer();
+      if (!host) return;
+      host.style.position = 'relative';
+      label = document.createElement('div');
+      label.id = prefix + 'BuildupLabel';
+      label.textContent = 'Listen and repeat';
+      label.style.cssText = 'position:absolute; top:0.5rem; left:0; right:0; text-align:center; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); pointer-events:none; z-index:1;';
+      host.appendChild(label);
+    }
+    label.style.display = '';
   }
   function hideBuildupLabel() {
-    const el = document.getElementById(prefix + 'BuildupLabel');
-    if (el) el.remove();
+    const label = document.getElementById(prefix + 'BuildupLabel');
+    if (label) label.style.display = 'none';
   }
   function onStimulusEnd() {
     playHintEl.textContent = 'Tap to hear again';
