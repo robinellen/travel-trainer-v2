@@ -276,8 +276,8 @@ body::after {
 
 /* Play circle */
 .play-circle {
-  width: 84px;
-  height: 84px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background: var(--card);
   border: 1px solid var(--border-hi);
@@ -619,45 +619,13 @@ body::after {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Tighten spacing on short screens (iPhone SE = 667px) — never shrink text below minimums */
-@media (max-height: 700px) {
-  .exercise-header { padding: 0.5rem 1rem 0; }
-  #screenExercise > .p-screen,
-  #screenBuildupChunk > .p-screen { padding: 0.75rem 1.25rem; }
-  #screenBuildupIntro .p-screen { padding: 1rem 1.25rem; }
-
-  .play-circle { width: 68px; height: 68px; }
-  .play-circle svg { width: 22px; height: 22px; }
-  .mic-btn { width: 62px; height: 62px; }
-  .mic-btn svg { width: 22px; height: 22px; }
-
-  .mc-options { gap: 0.3rem; }
-  .mc-option { padding: 0.55rem 0.9rem; font-size: 18px; }
-
-  .phrase-reveal { padding: 0.9rem 1rem; }
-  .phrase-meaning-label { margin-bottom: 0.5rem; }
-  .phrase-native { font-size: 26px; margin-bottom: 0.4rem; }
-  .phrase-note { padding-top: 0.5rem; }
-  .phrase-emoji { font-size: 2.8rem; }
-
-  .result-bar { padding: 0.55rem 0.8rem; }
-  .btn-primary { padding: 0.65rem; font-size: 16px; }
-  .btn-ghost { padding: 0.6rem; font-size: 16px; }
-  .situation-prompt { padding: 0.8rem 1rem; margin-bottom: 0.75rem; }
-  .card { padding: 0.8rem 1rem; }
-}
-
-/* Extra-short screens (landscape or very small devices) */
-@media (max-height: 580px) {
-  .exercise-header { padding: 0.3rem 0.75rem 0; }
-  #screenExercise > .p-screen,
-  #screenBuildupChunk > .p-screen { padding: 0.5rem 1rem; }
-  .play-circle { width: 56px; height: 56px; }
-  .play-circle svg { width: 18px; height: 18px; }
-  .mic-btn { width: 52px; height: 52px; }
-  .mc-option { padding: 0.4rem 0.75rem; font-size: 17px; }
-  .phrase-native { font-size: 24px; }
-}
+/* Viewport-height media queries were removed: mobile browser chrome
+   (Chrome address bar, iOS toolbar) hiding on tap can grow the visual
+   viewport across a breakpoint mid-interaction, which would resize
+   .play-circle / .mc-option / .btn-primary / .exercise-header etc.
+   and shift the entire layout. All sizes are now fixed regardless of
+   viewport height. Cramped small-screen behavior is preferable to
+   reflowing the page on every tap. */
 
 
 /* ── EXPERIENCE SCREENS ───────────────────────────────────────── */
