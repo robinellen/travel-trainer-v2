@@ -951,16 +951,11 @@ body::after {
 
     <!-- ── SCENARIO RESPONSE panel ── -->
     <div id="panelScenario" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div id="scenarioGoal" style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius); padding:0.9rem 1.1rem; margin-bottom:1.5rem; font-size:15px; color:var(--text); line-height:1.4; text-align:center; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;"></div>
-      <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.6rem; text-align:center;">What would you say?</div>
-      <div class="mc-options" id="scenarioOptions"></div>
-      <div id="scenarioReveal" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center; visibility:hidden; opacity:0; transition:opacity 0.2s ease;">
-        <div id="scenarioRevealNative" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text); line-height:1.4; margin-bottom:0.35rem;"></div>
-        <div id="scenarioRevealRoman" style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-bottom:0.25rem;"></div>
-        <div id="scenarioRevealMeaning" style="font-size:13px; color:var(--text-dim); line-height:1.4;"></div>
-      </div>
-      <div class="mt-auto">
-        <button class="btn-primary hidden" id="scenarioNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
+      <div id="scenarioGoal" style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius); padding:0.9rem 1.1rem; margin-bottom:1.5rem; font-size:15px; color:var(--text); line-height:1.4; text-align:center; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; flex:0 0 auto;"></div>
+      <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.6rem; text-align:center; flex:0 0 auto;">What would you say?</div>
+      <div class="mc-options" id="scenarioOptions" style="flex:1; min-height:0; overflow-y:auto; transition:opacity 0.15s ease;"></div>
+      <div style="margin-top:1.25rem; flex:0 0 auto;">
+        <button class="btn-primary" id="scenarioNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
       </div>
     </div>
 
@@ -983,29 +978,25 @@ body::after {
 
     <!-- ── EMOJI EXERCISE panel (Stage 1) ── -->
     <div id="panelEmoji" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div id="emojiPhrase" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(1.6rem,5vw,2rem); color:var(--text); text-align:center; margin-bottom:clamp(1rem,4vh,2rem); line-height:1.3;"></div>
-      <div id="emojiOptions" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; flex:1; align-content:center;"></div>
-      <div class="mt-auto">
-        <button class="btn-primary hidden" id="emojiNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
+      <div id="emojiPhrase" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(1.6rem,5vw,2rem); color:var(--text); text-align:center; margin-bottom:clamp(1rem,4vh,2rem); line-height:1.3; flex:0 0 auto;"></div>
+      <div id="emojiOptions" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; flex:1; min-height:0; align-content:center; transition:opacity 0.15s ease;"></div>
+      <div style="margin-top:1.25rem; flex:0 0 auto;">
+        <button class="btn-primary" id="emojiNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
       </div>
     </div>
 
     <!-- ── MINIMAL PAIRS panel (Stage 2+) ── -->
     <div id="panelMinimalPairs" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:0 0 auto; padding:clamp(0.5rem, 2vh, 1.25rem) 0;">
         <div class="play-circle" id="mpCircle" onclick="replayMinimalPairAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
         <div style="font-size:13px; color:var(--text-dim);" id="mpPlayHint">Tap to hear again</div>
       </div>
-      <div id="mpPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;">What did you hear?</div>
-      <div id="mpOptions" class="mc-options"></div>
-      <div id="mpReveal" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center; visibility:hidden; opacity:0; transition:opacity 0.2s ease;">
-        <div id="mpRevealWord" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;"></div>
-        <div id="mpRevealMeaning" style="font-size:14px; color:var(--text-dim);"></div>
-      </div>
-      <div class="mt-auto">
-        <button class="btn-primary hidden" id="mpNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
+      <div id="mpPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center; flex:0 0 auto;">What did you hear?</div>
+      <div id="mpOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto; transition:opacity 0.15s ease;"></div>
+      <div style="margin-top:1.25rem; flex:0 0 auto;">
+        <button class="btn-primary" id="mpNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
       </div>
     </div>
 
@@ -1017,32 +1008,23 @@ body::after {
     </div>
 
     <div id="panelRecognition" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+      <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem); flex:0 0 auto;">
         <div id="recogSignalAnchor" style="margin-bottom:0.75rem; display:none;">
           <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
           <span id="recogAnchorWord" style="font-size:15px; color:var(--text);"></span>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:0 0 auto; padding:clamp(0.5rem, 2vh, 1.25rem) 0;">
         <div class="play-circle" id="recogCircle" onclick="replayRecognitionAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
         <div style="font-size:13px; color:var(--text-dim);" id="recogPlayHint">Listening...</div>
         <button id="recogSlowerBtn" onclick="hearRecognitionSlower()" class="btn-text" style="display:none;margin-top:0.25rem">Hear it slower</button>
       </div>
-      <div id="recogPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
-      <div id="recogOptions" class="mc-options"></div>
-      <div id="recogReveal" onclick="replayRecognitionAudio()" style="position:relative; margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:border-color 0.15s, opacity 0.2s ease; visibility:hidden; opacity:0;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
-        <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-        <div id="recogSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
-        <div id="recogSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
-        <div id="recogSignalWordDef" style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem; display:none;"></div>
-        <div id="recogSignalWordNote" style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem; display:none;"></div>
-        <div id="recogFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;"></div>
-        <div id="recogMeaning" style="font-size:14px; color:var(--text-dim); font-style:italic; margin-top:0.5rem; display:none;"></div>
-      </div>
-      <div class="mt-auto">
-        <button class="btn-primary hidden" id="recogNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
+      <div id="recogPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center; flex:0 0 auto;"></div>
+      <div id="recogOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto; transition:opacity 0.15s ease;"></div>
+      <div style="margin-top:1.25rem; flex:0 0 auto;">
+        <button class="btn-primary" id="recogNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
       </div>
     </div>
 
@@ -1221,32 +1203,23 @@ body::after {
     <div style="flex:1; font-size:17px; color:var(--text); padding-left:0.5rem;">Recognition</div>
   </div>
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
-    <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+    <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem); flex:0 0 auto;">
       <div id="recogStdSignalAnchor" style="margin-bottom:0.75rem; display:none;">
         <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
         <span id="recogStdAnchorWord" style="font-size:15px; color:var(--text);"></span>
       </div>
     </div>
-    <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:0 0 auto; padding:clamp(0.5rem, 2vh, 1.25rem) 0;">
       <div class="play-circle" id="recogStdCircle" onclick="replayRecognitionStdAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </div>
       <div style="font-size:13px; color:var(--text-dim);" id="recogStdPlayHint">Listening...</div>
       <button id="recogStdSlowerBtn" onclick="hearRecognitionSlower()" class="btn-text" style="display:none;margin-top:0.25rem">Hear it slower</button>
     </div>
-    <div id="recogStdPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
-    <div id="recogStdOptions" class="mc-options"></div>
-    <div id="recogStdReveal" onclick="replayRecognitionStdAudio()" style="position:relative; margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:border-color 0.15s, opacity 0.2s ease; visibility:hidden; opacity:0;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
-      <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-      <div id="recogStdSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
-      <div id="recogStdSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
-      <div id="recogStdSignalWordDef" style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem; display:none;"></div>
-      <div id="recogStdSignalWordNote" style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem; display:none;"></div>
-      <div id="recogStdFullPhrase" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;"></div>
-      <div id="recogStdMeaning" style="font-size:14px; color:var(--text-dim); font-style:italic; margin-top:0.5rem; display:none;"></div>
-    </div>
-    <div class="mt-auto">
-      <button class="btn-primary hidden" id="recogStdNextBtn" onclick="advanceRecognitionStd()" style="margin-top:1.25rem;">Continue →</button>
+    <div id="recogStdPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center; flex:0 0 auto;"></div>
+    <div id="recogStdOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto; transition:opacity 0.15s ease;"></div>
+    <div style="margin-top:1.25rem; flex:0 0 auto;">
+      <button class="btn-primary" id="recogStdNextBtn" onclick="advanceRecognitionStd()" style="visibility:hidden;">Continue →</button>
     </div>
   </div>
   <div id="recogStdCompleteOverlay" class="hidden" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); padding:1.5rem;">
@@ -33229,15 +33202,10 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
 
   const promptEl = document.getElementById(prefix + 'Prompt');
   const optsEl = document.getElementById(prefix + 'Options');
-  const revealEl = document.getElementById(prefix + 'Reveal');
-  const signalEl = document.getElementById(prefix + 'SignalWord');
-  const fullEl = document.getElementById(prefix + 'FullPhrase');
   const playHintEl = document.getElementById(prefix + 'PlayHint');
   const nextBtn = document.getElementById(prefix + 'NextBtn');
   const circle = document.getElementById(prefix + 'Circle');
 
-  // Change 1: no scenario text rendered
-  // Change 2: signal word anchor shown before audio
   const anchorEl = document.getElementById(prefix + 'SignalAnchor');
   const anchorWord = document.getElementById(prefix + 'AnchorWord');
   if (anchorEl && anchorWord) {
@@ -33250,10 +33218,9 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   }
 
   const recogScore = getRecognitionScore(trigger.intent);
-  revealEl.style.visibility = 'hidden';
-  revealEl.style.opacity = '0';
-  nextBtn.classList.add('hidden');
+  nextBtn.style.visibility = 'hidden';
   circle.classList.remove('playing');
+  optsEl.style.opacity = '1';
   optsEl.innerHTML = '';
 
   if (promptEl) {
@@ -33265,14 +33232,14 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     promptEl.style.display = promptText ? '' : 'none';
   }
 
-  // Change 4: situation-aware distractor selection
-  // Change 5: use displayLabel with intent fallback
   const correctLabel = getTriggerLabel(trigger);
   const distractors = pickRecognitionDistractors(trigger, 3);
   const choices = shuffle([
     { text: correctLabel, correct: true },
     ...distractors.map(d => ({ text: d, correct: false })),
   ]);
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
   let answered = false;
   choices.forEach(c => {
@@ -33286,6 +33253,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       Array.from(optsEl.children).forEach(child => {
         const childCorrect = child.dataset.correct === 'true';
         child.style.cursor = 'default';
+        child.style.pointerEvents = 'none';
         if (childCorrect) {
           child.style.borderColor = '#4ade80';
           child.style.background = 'rgba(74, 222, 128, 0.08)';
@@ -33296,35 +33264,37 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
           child.style.opacity = '0.4';
         }
       });
-      // Reveal: signal word + definition + note
-      signalEl.textContent = trigger.signalWord || '';
-      const wordDefEl = document.getElementById(prefix + 'SignalWordDef');
-      if (wordDefEl) {
-        wordDefEl.textContent = trigger.signalWordDefinition || '';
-        wordDefEl.style.display = trigger.signalWordDefinition ? '' : 'none';
-      }
-      const wordNoteEl = document.getElementById(prefix + 'SignalWordNote');
-      if (wordNoteEl) {
-        wordNoteEl.textContent = trigger.signalWordNote || '';
-        wordNoteEl.style.display = trigger.signalWordNote ? '' : 'none';
-      }
-      const wordCount = (trigger.signalWord || '').split('/').length;
-      const labelText = wordCount > 1 ? 'The words to listen for' : 'The word to listen for';
-      const labelEl = document.getElementById(prefix + 'SignalLabel');
-      if (labelEl) labelEl.textContent = labelText;
-      // Change 3: full phrase with signal word highlighted
-      fullEl.innerHTML = highlightSignalWord(trigger.triggerPhrase, trigger.signalWord);
-      const meaningEl = document.getElementById(prefix + 'Meaning');
-      if (meaningEl) {
-        const meaningText = trigger.englishTranslation || trigger.signal || '';
-        meaningEl.textContent = meaningText;
-        meaningEl.style.display = meaningText ? '' : 'none';
-      }
-      revealEl.style.visibility = 'visible';
-      revealEl.style.opacity = '1';
-      nextBtn.classList.remove('hidden');
-      _onCoachMarkDismiss = () => showScreen('screenExercise');
-      showCoachMark('tt_seenSignalWordCoachMark');
+
+      // Let the tap feedback register, then fade choices out and swap reveal
+      // content into the same container so nothing above shifts.
+      setTimeout(() => {
+        optsEl.style.opacity = '0';
+        setTimeout(() => {
+          const wordCount = (trigger.signalWord || '').split('/').length;
+          const labelText = wordCount > 1 ? 'The words to listen for' : 'The word to listen for';
+          const defText = trigger.signalWordDefinition || '';
+          const noteText = trigger.signalWordNote || '';
+          const meaningText = trigger.englishTranslation || trigger.signal || '';
+          const resultColor = c.correct ? '#4ade80' : '#f87171';
+          const resultText = c.correct ? '✓ Correct' : '✗ Not quite';
+          optsEl.innerHTML = `
+            <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm);">
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:${resultColor}; margin-bottom:0.6rem;">${resultText}</div>
+              <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">${esc(labelText)}</div>
+              <div style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;">${esc(trigger.signalWord || '')}</div>
+              ${defText ? `<div style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem;">${esc(defText)}</div>` : ''}
+              ${noteText ? `<div style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem;">${esc(noteText)}</div>` : ''}
+              <div style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;">${highlightSignalWord(trigger.triggerPhrase, trigger.signalWord)}</div>
+              ${meaningText ? `<div style="font-size:14px; color:var(--text-dim); font-style:italic; margin-top:0.5rem;">${esc(meaningText)}</div>` : ''}
+            </div>
+          `;
+          optsEl.style.opacity = '1';
+          nextBtn.style.visibility = 'visible';
+          _onCoachMarkDismiss = () => showScreen('screenExercise');
+          showCoachMark('tt_seenSignalWordCoachMark');
+        }, 150);
+      }, 500);
+
       const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
       if (!seen.includes(trigger.id)) {
         seen.push(trigger.id);
@@ -33896,15 +33866,16 @@ function renderScenarioPanel(phrase) {
   showCoachMark('tt_seenScenarioResponseCoachMark');
 
   document.getElementById('scenarioGoal').textContent = phrase.situationText || '';
-  const _scenarioRevealEl = document.getElementById('scenarioReveal');
-  _scenarioRevealEl.style.visibility = 'hidden';
-  _scenarioRevealEl.style.opacity = '0';
-  document.getElementById('scenarioNextBtn').classList.add('hidden');
+  const nextBtn = document.getElementById('scenarioNextBtn');
+  nextBtn.style.visibility = 'hidden';
 
   const distractors = getScenarioDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
   const container = document.getElementById('scenarioOptions');
+  container.style.opacity = '1';
   container.innerHTML = '';
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
   options.forEach(opt => {
     const btn = document.createElement('button');
@@ -33923,28 +33894,37 @@ function renderScenarioPanel(phrase) {
           if (b.dataset.phraseId === phrase.id) b.className = 'mc-option reveal';
         });
       }
-      // Reveal the correct phrase's native + romanization + meaning.
-      document.getElementById('scenarioRevealNative').textContent = displayNative(phrase, 'card');
-      const romanEl = document.getElementById('scenarioRevealRoman');
-      const roman = stripHtmlTags(phrase.romanization || '');
-      romanEl.textContent = roman;
-      romanEl.style.display = roman ? '' : 'none';
-      document.getElementById('scenarioRevealMeaning').textContent = getMeaning(phrase);
-      const _srEl = document.getElementById('scenarioReveal');
-      _srEl.style.visibility = 'visible';
-      _srEl.style.opacity = '1';
 
-      // Scoring — only fires when this is the queue's final touch for the
-      // phrase (which it is, since buildPhraseTouches appends it last).
+      // Scoring fires immediately on tap (independent of the visual reveal).
       bumpIfFinal(phrase.id, 0, correct);
       if (!correct) {
         const item = getCurrentItem();
         resurfaceIfEligible(phrase.id, item ? item.type : 'scenario_response');
       }
 
-      const nextBtn = document.getElementById('scenarioNextBtn');
-      nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
-      nextBtn.classList.remove('hidden');
+      // Let the tap feedback register, then swap reveal content into the
+      // choices container so the layout doesn't shift.
+      setTimeout(() => {
+        container.style.opacity = '0';
+        setTimeout(() => {
+          const nativeHtml = displayNative(phrase, 'card');
+          const roman = stripHtmlTags(phrase.romanization || '');
+          const meaning = getMeaning(phrase);
+          const resultColor = correct ? '#4ade80' : '#f87171';
+          const resultText = correct ? '✓ Correct' : '✗ Not quite';
+          container.innerHTML = `
+            <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:${resultColor}; margin-bottom:0.6rem;">${resultText}</div>
+              <div style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text); line-height:1.4; margin-bottom:0.35rem;">${nativeHtml}</div>
+              ${roman ? `<div style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-bottom:0.25rem;">${esc(roman)}</div>` : ''}
+              <div style="font-size:13px; color:var(--text-dim); line-height:1.4;">${esc(meaning)}</div>
+            </div>
+          `;
+          container.style.opacity = '1';
+          nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
+          nextBtn.style.visibility = 'visible';
+        }, 150);
+      }, 500);
     };
     container.appendChild(btn);
   });
@@ -34150,11 +34130,17 @@ function renderEmojiPanel(phrase) {
   showScreen('screenExercise');
   document.getElementById('emojiPhrase').textContent = displayNative(phrase, 'card');
   const grid = document.getElementById('emojiOptions');
+  grid.style.opacity = '1';
+  grid.style.display = 'grid';
   grid.innerHTML = '';
-  document.getElementById('emojiNextBtn').classList.add('hidden');
+  const nextBtn = document.getElementById('emojiNextBtn');
+  nextBtn.style.visibility = 'hidden';
 
   const distractors = getEmojiDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
   options.forEach(opt => {
     const btn = document.createElement('button');
     btn.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; font-size:2.5rem; line-height:1; cursor:pointer; transition:border-color 0.15s, background 0.15s, opacity 0.15s;';
@@ -34167,7 +34153,6 @@ function renderEmojiPanel(phrase) {
         btn.style.background = 'rgba(74,222,128,0.10)';
       } else {
         btn.style.opacity = '0.4';
-        // Reveal the correct one.
         grid.querySelectorAll('button').forEach(b => {
           if (b.textContent === phrase.emoji) {
             b.style.borderColor = '#4ade80';
@@ -34180,9 +34165,30 @@ function renderEmojiPanel(phrase) {
         const item = getCurrentItem();
         resurfaceIfEligible(phrase.id, item ? item.type : 'emoji_exercise');
       }
-      const nextBtn = document.getElementById('emojiNextBtn');
-      nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
-      nextBtn.classList.remove('hidden');
+
+      // Let the tap feedback register, then fade grid out and swap reveal
+      // content into the same slot so the prompt above never shifts.
+      setTimeout(() => {
+        grid.style.opacity = '0';
+        setTimeout(() => {
+          const resultColor = correct ? '#4ade80' : '#f87171';
+          const resultText = correct ? '✓ Correct' : '✗ Not quite';
+          grid.style.display = 'flex';
+          grid.style.alignItems = 'center';
+          grid.style.justifyContent = 'center';
+          grid.innerHTML = `
+            <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center; max-width:340px;">
+              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:${resultColor}; margin-bottom:0.6rem;">${resultText}</div>
+              <div style="font-size:3rem; line-height:1; margin-bottom:0.6rem;">${esc(phrase.emoji || '')}</div>
+              <div style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;">${displayNative(phrase, 'card')}</div>
+              <div style="font-size:14px; color:var(--text-dim);">${esc(getMeaning(phrase) || '')}</div>
+            </div>
+          `;
+          grid.style.opacity = '1';
+          nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
+          nextBtn.style.visibility = 'visible';
+        }, 150);
+      }, 500);
     };
     grid.appendChild(btn);
   });
@@ -34244,12 +34250,10 @@ function renderMinimalPairPanel(item) {
 
   document.getElementById('panelMinimalPairs').classList.remove('hidden');
 
-  const revealEl = document.getElementById('mpReveal');
-  revealEl.style.visibility = 'hidden';
-  revealEl.style.opacity = '0';
-  document.getElementById('mpNextBtn').classList.add('hidden');
+  document.getElementById('mpNextBtn').style.visibility = 'hidden';
 
   const optsEl = document.getElementById('mpOptions');
+  optsEl.style.opacity = '1';
   optsEl.innerHTML = '';
   options.forEach(word => {
     const btn = document.createElement('button');
@@ -34282,6 +34286,7 @@ function answerMinimalPairChoice(word, btn) {
   const s = _minimalPairState;
   if (!s || s.answered) return;
   s.answered = true;
+  const correct = word === s.targetWord;
   const optsEl = document.getElementById('mpOptions');
   Array.from(optsEl.children).forEach(child => {
     child.style.cursor = 'default';
@@ -34296,12 +34301,27 @@ function answerMinimalPairChoice(word, btn) {
       child.style.opacity = '0.4';
     }
   });
-  document.getElementById('mpRevealWord').textContent = s.targetWord;
-  document.getElementById('mpRevealMeaning').textContent = s.targetEnglish || '';
-  const revealEl = document.getElementById('mpReveal');
-  revealEl.style.visibility = 'visible';
-  revealEl.style.opacity = '1';
-  document.getElementById('mpNextBtn').classList.remove('hidden');
+
+  const esc = str => String(str == null ? '' : str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+  // Let the tap feedback register, then fade choices out and swap reveal
+  // content into the same container so nothing above shifts.
+  setTimeout(() => {
+    optsEl.style.opacity = '0';
+    setTimeout(() => {
+      const resultColor = correct ? '#4ade80' : '#f87171';
+      const resultText = correct ? '✓ Correct' : '✗ Not quite';
+      optsEl.innerHTML = `
+        <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
+          <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:${resultColor}; margin-bottom:0.6rem;">${resultText}</div>
+          <div style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;">${esc(s.targetWord)}</div>
+          <div style="font-size:14px; color:var(--text-dim);">${esc(s.targetEnglish || '')}</div>
+        </div>
+      `;
+      optsEl.style.opacity = '1';
+      document.getElementById('mpNextBtn').style.visibility = 'visible';
+    }, 150);
+  }, 500);
 }
 
 // ── Meaning task ──
