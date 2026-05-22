@@ -34061,8 +34061,6 @@ function renderMatchPairsPanel() {
     const btn = document.createElement('button');
     btn.dataset.phraseId = p.id;
     btn.style.cssText = tileStyle();
-    btn.style.fontFamily = "'Cormorant Garamond', serif";
-    btn.style.fontStyle = 'italic';
     btn.textContent = displayNative(p, 'card');
     btn.onclick = () => handleMatchPairsLeftTap(p.id, btn);
     leftCol.appendChild(btn);
