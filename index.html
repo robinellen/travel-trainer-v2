@@ -582,7 +582,7 @@ body::after {
    others. */
 .exercise-top-zone {
   position: absolute;
-  top: 12%;
+  top: 72px;
   left: 0;
   right: 0;
   display: flex;
@@ -593,20 +593,21 @@ body::after {
 }
 .exercise-middle-zone {
   position: absolute;
-  top: 42%;
-  bottom: 80px;
-  left: 0;
-  right: 0;
+  top: 260px;
+  bottom: 72px;
+  left: 1rem;
+  right: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  overflow: hidden;
+  overflow-y: auto;
 }
 .exercise-bottom-zone {
   position: absolute;
   bottom: 0;
-  left: 0;
-  right: 0;
+  left: 1rem;
+  right: 1rem;
+  height: 72px;
   padding-bottom: 0.75rem;
 }
 .exercise-type-badge {
