@@ -33271,48 +33271,28 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     ...distractors.map(d => ({ text: d, correct: false })),
   ]);
 
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-
-  // Build both states up front. Buttons live in choicesArea; the reveal
-  // content lives in revealArea (display:none until answer). Answering just
-  // toggles display on these two sibling divs — no innerHTML, no
-  // re-creation, no stale references.
-  const choicesArea = document.createElement('div');
-  choicesArea.className = 'answers-choices';
-
-  const revealArea = document.createElement('div');
-  revealArea.className = 'answers-reveal';
-  revealArea.style.display = 'none';
-  const wordCount = (trigger.signalWord || '').split('/').length;
-  const labelText = wordCount > 1 ? 'The words to listen for' : 'The word to listen for';
-  const defText = trigger.signalWordDefinition || '';
-  const noteText = trigger.signalWordNote || '';
-  const meaningText = trigger.englishTranslation || trigger.signal || '';
-  revealArea.innerHTML = `
-    <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm);">
-      <div class="result-label" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.6rem;"></div>
-      <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">${esc(labelText)}</div>
-      <div style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;">${esc(trigger.signalWord || '')}</div>
-      ${defText ? `<div style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem;">${esc(defText)}</div>` : ''}
-      ${noteText ? `<div style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem;">${esc(noteText)}</div>` : ''}
-      <div style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;">${highlightSignalWord(trigger.triggerPhrase, trigger.signalWord)}</div>
-      ${meaningText ? `<div style="font-size:14px; color:var(--text-dim); font-style:italic; margin-top:0.5rem;">${esc(meaningText)}</div>` : ''}
-    </div>
-  `;
-  const resultLabel = revealArea.querySelector('.result-label');
-
+  // Render buttons directly into optsEl. On tap, color in place — no
+  // reveal card, no DOM swap, no setTimeout. The DOM never changes size
+  // after render, so the layout cannot shift.
   let answered = false;
+  let correctBtn = null;
+  const allBtns = [];
+
   choices.forEach(c => {
     const btn = document.createElement('button');
     btn.className = 'mc-option';
     btn.textContent = c.text;
-    btn.style.cssText = 'display:block; width:100%; text-align:left; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; margin-bottom:0.5rem; color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; line-height:1.4; cursor:pointer; transition:all 0.15s;';
+    btn.style.cssText = 'display:block; width:100%; text-align:left; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; margin-bottom:0.5rem; color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; line-height:1.4; cursor:pointer; transition:background 0.15s, border-color 0.15s, opacity 0.15s, color 0.15s;';
+    btn.dataset.correct = c.correct ? 'true' : 'false';
+    if (c.correct) correctBtn = btn;
+    allBtns.push(btn);
+
     btn.onclick = () => {
       if (answered) return;
       answered = true;
 
       // Kill any in-flight stimulus audio so its onended (-> onStimulusEnd
-      // -> setAnswersEnabled, etc) can't fire during/after the swap.
+      // -> setAnswersEnabled, etc) can't fire after the answer.
       if (_activeRecognitionAudio) {
         try { _activeRecognitionAudio.onended = null; } catch (e) {}
         try { _activeRecognitionAudio.onerror = null; } catch (e) {}
@@ -33322,47 +33302,42 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       audioEndedCallback = null;
       if (circle) circle.classList.remove('playing');
 
-      Array.from(choicesArea.children).forEach(child => {
-        const childCorrect = child.dataset.correct === 'true';
-        child.style.cursor = 'default';
-        child.style.pointerEvents = 'none';
-        if (childCorrect) {
-          child.style.borderColor = '#4ade80';
-          child.style.background = 'rgba(74, 222, 128, 0.08)';
-        } else if (child === btn) {
-          child.style.borderColor = '#f87171';
-          child.style.background = 'rgba(248, 113, 113, 0.08)';
+      allBtns.forEach(b => {
+        b.disabled = true;
+        b.style.cursor = 'default';
+        b.style.pointerEvents = 'none';
+        if (b === btn) {
+          b.style.background = c.correct ? '#22c55e' : '#ef4444';
+          b.style.borderColor = c.correct ? '#22c55e' : '#ef4444';
+          b.style.color = '#fff';
+          b.textContent = (c.correct ? '✓ ' : '✗ ') + b.textContent;
+          b.style.opacity = '1';
+        } else if (b === correctBtn && !c.correct) {
+          b.style.background = '#22c55e';
+          b.style.borderColor = '#22c55e';
+          b.style.color = '#fff';
+          b.textContent = '✓ ' + b.textContent;
+          b.style.opacity = '1';
         } else {
-          child.style.opacity = '0.4';
+          b.style.opacity = '0.3';
         }
       });
 
-      // Let the tap feedback register, then flip display on the two
-      // pre-rendered sibling divs. No innerHTML, no DOM creation.
-      setTimeout(() => {
-        resultLabel.textContent = c.correct ? '✓ Correct' : '✗ Not quite';
-        resultLabel.style.color = c.correct ? '#4ade80' : '#f87171';
-        choicesArea.style.display = 'none';
-        revealArea.style.display = '';
-        nextBtn.style.visibility = 'visible';
+      nextBtn.style.visibility = 'visible';
 
-        const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
-        if (!seen.includes(trigger.id)) {
-          seen.push(trigger.id);
-          localStorage.setItem('tt_seenTriggers', JSON.stringify(seen));
-        }
-        if (onAnswer) onAnswer(c.correct);
+      const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
+      if (!seen.includes(trigger.id)) {
+        seen.push(trigger.id);
+        localStorage.setItem('tt_seenTriggers', JSON.stringify(seen));
+      }
+      if (onAnswer) onAnswer(c.correct);
 
-        _onCoachMarkDismiss = () => showScreen('screenExercise');
-        showCoachMark('tt_seenSignalWordCoachMark');
-      }, 500);
+      _onCoachMarkDismiss = () => showScreen('screenExercise');
+      showCoachMark('tt_seenSignalWordCoachMark');
     };
-    btn.dataset.correct = c.correct ? 'true' : 'false';
-    choicesArea.appendChild(btn);
-  });
 
-  optsEl.appendChild(choicesArea);
-  optsEl.appendChild(revealArea);
+    optsEl.appendChild(btn);
+  });
 
   if (nextBtn) nextBtn.onclick = onContinue;
 
@@ -33945,69 +33920,59 @@ function renderScenarioPanel(phrase) {
   const container = document.getElementById('scenarioOptions');
   container.innerHTML = '';
 
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-
-  // Pre-render both states. Choice buttons in choicesArea, reveal card in
-  // revealArea (display:none until answer). Answering only flips display.
-  const choicesArea = document.createElement('div');
-  choicesArea.className = 'answers-choices';
-
-  const revealArea = document.createElement('div');
-  revealArea.className = 'answers-reveal';
-  revealArea.style.display = 'none';
-  const nativeHtml = displayNative(phrase, 'card');
-  const roman = stripHtmlTags(phrase.romanization || '');
-  const meaning = getMeaning(phrase);
-  revealArea.innerHTML = `
-    <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
-      <div class="result-label" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.6rem;"></div>
-      <div style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text); line-height:1.4; margin-bottom:0.35rem;">${nativeHtml}</div>
-      ${roman ? `<div style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-bottom:0.25rem;">${esc(roman)}</div>` : ''}
-      <div style="font-size:13px; color:var(--text-dim); line-height:1.4;">${esc(meaning)}</div>
-    </div>
-  `;
-  const resultLabel = revealArea.querySelector('.result-label');
-
   let answered = false;
+  let correctBtn = null;
+  const allBtns = [];
+
   options.forEach(opt => {
     const btn = document.createElement('button');
     btn.className = 'mc-option';
     btn.style.fontFamily = "'Cormorant Garamond', serif";
     btn.style.fontStyle = 'italic';
+    btn.style.transition = 'background 0.15s, border-color 0.15s, opacity 0.15s, color 0.15s';
     btn.textContent = displayNative(opt, 'card');
     btn.dataset.phraseId = opt.id;
+    if (opt.id === phrase.id) correctBtn = btn;
+    allBtns.push(btn);
+
     btn.onclick = () => {
       if (answered) return;
       answered = true;
-      choicesArea.querySelectorAll('.mc-option').forEach(b => { b.onclick = null; b.style.pointerEvents = 'none'; });
       const correct = opt.id === phrase.id;
-      btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-      if (!correct) {
-        choicesArea.querySelectorAll('.mc-option').forEach(b => {
-          if (b.dataset.phraseId === phrase.id) b.className = 'mc-option reveal';
-        });
-      }
 
-      setTimeout(() => {
-        resultLabel.textContent = correct ? '✓ Correct' : '✗ Not quite';
-        resultLabel.style.color = correct ? '#4ade80' : '#f87171';
-        choicesArea.style.display = 'none';
-        revealArea.style.display = '';
-        nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
-        nextBtn.style.visibility = 'visible';
-
-        bumpIfFinal(phrase.id, 0, correct);
-        if (!correct) {
-          const item = getCurrentItem();
-          resurfaceIfEligible(phrase.id, item ? item.type : 'scenario_response');
+      allBtns.forEach(b => {
+        b.disabled = true;
+        b.onclick = null;
+        b.style.pointerEvents = 'none';
+        b.style.cursor = 'default';
+        if (b === btn) {
+          b.style.background = correct ? '#22c55e' : '#ef4444';
+          b.style.borderColor = correct ? '#22c55e' : '#ef4444';
+          b.style.color = '#fff';
+          b.textContent = (correct ? '✓ ' : '✗ ') + b.textContent;
+          b.style.opacity = '1';
+        } else if (b === correctBtn && !correct) {
+          b.style.background = '#22c55e';
+          b.style.borderColor = '#22c55e';
+          b.style.color = '#fff';
+          b.textContent = '✓ ' + b.textContent;
+          b.style.opacity = '1';
+        } else {
+          b.style.opacity = '0.3';
         }
-      }, 500);
-    };
-    choicesArea.appendChild(btn);
-  });
+      });
 
-  container.appendChild(choicesArea);
-  container.appendChild(revealArea);
+      nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
+      nextBtn.style.visibility = 'visible';
+
+      bumpIfFinal(phrase.id, 0, correct);
+      if (!correct) {
+        const item = getCurrentItem();
+        resurfaceIfEligible(phrase.id, item ? item.type : 'scenario_response');
+      }
+    };
+    container.appendChild(btn);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -34210,6 +34175,8 @@ function renderEmojiPanel(phrase) {
   showScreen('screenExercise');
   document.getElementById('emojiPhrase').textContent = displayNative(phrase, 'card');
   const grid = document.getElementById('emojiOptions');
+  // Restore the 2x2 grid layout for emoji buttons directly in the container.
+  grid.style.cssText = 'flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; align-content:center;';
   grid.innerHTML = '';
   const nextBtn = document.getElementById('emojiNextBtn');
   nextBtn.style.visibility = 'hidden';
@@ -34217,70 +34184,51 @@ function renderEmojiPanel(phrase) {
   const distractors = getEmojiDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
 
-  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-
-  // Pre-render both states. Emoji button grid + reveal card live as siblings;
-  // answer just toggles display between them.
-  const choicesArea = document.createElement('div');
-  choicesArea.className = 'answers-choices';
-  choicesArea.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;';
-
-  const revealArea = document.createElement('div');
-  revealArea.className = 'answers-reveal';
-  revealArea.style.cssText = 'display:none; align-items:center; justify-content:center;';
-  revealArea.innerHTML = `
-    <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center; max-width:340px; margin:0 auto;">
-      <div class="result-label" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.6rem;"></div>
-      <div style="font-size:3rem; line-height:1; margin-bottom:0.6rem;">${esc(phrase.emoji || '')}</div>
-      <div style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;">${displayNative(phrase, 'card')}</div>
-      <div style="font-size:14px; color:var(--text-dim);">${esc(getMeaning(phrase) || '')}</div>
-    </div>
-  `;
-  const resultLabel = revealArea.querySelector('.result-label');
-
   let answered = false;
+  let correctBtn = null;
+  const allBtns = [];
+
   options.forEach(opt => {
     const btn = document.createElement('button');
-    btn.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; font-size:2.5rem; line-height:1; cursor:pointer; transition:border-color 0.15s, background 0.15s, opacity 0.15s;';
+    btn.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; font-size:2.5rem; line-height:1; cursor:pointer; transition:background 0.15s, border-color 0.15s, opacity 0.15s;';
     btn.textContent = opt.emoji || '';
+    if (opt.id === phrase.id) correctBtn = btn;
+    allBtns.push(btn);
+
     btn.onclick = () => {
       if (answered) return;
       answered = true;
-      choicesArea.querySelectorAll('button').forEach(b => { b.onclick = null; b.style.pointerEvents = 'none'; });
       const correct = opt.id === phrase.id;
-      if (correct) {
-        btn.style.borderColor = '#4ade80';
-        btn.style.background = 'rgba(74,222,128,0.10)';
-      } else {
-        btn.style.opacity = '0.4';
-        choicesArea.querySelectorAll('button').forEach(b => {
-          if (b.textContent === phrase.emoji) {
-            b.style.borderColor = '#4ade80';
-            b.style.background = 'rgba(74,222,128,0.10)';
-          }
-        });
-      }
 
-      setTimeout(() => {
-        resultLabel.textContent = correct ? '✓ Correct' : '✗ Not quite';
-        resultLabel.style.color = correct ? '#4ade80' : '#f87171';
-        choicesArea.style.display = 'none';
-        revealArea.style.display = 'flex';
-        nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
-        nextBtn.style.visibility = 'visible';
-
-        bumpIfFinal(phrase.id, 0, correct);
-        if (!correct) {
-          const item = getCurrentItem();
-          resurfaceIfEligible(phrase.id, item ? item.type : 'emoji_exercise');
+      allBtns.forEach(b => {
+        b.disabled = true;
+        b.onclick = null;
+        b.style.pointerEvents = 'none';
+        b.style.cursor = 'default';
+        if (b === btn) {
+          b.style.background = correct ? '#22c55e' : '#ef4444';
+          b.style.borderColor = correct ? '#22c55e' : '#ef4444';
+          b.style.opacity = '1';
+        } else if (b === correctBtn && !correct) {
+          b.style.background = '#22c55e';
+          b.style.borderColor = '#22c55e';
+          b.style.opacity = '1';
+        } else {
+          b.style.opacity = '0.3';
         }
-      }, 500);
-    };
-    choicesArea.appendChild(btn);
-  });
+      });
 
-  grid.appendChild(choicesArea);
-  grid.appendChild(revealArea);
+      nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
+      nextBtn.style.visibility = 'visible';
+
+      bumpIfFinal(phrase.id, 0, correct);
+      if (!correct) {
+        const item = getCurrentItem();
+        resurfaceIfEligible(phrase.id, item ? item.type : 'emoji_exercise');
+      }
+    };
+    grid.appendChild(btn);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -34344,38 +34292,22 @@ function renderMinimalPairPanel(item) {
   const optsEl = document.getElementById('mpOptions');
   optsEl.innerHTML = '';
 
-  const esc = str => String(str == null ? '' : str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-
-  const choicesArea = document.createElement('div');
-  choicesArea.className = 'answers-choices';
-
-  const revealArea = document.createElement('div');
-  revealArea.className = 'answers-reveal';
-  revealArea.style.display = 'none';
-  revealArea.innerHTML = `
-    <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
-      <div class="result-label" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.6rem;"></div>
-      <div style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;">${esc(targetWord)}</div>
-      <div style="font-size:14px; color:var(--text-dim);">${esc(targetEnglish || '')}</div>
-    </div>
-  `;
-
-  // Stash the pre-rendered areas so the tap handler just flips display.
-  _minimalPairState.choicesArea = choicesArea;
-  _minimalPairState.revealArea = revealArea;
-  _minimalPairState.resultLabel = revealArea.querySelector('.result-label');
+  const allBtns = [];
+  let correctBtn = null;
 
   options.forEach(word => {
     const btn = document.createElement('button');
     btn.className = 'mc-option';
-    btn.style.cssText = 'display:block; width:100%; text-align:center; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; margin-bottom:0.5rem; color:var(--text); font-family:"Cormorant Garamond",serif; font-style:italic; font-size:18px; line-height:1.4; cursor:pointer; transition:all 0.15s;';
+    btn.style.cssText = 'display:block; width:100%; text-align:center; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; margin-bottom:0.5rem; color:var(--text); font-family:"Cormorant Garamond",serif; font-style:italic; font-size:18px; line-height:1.4; cursor:pointer; transition:background 0.15s, border-color 0.15s, opacity 0.15s, color 0.15s;';
     btn.textContent = word;
+    if (word === targetWord) correctBtn = btn;
+    allBtns.push(btn);
     btn.onclick = () => answerMinimalPairChoice(word, btn);
-    choicesArea.appendChild(btn);
+    optsEl.appendChild(btn);
   });
 
-  optsEl.appendChild(choicesArea);
-  optsEl.appendChild(revealArea);
+  _minimalPairState.allBtns = allBtns;
+  _minimalPairState.correctBtn = correctBtn;
 
   // If no interstitial fires (already seen), start the exercise directly.
   if (!showCoachMark('tt_seenMinimalPairsCoachMark')) {
@@ -34400,27 +34332,30 @@ function answerMinimalPairChoice(word, btn) {
   if (!s || s.answered) return;
   s.answered = true;
   const correct = word === s.targetWord;
-  Array.from(s.choicesArea.children).forEach(child => {
-    child.style.cursor = 'default';
-    child.style.pointerEvents = 'none';
-    if (child.textContent === s.targetWord) {
-      child.style.borderColor = '#4ade80';
-      child.style.background = 'rgba(74,222,128,0.08)';
-    } else if (child === btn) {
-      child.style.borderColor = '#f87171';
-      child.style.background = 'rgba(248,113,113,0.08)';
+
+  s.allBtns.forEach(b => {
+    b.disabled = true;
+    b.onclick = null;
+    b.style.pointerEvents = 'none';
+    b.style.cursor = 'default';
+    if (b === btn) {
+      b.style.background = correct ? '#22c55e' : '#ef4444';
+      b.style.borderColor = correct ? '#22c55e' : '#ef4444';
+      b.style.color = '#fff';
+      b.textContent = (correct ? '✓ ' : '✗ ') + b.textContent;
+      b.style.opacity = '1';
+    } else if (b === s.correctBtn && !correct) {
+      b.style.background = '#22c55e';
+      b.style.borderColor = '#22c55e';
+      b.style.color = '#fff';
+      b.textContent = '✓ ' + b.textContent;
+      b.style.opacity = '1';
     } else {
-      child.style.opacity = '0.4';
+      b.style.opacity = '0.3';
     }
   });
 
-  setTimeout(() => {
-    s.resultLabel.textContent = correct ? '✓ Correct' : '✗ Not quite';
-    s.resultLabel.style.color = correct ? '#4ade80' : '#f87171';
-    s.choicesArea.style.display = 'none';
-    s.revealArea.style.display = '';
-    document.getElementById('mpNextBtn').style.visibility = 'visible';
-  }, 500);
+  document.getElementById('mpNextBtn').style.visibility = 'visible';
 }
 
 // ── Meaning task ──
