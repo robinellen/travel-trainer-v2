@@ -954,7 +954,7 @@ body::after {
       <div id="scenarioGoal" style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius); padding:0.9rem 1.1rem; margin-bottom:1.5rem; font-size:15px; color:var(--text); line-height:1.4; text-align:center; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;"></div>
       <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.6rem; text-align:center;">What would you say?</div>
       <div class="mc-options" id="scenarioOptions"></div>
-      <div id="scenarioReveal" class="hidden" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
+      <div id="scenarioReveal" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center; visibility:hidden; opacity:0; transition:opacity 0.2s ease;">
         <div id="scenarioRevealNative" style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text); line-height:1.4; margin-bottom:0.35rem;"></div>
         <div id="scenarioRevealRoman" style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-bottom:0.25rem;"></div>
         <div id="scenarioRevealMeaning" style="font-size:13px; color:var(--text-dim); line-height:1.4;"></div>
@@ -1014,7 +1014,7 @@ body::after {
         <button id="mpChoiceA" onclick="answerMinimalPair('A')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; color:var(--text); font-family:'Lexend',sans-serif; font-size:24px; cursor:pointer;">A</button>
         <button id="mpChoiceB" onclick="answerMinimalPair('B')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; color:var(--text); font-family:'Lexend',sans-serif; font-size:24px; cursor:pointer;">B</button>
       </div>
-      <div id="mpReveal" class="hidden" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); display:flex; gap:0.75rem;">
+      <div id="mpReveal" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); display:flex; gap:0.75rem; visibility:hidden; opacity:0; transition:opacity 0.2s ease;">
         <div style="flex:1; text-align:center;">
           <div style="font-size:12px; color:var(--text-dim); margin-bottom:0.25rem;">A</div>
           <div id="mpRevealA" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; color:var(--text);"></div>
@@ -1054,7 +1054,7 @@ body::after {
       </div>
       <div id="recogPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
       <div id="recogOptions" class="mc-options"></div>
-      <div id="recogReveal" class="hidden" onclick="replayRecognitionAudio()" style="position:relative; margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
+      <div id="recogReveal" onclick="replayRecognitionAudio()" style="position:relative; margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:border-color 0.15s, opacity 0.2s ease; visibility:hidden; opacity:0;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
         <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
         <div id="recogSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
         <div id="recogSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
@@ -1258,7 +1258,7 @@ body::after {
     </div>
     <div id="recogStdPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;"></div>
     <div id="recogStdOptions" class="mc-options"></div>
-    <div id="recogStdReveal" class="hidden" onclick="replayRecognitionStdAudio()" style="position:relative; margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
+    <div id="recogStdReveal" onclick="replayRecognitionStdAudio()" style="position:relative; margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:border-color 0.15s, opacity 0.2s ease; visibility:hidden; opacity:0;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
       <svg viewBox="0 0 24 24" style="position:absolute; top:0.75rem; right:0.75rem; width:14px; height:14px; fill:var(--text-dim); opacity:0.7;"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
       <div id="recogStdSignalLabel" style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">The word to listen for</div>
       <div id="recogStdSignalWord" style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;"></div>
@@ -33272,7 +33272,8 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   }
 
   const recogScore = getRecognitionScore(trigger.intent);
-  revealEl.classList.add('hidden');
+  revealEl.style.visibility = 'hidden';
+  revealEl.style.opacity = '0';
   nextBtn.classList.add('hidden');
   circle.classList.remove('playing');
   optsEl.innerHTML = '';
@@ -33341,7 +33342,8 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
         meaningEl.textContent = meaningText;
         meaningEl.style.display = meaningText ? '' : 'none';
       }
-      revealEl.classList.remove('hidden');
+      revealEl.style.visibility = 'visible';
+      revealEl.style.opacity = '1';
       nextBtn.classList.remove('hidden');
       _onCoachMarkDismiss = () => showScreen('screenExercise');
       showCoachMark('tt_seenSignalWordCoachMark');
@@ -33916,7 +33918,9 @@ function renderScenarioPanel(phrase) {
   showCoachMark('tt_seenScenarioResponseCoachMark');
 
   document.getElementById('scenarioGoal').textContent = phrase.situationText || '';
-  document.getElementById('scenarioReveal').classList.add('hidden');
+  const _scenarioRevealEl = document.getElementById('scenarioReveal');
+  _scenarioRevealEl.style.visibility = 'hidden';
+  _scenarioRevealEl.style.opacity = '0';
   document.getElementById('scenarioNextBtn').classList.add('hidden');
 
   const distractors = getScenarioDistractors(phrase, 3);
@@ -33948,7 +33952,9 @@ function renderScenarioPanel(phrase) {
       romanEl.textContent = roman;
       romanEl.style.display = roman ? '' : 'none';
       document.getElementById('scenarioRevealMeaning').textContent = getMeaning(phrase);
-      document.getElementById('scenarioReveal').classList.remove('hidden');
+      const _srEl = document.getElementById('scenarioReveal');
+      _srEl.style.visibility = 'visible';
+      _srEl.style.opacity = '1';
 
       // Scoring — only fires when this is the queue's final touch for the
       // phrase (which it is, since buildPhraseTouches appends it last).
@@ -34244,7 +34250,9 @@ function renderMinimalPairPanel(item) {
   document.getElementById('mpRevealEngB').textContent = pair.englishB;
   document.getElementById('mpTestRow').classList.add('hidden');
   document.getElementById('mpChoices').classList.add('hidden');
-  document.getElementById('mpReveal').classList.add('hidden');
+  const _mpRevealEl = document.getElementById('mpReveal');
+  _mpRevealEl.style.visibility = 'hidden';
+  _mpRevealEl.style.opacity = '0';
   document.getElementById('mpNextBtn').classList.add('hidden');
   document.getElementById('mpStatus').textContent = 'Listen carefully';
 
@@ -34300,7 +34308,9 @@ function answerMinimalPair(choice) {
   choiceBtns[correctKey].style.borderColor = '#4ade80';
   choiceBtns[correctKey].style.background = 'rgba(74,222,128,0.10)';
   if (!correct) choiceBtns[choice].style.opacity = '0.4';
-  document.getElementById('mpReveal').classList.remove('hidden');
+  const _mpr = document.getElementById('mpReveal');
+  _mpr.style.visibility = 'visible';
+  _mpr.style.opacity = '1';
   document.getElementById('mpStatus').textContent = correct ? '✓ Correct' : '✗ Listen for the difference';
   const nextBtn = document.getElementById('mpNextBtn');
   nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
