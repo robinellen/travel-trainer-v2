@@ -1024,35 +1024,21 @@ body::after {
 
 
     <!-- ── LISTEN / LEARN panel ── -->
-    <div id="panelListen" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div class="play-circle" id="listenCircle" onclick="playCurrentAudio()" style="margin-bottom:1.25rem;">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <div style="font-size:13px; color:var(--text-dim); margin-bottom:1.5rem;" id="listenHint">Tap to hear</div>
-        <div class="phrase-emoji hidden" id="listenEmoji"></div>
+    <div id="panelListen" class="hidden exercise-canvas">
+      <div class="play-block-slot">
+        <button class="play-circle-v2" id="listenCircle" onclick="playCurrentAudio()" aria-label="Play audio">
+          <span class="pulse-overlay"></span>
+          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#2A2620"/></svg>
+        </button>
+        <div class="play-caption fade-target delay-0" id="listenHint">Tap to play</div>
       </div>
-      <div id="listenRevealArea">
-        <!-- Active follow-up task after listening -->
-        <div id="listenTask" style="display:none;">
-          <div id="listenTaskMeaning">
-            <div style="font-size:13px; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">What did that mean?</div>
-            <div class="mc-options" id="listenMeaningOptions"></div>
-          </div>
-          <div id="listenTaskIdentify" style="display:none;">
-            <div style="font-size:13px; color:var(--text-dim); margin-bottom:0.75rem; letter-spacing:0.05em;">Which phrase did you just hear?</div>
-            <div class="mc-options" id="listenIdentifyOptions"></div>
-          </div>
-          <div class="result-bar" id="listenTaskResult" style="margin-top:0.75rem;">
-            <div class="result-bar-title" id="listenTaskResultTitle"></div>
-            <div class="result-bar-body" id="listenTaskResultBody"></div>
-          </div>
-        </div>
-
+      <div class="prompt-block fade-target delay-80">
+        <div id="listenPromptLabel" style="font-family:system-ui,-apple-system,sans-serif; font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:rgba(245,238,222,0.42); font-weight:600;"></div>
+        <div class="prompt-emoji-hint" id="listenEmoji" style="display:none;"></div>
       </div>
-      <div class="mt-auto">
-        <button class="btn-primary hidden" id="listenNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
-      </div>
+      <div class="answer-choices fade-target delay-160" id="listenOptions"></div>
+      <div class="exercise-spacer"></div>
+      <button class="continue-btn fade-target delay-240" id="listenNextBtn" onclick="nextExercise()" disabled>Continue</button>
     </div>
 
     <!-- ── SPEAK panel ── -->
@@ -33945,38 +33931,62 @@ function renderListenPanel(phrase, type, forcedSubType) {
     return;
   }
 
-  document.getElementById('panelListen').classList.remove('hidden');
+  const panel = document.getElementById('panelListen');
+  panel.classList.remove('hidden');
   showScreen('screenExercise');
-  document.getElementById('listenCircle').classList.remove('playing');
-  document.getElementById('listenHint').textContent = 'Tap to hear';
-  document.getElementById('listenEmoji').classList.add('hidden');
-  document.getElementById('listenEmoji').textContent = '';
-  document.getElementById('listenTask').style.display = 'none';
-  document.getElementById('listenNextBtn').classList.add('hidden');
-  document.getElementById('listenTaskResult').className = 'result-bar';
+
+  const circle = document.getElementById('listenCircle');
+  circle.classList.remove('playing');
+  document.getElementById('listenHint').textContent = 'Tap to play';
+  const emoji = document.getElementById('listenEmoji');
+  emoji.style.display = 'none';
+  emoji.textContent = '';
+  document.getElementById('listenPromptLabel').textContent = '';
+  document.getElementById('listenOptions').innerHTML = '';
+
+  const nextBtn = document.getElementById('listenNextBtn');
+  nextBtn.disabled = true;
+  nextBtn.classList.remove('enabled');
+  nextBtn.textContent = 'Continue';
+  // Default onclick — gets overridden later for chainToVocab case.
+  nextBtn.onclick = () => nextExercise();
+
+  // Reset fade-in state — content reveals after audio finishes.
+  const fadeTargets = panel.querySelectorAll('.fade-target');
+  fadeTargets.forEach(el => el.classList.remove('revealed'));
 
   let listenCallbackFired = false;
   audioEndedCallback = () => {
     if (listenCallbackFired) return;
     listenCallbackFired = true;
-    document.getElementById('listenHint').textContent = 'Tap to hear again';
-    // Hide emoji at Stage 4+ — it acts as a category hint that gives away
-    // the answer before the user processes the audio.
+    circle.classList.remove('playing');
+
+    // Emoji hint at Stage <4 only (otherwise it gives away the category).
     const _sub = getCurrentSubstage();
-    const emoji = document.getElementById('listenEmoji');
-    if (_sub.stage < 4) {
+    if (_sub.stage < 4 && phrase.emoji) {
       emoji.textContent = phrase.emoji;
-      emoji.classList.remove('hidden');
+      emoji.style.display = '';
     }
 
     if (type === 'learn') {
+      // Learn type: no answer task, just chain into the phrase reveal card.
       bumpIfFinal(phrase.id, 1);
       showPhraseRevealScreen(phrase);
-    } else {
-      const subType = forcedSubType || pickListenSubType(phrase);
-      renderListenTask(phrase, subType);
+      return;
     }
+
+    const subType = forcedSubType || pickListenSubType(phrase);
+    document.getElementById('listenPromptLabel').textContent =
+      subType === 'identify' ? 'Which phrase did you hear?' : 'What did that mean?';
+    renderListenTask(phrase, subType);
+    fadeTargets.forEach(el => el.classList.add('revealed'));
   };
+
+  // Restart the .playing pulse + audio. The CSS keyframe runs once per
+  // class re-add; force a reflow so replay also re-triggers the pulse.
+  circle.classList.remove('playing');
+  void circle.offsetWidth;
+  circle.classList.add('playing');
   setTimeout(() => playPhrase(phrase, 'listenCircle'), 500);
   // Safety net: if audio never fires callback (broken audio, TTS failure), show task after 8s
   setTimeout(() => {
@@ -33988,15 +33998,6 @@ function renderListenPanel(phrase, type, forcedSubType) {
 }
 
 function renderListenTask(phrase, subType) {
-  const taskEl = document.getElementById('listenTask');
-  taskEl.style.display = 'block';
-
-  // Hide all sub-panels
-  ['listenTaskMeaning','listenTaskIdentify'].forEach(id => {
-    const el = document.getElementById(id);
-    el.style.display = 'none';
-  });
-
   if (subType === 'meaning') {
     renderListenMeaning(phrase);
   } else if (subType === 'identify') {
@@ -34004,28 +34005,43 @@ function renderListenTask(phrase, subType) {
   }
 }
 
-function showListenRevealAfterTask(isCorrect, phrase) {
-  const result = document.getElementById('listenTaskResult');
-  result.className = 'result-bar ' + (isCorrect ? 'correct visible' : 'wrong visible');
-  document.getElementById('listenTaskResultTitle').textContent = isCorrect ? '✓ Correct' : '✗ Not quite';
-  document.getElementById('listenTaskResultBody').textContent = phrase.native + ' — ' + getMeaning(phrase);
-  // Score only changes on final touch
-  bumpIfFinal(phrase.id, 2, isCorrect);
-  // If this listen item is flagged to chain into the vocab card reveal
-  // (score 0 phrase, first encounter in this session), the Continue button
-  // shows the vocab card next instead of advancing to the next queue item.
+// In-place answer handler shared by both Listen subtypes. Toggles
+// correct/wrong/dim classes on the pre-rendered mc-option-v2 buttons,
+// sets the glyph textContent, enables Continue, scores, and wires the
+// vocab-card chain when applicable. No reveal card, no DOM mutation
+// beyond classes + glyph text.
+function _listenAnswerInPlace(allBtns, tappedBtn, correctBtn, correct, phrase) {
+  allBtns.forEach(b => {
+    b.disabled = true;
+    if (b === tappedBtn && correct) {
+      b.classList.add('correct');
+      b.querySelector('.glyph').textContent = '✓';
+    } else if (b === tappedBtn && !correct) {
+      b.classList.add('wrong');
+      b.querySelector('.glyph').textContent = '✕';
+    } else if (b === correctBtn && !correct) {
+      b.classList.add('correct');
+      b.querySelector('.glyph').textContent = '✓';
+    } else {
+      b.classList.add('dim');
+    }
+  });
+
+  bumpIfFinal(phrase.id, 2, correct);
+
   const item = getCurrentItem();
   const chainToVocab = item && item._followWithVocabCard;
-  const btn = document.getElementById('listenNextBtn');
-  btn.textContent = isCorrect ? 'Continue →' : 'Got it →';
-  btn.onclick = () => {
+  const nextBtn = document.getElementById('listenNextBtn');
+  nextBtn.disabled = false;
+  nextBtn.classList.add('enabled');
+  nextBtn.textContent = correct ? 'Continue' : 'Got it';
+  nextBtn.onclick = () => {
     if (chainToVocab) {
       showPhraseRevealScreen(phrase);
     } else {
       nextExercise();
     }
   };
-  btn.classList.remove('hidden');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -34539,24 +34555,33 @@ function lowercaseFirst(str) {
 }
 
 function renderListenMeaning(phrase) {
-  document.getElementById('listenTaskMeaning').style.display = 'block';
   const distractors = getDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
   const correctMeaning = lowercaseFirst(getMeaning(phrase));
-  const container = document.getElementById('listenMeaningOptions');
+  const container = document.getElementById('listenOptions');
   container.innerHTML = '';
+
+  let answered = false;
+  let correctBtn = null;
+  const allBtns = [];
+
   options.forEach(opt => {
     const btn = document.createElement('button');
-    btn.className = 'mc-option';
-    btn.textContent = opt.id === phrase.id ? correctMeaning : lowercaseFirst(getMeaning(opt));
+    btn.className = 'mc-option-v2';
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'label';
+    labelSpan.textContent = opt.id === phrase.id ? correctMeaning : lowercaseFirst(getMeaning(opt));
+    const glyphSpan = document.createElement('span');
+    glyphSpan.className = 'glyph';
+    btn.appendChild(labelSpan);
+    btn.appendChild(glyphSpan);
+    if (opt.id === phrase.id) correctBtn = btn;
+    allBtns.push(btn);
+
     btn.onclick = () => {
-      container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
-      const correct = opt.id === phrase.id;
-      btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-      if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
-        if (b.textContent === correctMeaning) b.className = 'mc-option reveal';
-      });
-      showListenRevealAfterTask(correct, phrase);
+      if (answered) return;
+      answered = true;
+      _listenAnswerInPlace(allBtns, btn, correctBtn, opt.id === phrase.id, phrase);
     };
     container.appendChild(btn);
   });
@@ -34587,25 +34612,34 @@ function getListenPickFrenchDistractors(phrase, count) {
 }
 
 function renderListenIdentify(phrase) {
-  document.getElementById('listenTaskIdentify').style.display = 'block';
   const distractors = getListenPickFrenchDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
-  const container = document.getElementById('listenIdentifyOptions');
+  const container = document.getElementById('listenOptions');
   container.innerHTML = '';
+
+  let answered = false;
+  let correctBtn = null;
+  const allBtns = [];
+
   options.forEach(opt => {
     const btn = document.createElement('button');
-    btn.className = 'mc-option';
-    btn.style.fontFamily = "'Cormorant Garamond', serif";
-    btn.style.fontStyle = 'italic';
-    btn.textContent = displayNative(opt, 'card');
+    btn.className = 'mc-option-v2';
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'label';
+    labelSpan.textContent = displayNative(opt, 'card');
+    labelSpan.style.fontFamily = "'Playfair Display', serif";
+    labelSpan.style.fontStyle = 'italic';
+    const glyphSpan = document.createElement('span');
+    glyphSpan.className = 'glyph';
+    btn.appendChild(labelSpan);
+    btn.appendChild(glyphSpan);
+    if (opt.id === phrase.id) correctBtn = btn;
+    allBtns.push(btn);
+
     btn.onclick = () => {
-      container.querySelectorAll('.mc-option').forEach(b => b.onclick = null);
-      const correct = opt.id === phrase.id;
-      btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
-      if (!correct) container.querySelectorAll('.mc-option').forEach(b => {
-        if (b.textContent === displayNative(phrase, 'card')) b.className = 'mc-option reveal';
-      });
-      showListenRevealAfterTask(correct, phrase);
+      if (answered) return;
+      answered = true;
+      _listenAnswerInPlace(allBtns, btn, correctBtn, opt.id === phrase.id, phrase);
     };
     container.appendChild(btn);
   });
