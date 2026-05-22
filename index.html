@@ -953,7 +953,7 @@ body::after {
     <div id="panelScenario" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div id="scenarioGoal" style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius); padding:0.9rem 1.1rem; margin-bottom:1.5rem; font-size:15px; color:var(--text); line-height:1.4; text-align:center; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; flex:0 0 auto;"></div>
       <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.6rem; text-align:center; flex:0 0 auto;">What would you say?</div>
-      <div class="mc-options" id="scenarioOptions" style="flex:1; min-height:0; overflow-y:auto; transition:opacity 0.15s ease;"></div>
+      <div class="mc-options" id="scenarioOptions" style="flex:1; min-height:0; overflow-y:auto;"></div>
       <div style="margin-top:1.25rem; flex:0 0 auto;">
         <button class="btn-primary" id="scenarioNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
       </div>
@@ -979,7 +979,7 @@ body::after {
     <!-- ── EMOJI EXERCISE panel (Stage 1) ── -->
     <div id="panelEmoji" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div id="emojiPhrase" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(1.6rem,5vw,2rem); color:var(--text); text-align:center; margin-bottom:clamp(1rem,4vh,2rem); line-height:1.3; flex:0 0 auto;"></div>
-      <div id="emojiOptions" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; flex:1; min-height:0; align-content:center; transition:opacity 0.15s ease;"></div>
+      <div id="emojiOptions" style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center;"></div>
       <div style="margin-top:1.25rem; flex:0 0 auto;">
         <button class="btn-primary" id="emojiNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
       </div>
@@ -994,7 +994,7 @@ body::after {
         <div style="font-size:13px; color:var(--text-dim);" id="mpPlayHint">Tap to hear again</div>
       </div>
       <div id="mpPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center; flex:0 0 auto;">What did you hear?</div>
-      <div id="mpOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto; transition:opacity 0.15s ease;"></div>
+      <div id="mpOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto;"></div>
       <div style="margin-top:1.25rem; flex:0 0 auto;">
         <button class="btn-primary" id="mpNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
       </div>
@@ -1022,7 +1022,7 @@ body::after {
         <button id="recogSlowerBtn" onclick="hearRecognitionSlower()" class="btn-text" style="display:none;margin-top:0.25rem">Hear it slower</button>
       </div>
       <div id="recogPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center; flex:0 0 auto;"></div>
-      <div id="recogOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto; transition:opacity 0.15s ease;"></div>
+      <div id="recogOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto;"></div>
       <div style="margin-top:1.25rem; flex:0 0 auto;">
         <button class="btn-primary" id="recogNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
       </div>
@@ -1217,7 +1217,7 @@ body::after {
       <button id="recogStdSlowerBtn" onclick="hearRecognitionSlower()" class="btn-text" style="display:none;margin-top:0.25rem">Hear it slower</button>
     </div>
     <div id="recogStdPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center; flex:0 0 auto;"></div>
-    <div id="recogStdOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto; transition:opacity 0.15s ease;"></div>
+    <div id="recogStdOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto;"></div>
     <div style="margin-top:1.25rem; flex:0 0 auto;">
       <button class="btn-primary" id="recogStdNextBtn" onclick="advanceRecognitionStd()" style="visibility:hidden;">Continue →</button>
     </div>
@@ -33220,7 +33220,6 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   const recogScore = getRecognitionScore(trigger.intent);
   nextBtn.style.visibility = 'hidden';
   circle.classList.remove('playing');
-  optsEl.style.opacity = '1';
   optsEl.innerHTML = '';
 
   if (promptEl) {
@@ -33241,6 +33240,34 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
+  // Build both states up front. Buttons live in choicesArea; the reveal
+  // content lives in revealArea (display:none until answer). Answering just
+  // toggles display on these two sibling divs — no innerHTML, no
+  // re-creation, no stale references.
+  const choicesArea = document.createElement('div');
+  choicesArea.className = 'answers-choices';
+
+  const revealArea = document.createElement('div');
+  revealArea.className = 'answers-reveal';
+  revealArea.style.display = 'none';
+  const wordCount = (trigger.signalWord || '').split('/').length;
+  const labelText = wordCount > 1 ? 'The words to listen for' : 'The word to listen for';
+  const defText = trigger.signalWordDefinition || '';
+  const noteText = trigger.signalWordNote || '';
+  const meaningText = trigger.englishTranslation || trigger.signal || '';
+  revealArea.innerHTML = `
+    <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm);">
+      <div class="result-label" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.6rem;"></div>
+      <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">${esc(labelText)}</div>
+      <div style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;">${esc(trigger.signalWord || '')}</div>
+      ${defText ? `<div style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem;">${esc(defText)}</div>` : ''}
+      ${noteText ? `<div style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem;">${esc(noteText)}</div>` : ''}
+      <div style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;">${highlightSignalWord(trigger.triggerPhrase, trigger.signalWord)}</div>
+      ${meaningText ? `<div style="font-size:14px; color:var(--text-dim); font-style:italic; margin-top:0.5rem;">${esc(meaningText)}</div>` : ''}
+    </div>
+  `;
+  const resultLabel = revealArea.querySelector('.result-label');
+
   let answered = false;
   choices.forEach(c => {
     const btn = document.createElement('button');
@@ -33252,7 +33279,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       answered = true;
 
       // Kill any in-flight stimulus audio so its onended (-> onStimulusEnd
-      // -> setAnswersEnabled, etc) can't fire during the reveal swap.
+      // -> setAnswersEnabled, etc) can't fire during/after the swap.
       if (_activeRecognitionAudio) {
         try { _activeRecognitionAudio.onended = null; } catch (e) {}
         try { _activeRecognitionAudio.onerror = null; } catch (e) {}
@@ -33262,7 +33289,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       audioEndedCallback = null;
       if (circle) circle.classList.remove('playing');
 
-      Array.from(optsEl.children).forEach(child => {
+      Array.from(choicesArea.children).forEach(child => {
         const childCorrect = child.dataset.correct === 'true';
         child.style.cursor = 'default';
         child.style.pointerEvents = 'none';
@@ -33277,52 +33304,32 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
         }
       });
 
-      // Let the tap feedback register, then fade choices out and swap reveal
-      // content into the same container so nothing above shifts. Score and
-      // side-effects fire AFTER the swap so nothing can re-render the
-      // choices container mid-transition and re-insert the buttons.
+      // Let the tap feedback register, then flip display on the two
+      // pre-rendered sibling divs. No innerHTML, no DOM creation.
       setTimeout(() => {
-        if (!optsEl.isConnected) return;
-        optsEl.style.opacity = '0';
-        setTimeout(() => {
-          if (!optsEl.isConnected) return;
-          const wordCount = (trigger.signalWord || '').split('/').length;
-          const labelText = wordCount > 1 ? 'The words to listen for' : 'The word to listen for';
-          const defText = trigger.signalWordDefinition || '';
-          const noteText = trigger.signalWordNote || '';
-          const meaningText = trigger.englishTranslation || trigger.signal || '';
-          const resultColor = c.correct ? '#4ade80' : '#f87171';
-          const resultText = c.correct ? '✓ Correct' : '✗ Not quite';
-          optsEl.innerHTML = `
-            <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm);">
-              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:${resultColor}; margin-bottom:0.6rem;">${resultText}</div>
-              <div style="font-size:13px; color:var(--text-dim); letter-spacing:0.05em; margin-bottom:0.4rem;">${esc(labelText)}</div>
-              <div style="font-family:'Cormorant Garamond',serif; font-size:24px; font-style:italic; color:var(--text); margin-bottom:0.6rem;">${esc(trigger.signalWord || '')}</div>
-              ${defText ? `<div style="font-size:13px; color:var(--text-dim); margin-bottom:0.3rem;">${esc(defText)}</div>` : ''}
-              ${noteText ? `<div style="font-size:13px; color:var(--border); line-height:1.4; margin-bottom:0.5rem;">${esc(noteText)}</div>` : ''}
-              <div style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text-mid); line-height:1.4;">${highlightSignalWord(trigger.triggerPhrase, trigger.signalWord)}</div>
-              ${meaningText ? `<div style="font-size:14px; color:var(--text-dim); font-style:italic; margin-top:0.5rem;">${esc(meaningText)}</div>` : ''}
-            </div>
-          `;
-          optsEl.style.opacity = '1';
-          nextBtn.style.visibility = 'visible';
+        resultLabel.textContent = c.correct ? '✓ Correct' : '✗ Not quite';
+        resultLabel.style.color = c.correct ? '#4ade80' : '#f87171';
+        choicesArea.style.display = 'none';
+        revealArea.style.display = '';
+        nextBtn.style.visibility = 'visible';
 
-          // Now that the DOM is stable, run scoring + side-effects.
-          const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
-          if (!seen.includes(trigger.id)) {
-            seen.push(trigger.id);
-            localStorage.setItem('tt_seenTriggers', JSON.stringify(seen));
-          }
-          if (onAnswer) onAnswer(c.correct);
+        const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
+        if (!seen.includes(trigger.id)) {
+          seen.push(trigger.id);
+          localStorage.setItem('tt_seenTriggers', JSON.stringify(seen));
+        }
+        if (onAnswer) onAnswer(c.correct);
 
-          _onCoachMarkDismiss = () => showScreen('screenExercise');
-          showCoachMark('tt_seenSignalWordCoachMark');
-        }, 150);
+        _onCoachMarkDismiss = () => showScreen('screenExercise');
+        showCoachMark('tt_seenSignalWordCoachMark');
       }, 500);
     };
     btn.dataset.correct = c.correct ? 'true' : 'false';
-    optsEl.appendChild(btn);
+    choicesArea.appendChild(btn);
   });
+
+  optsEl.appendChild(choicesArea);
+  optsEl.appendChild(revealArea);
 
   if (nextBtn) nextBtn.onclick = onContinue;
 
@@ -33903,11 +33910,32 @@ function renderScenarioPanel(phrase) {
   const distractors = getScenarioDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
   const container = document.getElementById('scenarioOptions');
-  container.style.opacity = '1';
   container.innerHTML = '';
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
+  // Pre-render both states. Choice buttons in choicesArea, reveal card in
+  // revealArea (display:none until answer). Answering only flips display.
+  const choicesArea = document.createElement('div');
+  choicesArea.className = 'answers-choices';
+
+  const revealArea = document.createElement('div');
+  revealArea.className = 'answers-reveal';
+  revealArea.style.display = 'none';
+  const nativeHtml = displayNative(phrase, 'card');
+  const roman = stripHtmlTags(phrase.romanization || '');
+  const meaning = getMeaning(phrase);
+  revealArea.innerHTML = `
+    <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
+      <div class="result-label" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.6rem;"></div>
+      <div style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text); line-height:1.4; margin-bottom:0.35rem;">${nativeHtml}</div>
+      ${roman ? `<div style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-bottom:0.25rem;">${esc(roman)}</div>` : ''}
+      <div style="font-size:13px; color:var(--text-dim); line-height:1.4;">${esc(meaning)}</div>
+    </div>
+  `;
+  const resultLabel = revealArea.querySelector('.result-label');
+
+  let answered = false;
   options.forEach(opt => {
     const btn = document.createElement('button');
     btn.className = 'mc-option';
@@ -33916,52 +33944,37 @@ function renderScenarioPanel(phrase) {
     btn.textContent = displayNative(opt, 'card');
     btn.dataset.phraseId = opt.id;
     btn.onclick = () => {
-      // Lock all buttons after first tap.
-      container.querySelectorAll('.mc-option').forEach(b => { b.onclick = null; b.style.pointerEvents = 'none'; });
+      if (answered) return;
+      answered = true;
+      choicesArea.querySelectorAll('.mc-option').forEach(b => { b.onclick = null; b.style.pointerEvents = 'none'; });
       const correct = opt.id === phrase.id;
       btn.className = 'mc-option ' + (correct ? 'correct' : 'wrong');
       if (!correct) {
-        container.querySelectorAll('.mc-option').forEach(b => {
+        choicesArea.querySelectorAll('.mc-option').forEach(b => {
           if (b.dataset.phraseId === phrase.id) b.className = 'mc-option reveal';
         });
       }
 
-      // Let the tap feedback register, then swap reveal content into the
-      // choices container so the layout doesn't shift. Scoring runs AFTER
-      // the swap so nothing can re-render mid-transition.
       setTimeout(() => {
-        if (!container.isConnected) return;
-        container.style.opacity = '0';
-        setTimeout(() => {
-          if (!container.isConnected) return;
-          const nativeHtml = displayNative(phrase, 'card');
-          const roman = stripHtmlTags(phrase.romanization || '');
-          const meaning = getMeaning(phrase);
-          const resultColor = correct ? '#4ade80' : '#f87171';
-          const resultText = correct ? '✓ Correct' : '✗ Not quite';
-          container.innerHTML = `
-            <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
-              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:${resultColor}; margin-bottom:0.6rem;">${resultText}</div>
-              <div style="font-family:'Cormorant Garamond',serif; font-size:18px; font-style:italic; color:var(--text); line-height:1.4; margin-bottom:0.35rem;">${nativeHtml}</div>
-              ${roman ? `<div style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-bottom:0.25rem;">${esc(roman)}</div>` : ''}
-              <div style="font-size:13px; color:var(--text-dim); line-height:1.4;">${esc(meaning)}</div>
-            </div>
-          `;
-          container.style.opacity = '1';
-          nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
-          nextBtn.style.visibility = 'visible';
+        resultLabel.textContent = correct ? '✓ Correct' : '✗ Not quite';
+        resultLabel.style.color = correct ? '#4ade80' : '#f87171';
+        choicesArea.style.display = 'none';
+        revealArea.style.display = '';
+        nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
+        nextBtn.style.visibility = 'visible';
 
-          // DOM is stable — score + resurface now.
-          bumpIfFinal(phrase.id, 0, correct);
-          if (!correct) {
-            const item = getCurrentItem();
-            resurfaceIfEligible(phrase.id, item ? item.type : 'scenario_response');
-          }
-        }, 150);
+        bumpIfFinal(phrase.id, 0, correct);
+        if (!correct) {
+          const item = getCurrentItem();
+          resurfaceIfEligible(phrase.id, item ? item.type : 'scenario_response');
+        }
       }, 500);
     };
-    container.appendChild(btn);
+    choicesArea.appendChild(btn);
   });
+
+  container.appendChild(choicesArea);
+  container.appendChild(revealArea);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -34164,8 +34177,6 @@ function renderEmojiPanel(phrase) {
   showScreen('screenExercise');
   document.getElementById('emojiPhrase').textContent = displayNative(phrase, 'card');
   const grid = document.getElementById('emojiOptions');
-  grid.style.opacity = '1';
-  grid.style.display = 'grid';
   grid.innerHTML = '';
   const nextBtn = document.getElementById('emojiNextBtn');
   nextBtn.style.visibility = 'hidden';
@@ -34175,61 +34186,68 @@ function renderEmojiPanel(phrase) {
 
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
+  // Pre-render both states. Emoji button grid + reveal card live as siblings;
+  // answer just toggles display between them.
+  const choicesArea = document.createElement('div');
+  choicesArea.className = 'answers-choices';
+  choicesArea.style.cssText = 'display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;';
+
+  const revealArea = document.createElement('div');
+  revealArea.className = 'answers-reveal';
+  revealArea.style.cssText = 'display:none; align-items:center; justify-content:center;';
+  revealArea.innerHTML = `
+    <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center; max-width:340px; margin:0 auto;">
+      <div class="result-label" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.6rem;"></div>
+      <div style="font-size:3rem; line-height:1; margin-bottom:0.6rem;">${esc(phrase.emoji || '')}</div>
+      <div style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;">${displayNative(phrase, 'card')}</div>
+      <div style="font-size:14px; color:var(--text-dim);">${esc(getMeaning(phrase) || '')}</div>
+    </div>
+  `;
+  const resultLabel = revealArea.querySelector('.result-label');
+
+  let answered = false;
   options.forEach(opt => {
     const btn = document.createElement('button');
     btn.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; font-size:2.5rem; line-height:1; cursor:pointer; transition:border-color 0.15s, background 0.15s, opacity 0.15s;';
     btn.textContent = opt.emoji || '';
     btn.onclick = () => {
-      grid.querySelectorAll('button').forEach(b => { b.onclick = null; b.style.pointerEvents = 'none'; });
+      if (answered) return;
+      answered = true;
+      choicesArea.querySelectorAll('button').forEach(b => { b.onclick = null; b.style.pointerEvents = 'none'; });
       const correct = opt.id === phrase.id;
       if (correct) {
         btn.style.borderColor = '#4ade80';
         btn.style.background = 'rgba(74,222,128,0.10)';
       } else {
         btn.style.opacity = '0.4';
-        grid.querySelectorAll('button').forEach(b => {
+        choicesArea.querySelectorAll('button').forEach(b => {
           if (b.textContent === phrase.emoji) {
             b.style.borderColor = '#4ade80';
             b.style.background = 'rgba(74,222,128,0.10)';
           }
         });
       }
-      // Let the tap feedback register, then fade grid out and swap reveal
-      // content into the same slot so the prompt above never shifts.
-      // Scoring runs AFTER the swap so nothing can re-render mid-transition.
-      setTimeout(() => {
-        if (!grid.isConnected) return;
-        grid.style.opacity = '0';
-        setTimeout(() => {
-          if (!grid.isConnected) return;
-          const resultColor = correct ? '#4ade80' : '#f87171';
-          const resultText = correct ? '✓ Correct' : '✗ Not quite';
-          grid.style.display = 'flex';
-          grid.style.alignItems = 'center';
-          grid.style.justifyContent = 'center';
-          grid.innerHTML = `
-            <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center; max-width:340px;">
-              <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:${resultColor}; margin-bottom:0.6rem;">${resultText}</div>
-              <div style="font-size:3rem; line-height:1; margin-bottom:0.6rem;">${esc(phrase.emoji || '')}</div>
-              <div style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;">${displayNative(phrase, 'card')}</div>
-              <div style="font-size:14px; color:var(--text-dim);">${esc(getMeaning(phrase) || '')}</div>
-            </div>
-          `;
-          grid.style.opacity = '1';
-          nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
-          nextBtn.style.visibility = 'visible';
 
-          // DOM is stable — score + resurface now.
-          bumpIfFinal(phrase.id, 0, correct);
-          if (!correct) {
-            const item = getCurrentItem();
-            resurfaceIfEligible(phrase.id, item ? item.type : 'emoji_exercise');
-          }
-        }, 150);
+      setTimeout(() => {
+        resultLabel.textContent = correct ? '✓ Correct' : '✗ Not quite';
+        resultLabel.style.color = correct ? '#4ade80' : '#f87171';
+        choicesArea.style.display = 'none';
+        revealArea.style.display = 'flex';
+        nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
+        nextBtn.style.visibility = 'visible';
+
+        bumpIfFinal(phrase.id, 0, correct);
+        if (!correct) {
+          const item = getCurrentItem();
+          resurfaceIfEligible(phrase.id, item ? item.type : 'emoji_exercise');
+        }
       }, 500);
     };
-    grid.appendChild(btn);
+    choicesArea.appendChild(btn);
   });
+
+  grid.appendChild(choicesArea);
+  grid.appendChild(revealArea);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -34291,16 +34309,40 @@ function renderMinimalPairPanel(item) {
   document.getElementById('mpNextBtn').style.visibility = 'hidden';
 
   const optsEl = document.getElementById('mpOptions');
-  optsEl.style.opacity = '1';
   optsEl.innerHTML = '';
+
+  const esc = str => String(str == null ? '' : str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+  const choicesArea = document.createElement('div');
+  choicesArea.className = 'answers-choices';
+
+  const revealArea = document.createElement('div');
+  revealArea.className = 'answers-reveal';
+  revealArea.style.display = 'none';
+  revealArea.innerHTML = `
+    <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
+      <div class="result-label" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:0.6rem;"></div>
+      <div style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;">${esc(targetWord)}</div>
+      <div style="font-size:14px; color:var(--text-dim);">${esc(targetEnglish || '')}</div>
+    </div>
+  `;
+
+  // Stash the pre-rendered areas so the tap handler just flips display.
+  _minimalPairState.choicesArea = choicesArea;
+  _minimalPairState.revealArea = revealArea;
+  _minimalPairState.resultLabel = revealArea.querySelector('.result-label');
+
   options.forEach(word => {
     const btn = document.createElement('button');
     btn.className = 'mc-option';
     btn.style.cssText = 'display:block; width:100%; text-align:center; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; margin-bottom:0.5rem; color:var(--text); font-family:"Cormorant Garamond",serif; font-style:italic; font-size:18px; line-height:1.4; cursor:pointer; transition:all 0.15s;';
     btn.textContent = word;
     btn.onclick = () => answerMinimalPairChoice(word, btn);
-    optsEl.appendChild(btn);
+    choicesArea.appendChild(btn);
   });
+
+  optsEl.appendChild(choicesArea);
+  optsEl.appendChild(revealArea);
 
   // If no interstitial fires (already seen), start the exercise directly.
   if (!showCoachMark('tt_seenMinimalPairsCoachMark')) {
@@ -34325,8 +34367,7 @@ function answerMinimalPairChoice(word, btn) {
   if (!s || s.answered) return;
   s.answered = true;
   const correct = word === s.targetWord;
-  const optsEl = document.getElementById('mpOptions');
-  Array.from(optsEl.children).forEach(child => {
+  Array.from(s.choicesArea.children).forEach(child => {
     child.style.cursor = 'default';
     child.style.pointerEvents = 'none';
     if (child.textContent === s.targetWord) {
@@ -34340,27 +34381,12 @@ function answerMinimalPairChoice(word, btn) {
     }
   });
 
-  const esc = str => String(str == null ? '' : str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-
-  // Let the tap feedback register, then fade choices out and swap reveal
-  // content into the same container so nothing above shifts.
   setTimeout(() => {
-    if (!optsEl.isConnected) return;
-    optsEl.style.opacity = '0';
-    setTimeout(() => {
-      if (!optsEl.isConnected) return;
-      const resultColor = correct ? '#4ade80' : '#f87171';
-      const resultText = correct ? '✓ Correct' : '✗ Not quite';
-      optsEl.innerHTML = `
-        <div style="padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center;">
-          <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:${resultColor}; margin-bottom:0.6rem;">${resultText}</div>
-          <div style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;">${esc(s.targetWord)}</div>
-          <div style="font-size:14px; color:var(--text-dim);">${esc(s.targetEnglish || '')}</div>
-        </div>
-      `;
-      optsEl.style.opacity = '1';
-      document.getElementById('mpNextBtn').style.visibility = 'visible';
-    }, 150);
+    s.resultLabel.textContent = correct ? '✓ Correct' : '✗ Not quite';
+    s.resultLabel.style.color = correct ? '#4ade80' : '#f87171';
+    s.choicesArea.style.display = 'none';
+    s.revealArea.style.display = '';
+    document.getElementById('mpNextBtn').style.visibility = 'visible';
   }, 500);
 }
 
