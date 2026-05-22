@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0d0d0e">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lexend:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lexend:wght@200;300;400;500&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet">
 <style>
 /* ── RESET & TOKENS ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -575,41 +575,213 @@ body::after {
   gap: 0.75rem;
 }
 
-/* Three-zone absolute layout for exercise panels. Each panel is
-   position:relative; flex:1 (so it consumes its allotment from
-   .p-screen), and its three children are absolutely positioned at
-   fixed percentages/offsets so nothing inside any zone can shift the
-   others. */
-.exercise-top-zone {
-  position: absolute;
-  top: 72px;
-  left: 0;
-  right: 0;
+/* ── EXERCISE LAYOUT (design handoff: no-shift feedback) ────────────
+   Background canvas (#171410), 22px horizontal padding, fixed-height
+   regions stacked top-to-bottom. Nothing shifts on answer because
+   every region's height is fixed at render. */
+.exercise-canvas {
+  background: #171410;
+  color: #F5EEDE;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 22px 30px;
+  min-height: 0;
+}
+
+/* Play block: fixed 160px slot, 32px top margin. The 76px button is
+   centered inside — the slot's height never depends on the button. */
+.play-block-slot {
+  height: 160px;
+  flex: 0 0 160px;
+  margin-top: 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  text-align: center;
+  justify-content: center;
+  gap: 14px;
 }
-.exercise-middle-zone {
+.play-circle-v2 {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #F4EFE5 0%, #DDD1B8 70%, #C8B998 100%);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.18), inset 0 3px 6px rgba(255,255,255,0.55);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 0;
+  padding: 0;
+}
+.play-circle-v2.playing {
+  box-shadow: 0 0 0 6px rgba(232,200,120,0.18), 0 18px 40px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.18), inset 0 3px 6px rgba(255,255,255,0.55);
+}
+.play-circle-v2 svg {
+  width: 26px;
+  height: 26px;
+}
+.play-circle-v2 .pulse-overlay {
   position: absolute;
-  top: 260px;
-  bottom: 72px;
-  left: 1rem;
-  right: 1rem;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #FFE49A 0%, #E8B450 70%, #A87A2C 100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.play-circle-v2.playing .pulse-overlay {
+  animation: playColorPulse 1500ms ease-in-out;
+}
+@keyframes playColorPulse {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  65% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.play-caption {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: rgba(245,238,222,0.42);
+}
+
+/* Prompt block — 26px below play block, italic display font + emoji. */
+.prompt-block {
+  margin-top: 26px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  overflow-y: auto;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
 }
-.exercise-bottom-zone {
-  position: absolute;
-  bottom: 0;
-  left: 1rem;
-  right: 1rem;
-  height: 72px;
-  padding-bottom: 0.75rem;
+.prompt-italic {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 26px;
+  color: #F5EEDE;
+  text-align: center;
+  line-height: 1.2;
 }
+.prompt-emoji-hint {
+  font-size: 24px;
+  line-height: 1;
+}
+
+/* Answer choices — 22px below prompt, fixed 60px each, 10px gap. */
+.answer-choices {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.mc-option-v2 {
+  height: 60px;
+  min-height: 60px;
+  max-height: 60px;
+  border-radius: 14px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: 22px;
+  letter-spacing: 0.2px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(245,238,222,0.18);
+  color: #F5EEDE;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  cursor: pointer;
+  transition: background 220ms ease, color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, opacity 220ms ease;
+  width: 100%;
+  text-align: left;
+}
+.mc-option-v2 .label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mc-option-v2 .glyph {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.85;
+  min-width: 14px;
+  text-align: right;
+}
+.mc-option-v2.correct {
+  background: #1F8A3B;
+  border-color: #2BB14F;
+  color: #EAFBEF;
+  box-shadow: inset 0 0 0 1px #2BB14F, 0 0 24px -8px #2BB14F;
+}
+.mc-option-v2.wrong {
+  background: #B5283A;
+  border-color: #DE3B53;
+  color: #FFE6EA;
+  box-shadow: inset 0 0 0 1px #DE3B53, 0 0 24px -8px #DE3B53;
+}
+.mc-option-v2.dim {
+  opacity: 0.42;
+}
+.mc-option-v2:disabled {
+  cursor: default;
+}
+
+/* Spacer that absorbs remaining vertical space. */
+.exercise-spacer {
+  flex: 1;
+  min-height: 12px;
+}
+
+/* Continue button — fixed 56px, always in layout, visually disabled
+   until an answer is picked. */
+.continue-btn {
+  height: 56px;
+  flex: 0 0 56px;
+  border-radius: 16px;
+  border: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  background: rgba(245,238,222,0.08);
+  color: rgba(245,238,222,0.28);
+  box-shadow: none;
+  cursor: default;
+  transition: background 220ms ease, color 220ms ease, box-shadow 220ms ease;
+}
+.continue-btn.enabled {
+  background: #F5EEDE;
+  color: #1A1612;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+  cursor: pointer;
+}
+
+/* Staggered post-audio reveal — every element occupies its space from
+   render (opacity:0), so the layout is calculated once. */
+@keyframes contentFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-target { opacity: 0; }
+.fade-target.revealed {
+  animation: contentFadeIn 1400ms ease-out forwards;
+}
+.fade-target.revealed.delay-0   { animation-delay: 0ms; }
+.fade-target.revealed.delay-80  { animation-delay: 80ms; }
+.fade-target.revealed.delay-160 { animation-delay: 160ms; }
+.fade-target.revealed.delay-240 { animation-delay: 240ms; }
 .exercise-type-badge {
   font-size: 13px;
   letter-spacing: 0.2em;
@@ -971,17 +1143,12 @@ body::after {
 
 
     <!-- ── SCENARIO RESPONSE panel ── -->
-    <div id="panelScenario" class="hidden" style="flex:1; position:relative;">
-      <div class="exercise-top-zone" style="left:0; right:0; padding:0 0;">
-        <div id="scenarioGoal" style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius); padding:0.9rem 1.1rem; font-size:15px; color:var(--text); line-height:1.4; text-align:center; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; width:100%;"></div>
-      </div>
-      <div class="exercise-middle-zone">
-        <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.6rem; text-align:center;">What would you say?</div>
-        <div class="mc-options" id="scenarioOptions" style="flex:1; min-height:0; overflow-y:auto;"></div>
-      </div>
-      <div class="exercise-bottom-zone">
-        <button class="btn-primary" id="scenarioNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
-      </div>
+    <div id="panelScenario" class="hidden exercise-canvas">
+      <div id="scenarioGoal" style="background:rgba(255,255,255,0.04); border:1px solid rgba(245,238,222,0.18); border-radius:14px; padding:0.9rem 1.1rem; margin-top:24px; font-size:15px; color:#F5EEDE; line-height:1.4; text-align:center; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; flex:0 0 auto;"></div>
+      <div style="font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:rgba(245,238,222,0.42); margin-top:18px; text-align:center; flex:0 0 auto; font-family:system-ui,-apple-system,sans-serif; font-weight:600;">What would you say?</div>
+      <div class="answer-choices" id="scenarioOptions" style="margin-top:14px;"></div>
+      <div class="exercise-spacer"></div>
+      <button class="continue-btn" id="scenarioNextBtn" onclick="nextExercise()" disabled>Continue</button>
     </div>
 
     <!-- ── ANTICIPATION panel (first-encounter presentation) ── -->
@@ -1002,33 +1169,28 @@ body::after {
     </div>
 
     <!-- ── EMOJI EXERCISE panel (Stage 1) ── -->
-    <div id="panelEmoji" class="hidden" style="flex:1; position:relative;">
-      <div class="exercise-top-zone">
-        <div id="emojiPhrase" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(1.6rem,5vw,2rem); color:var(--text); line-height:1.3;"></div>
-      </div>
-      <div class="exercise-middle-zone">
-        <div id="emojiOptions" style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center;"></div>
-      </div>
-      <div class="exercise-bottom-zone">
-        <button class="btn-primary" id="emojiNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
-      </div>
+    <div id="panelEmoji" class="hidden exercise-canvas">
+      <div id="emojiPhrase" style="font-family:'Playfair Display',serif; font-style:italic; font-weight:500; font-size:26px; color:#F5EEDE; line-height:1.2; margin-top:48px; text-align:center; flex:0 0 auto;"></div>
+      <div id="emojiOptions" style="flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:14px; align-content:center; margin-top:24px;"></div>
+      <div class="exercise-spacer"></div>
+      <button class="continue-btn" id="emojiNextBtn" onclick="nextExercise()" disabled>Continue</button>
     </div>
 
     <!-- ── MINIMAL PAIRS panel (Stage 2+) ── -->
-    <div id="panelMinimalPairs" class="hidden" style="flex:1; position:relative;">
-      <div class="exercise-top-zone">
-        <div class="play-circle" id="mpCircle" onclick="replayMinimalPairAudio()">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <div style="font-size:13px; color:var(--text-dim);" id="mpPlayHint">Tap to hear again</div>
+    <div id="panelMinimalPairs" class="hidden exercise-canvas">
+      <div class="play-block-slot">
+        <button class="play-circle-v2" id="mpCircle" onclick="replayMinimalPairAudio()" aria-label="Play audio">
+          <span class="pulse-overlay"></span>
+          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#2A2620"/></svg>
+        </button>
+        <div class="play-caption" id="mpPlayHint">Tap to play</div>
       </div>
-      <div class="exercise-middle-zone">
-        <div id="mpPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-bottom:0.5rem; text-align:center;">What did you hear?</div>
-        <div id="mpOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto;"></div>
+      <div class="prompt-block">
+        <div style="font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:rgba(245,238,222,0.42); font-family:system-ui,-apple-system,sans-serif; font-weight:600;" id="mpPrompt">What did you hear?</div>
       </div>
-      <div class="exercise-bottom-zone">
-        <button class="btn-primary" id="mpNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
-      </div>
+      <div class="answer-choices" id="mpOptions"></div>
+      <div class="exercise-spacer"></div>
+      <button class="continue-btn" id="mpNextBtn" onclick="nextExercise()" disabled>Continue</button>
     </div>
 
     <!-- ── RECOGNITION panel ── -->
@@ -1038,25 +1200,31 @@ body::after {
       <div id="buildupChunkText" style="font-family:'Cormorant Garamond',serif; font-size:clamp(1.6rem,5vw,2rem); font-style:italic; font-weight:500; line-height:1.3; text-align:center; color:var(--text); opacity:0; transition:opacity 250ms ease; min-height:2.8rem;"></div>
     </div>
 
-    <div id="panelRecognition" class="hidden" style="flex:1; position:relative;">
-      <div class="exercise-top-zone">
-        <div id="recogSignalAnchor" style="display:none;">
-          <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
-          <span id="recogAnchorWord" style="font-size:15px; color:var(--text);"></span>
-        </div>
-        <div class="play-circle" id="recogCircle" onclick="replayRecognitionAudio()">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <div style="font-size:13px; color:var(--text-dim);" id="recogPlayHint">Listening...</div>
-        <button id="recogSlowerBtn" onclick="hearRecognitionSlower()" class="btn-text" style="display:none;">Hear it slower</button>
+    <div id="panelRecognition" class="hidden exercise-canvas">
+      <!-- Play block: fixed 160px slot, 76px button centered inside. -->
+      <div class="play-block-slot">
+        <button class="play-circle-v2" id="recogCircle" onclick="replayRecognitionAudio()" aria-label="Play audio">
+          <span class="pulse-overlay"></span>
+          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#2A2620"/></svg>
+        </button>
+        <div class="play-caption fade-target delay-0" id="recogPlayHint">Tap to play</div>
       </div>
-      <div class="exercise-middle-zone">
-        <div id="recogPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-bottom:0.5rem; text-align:center;"></div>
-        <div id="recogOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto;"></div>
+      <!-- Optional signal-word anchor — shown above prompt when present. -->
+      <div id="recogSignalAnchor" class="fade-target delay-80" style="display:none; text-align:center; margin-top:8px;">
+        <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(245,238,222,0.55);">Listen for: </span>
+        <span id="recogAnchorWord" style="font-size:15px; color:#F5EEDE;"></span>
       </div>
-      <div class="exercise-bottom-zone">
-        <button class="btn-primary" id="recogNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
+      <!-- Prompt block: trigger phrase + emoji hint. -->
+      <div class="prompt-block fade-target delay-80">
+        <div class="prompt-italic" id="recogPrompt"></div>
+        <div class="prompt-emoji-hint" id="recogPromptEmoji" style="display:none;"></div>
       </div>
+      <!-- Answer choices: 4 fixed-height buttons. -->
+      <div class="answer-choices fade-target delay-160" id="recogOptions"></div>
+      <!-- Flexible spacer absorbs slack so Continue stays pinned. -->
+      <div class="exercise-spacer"></div>
+      <!-- Continue button: always in layout, disabled until answered. -->
+      <button class="continue-btn fade-target delay-240" id="recogNextBtn" onclick="nextExercise()" disabled>Continue</button>
     </div>
 
 
@@ -1233,27 +1401,25 @@ body::after {
     <button class="btn-back" onclick="exitRecognitionStd()" aria-label="Back">←</button>
     <div style="flex:1; font-size:17px; color:var(--text); padding-left:0.5rem;">Recognition</div>
   </div>
-  <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
-    <div style="flex:1; position:relative;">
-      <div class="exercise-top-zone">
-        <div id="recogStdSignalAnchor" style="display:none;">
-          <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
-          <span id="recogStdAnchorWord" style="font-size:15px; color:var(--text);"></span>
-        </div>
-        <div class="play-circle" id="recogStdCircle" onclick="replayRecognitionStdAudio()">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <div style="font-size:13px; color:var(--text-dim);" id="recogStdPlayHint">Listening...</div>
-        <button id="recogStdSlowerBtn" onclick="hearRecognitionSlower()" class="btn-text" style="display:none;">Hear it slower</button>
-      </div>
-      <div class="exercise-middle-zone">
-        <div id="recogStdPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-bottom:0.5rem; text-align:center;"></div>
-        <div id="recogStdOptions" class="mc-options" style="flex:1; min-height:0; overflow-y:auto;"></div>
-      </div>
-      <div class="exercise-bottom-zone">
-        <button class="btn-primary" id="recogStdNextBtn" onclick="advanceRecognitionStd()" style="visibility:hidden;">Continue →</button>
-      </div>
+  <div class="p-screen exercise-canvas">
+    <div class="play-block-slot">
+      <button class="play-circle-v2" id="recogStdCircle" onclick="replayRecognitionStdAudio()" aria-label="Play audio">
+        <span class="pulse-overlay"></span>
+        <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#2A2620"/></svg>
+      </button>
+      <div class="play-caption fade-target delay-0" id="recogStdPlayHint">Tap to play</div>
     </div>
+    <div id="recogStdSignalAnchor" class="fade-target delay-80" style="display:none; text-align:center; margin-top:8px;">
+      <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(245,238,222,0.55);">Listen for: </span>
+      <span id="recogStdAnchorWord" style="font-size:15px; color:#F5EEDE;"></span>
+    </div>
+    <div class="prompt-block fade-target delay-80">
+      <div class="prompt-italic" id="recogStdPrompt"></div>
+      <div class="prompt-emoji-hint" id="recogStdPromptEmoji" style="display:none;"></div>
+    </div>
+    <div class="answer-choices fade-target delay-160" id="recogStdOptions"></div>
+    <div class="exercise-spacer"></div>
+    <button class="continue-btn fade-target delay-240" id="recogStdNextBtn" onclick="advanceRecognitionStd()" disabled>Continue</button>
   </div>
   <div id="recogStdCompleteOverlay" class="hidden" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); padding:1.5rem;">
     <div style="text-align:center; max-width:340px;">
@@ -33233,7 +33399,11 @@ function pickRecognitionDistractors(trigger, count) {
 function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   _activeRecognitionTrigger = trigger;
 
+  const panel = prefix === 'recog'
+    ? document.getElementById('panelRecognition')
+    : document.querySelector('#screenRecognition > .p-screen');
   const promptEl = document.getElementById(prefix + 'Prompt');
+  const promptEmojiEl = document.getElementById(prefix + 'PromptEmoji');
   const optsEl = document.getElementById(prefix + 'Options');
   const playHintEl = document.getElementById(prefix + 'PlayHint');
   const nextBtn = document.getElementById(prefix + 'NextBtn');
@@ -33250,19 +33420,24 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     }
   }
 
-  const recogScore = getRecognitionScore(trigger.intent);
-  nextBtn.style.visibility = 'hidden';
+  // Reset fade-in state — every fadeable element starts hidden, then
+  // gets .revealed when audio finishes (handled in onStimulusEnd).
+  const fadeTargets = panel ? panel.querySelectorAll('.fade-target') : [];
+  fadeTargets.forEach(el => el.classList.remove('revealed'));
+
+  // Prompt: the foreign phrase the learner just heard. Caption stays "TAP TO PLAY".
+  if (playHintEl) playHintEl.textContent = 'Tap to play';
+  if (promptEl) promptEl.textContent = trigger.triggerPhrase || trigger.signal || '';
+  if (promptEmojiEl) promptEmojiEl.style.display = 'none';
+
+  // Reset Continue to disabled state.
+  nextBtn.disabled = true;
+  nextBtn.classList.remove('enabled');
+  nextBtn.textContent = 'Continue';
+  if (onContinue) nextBtn.onclick = onContinue;
+
   circle.classList.remove('playing');
   optsEl.innerHTML = '';
-
-  if (promptEl) {
-    let promptText = '';
-    if (recogScore <= 1) promptText = 'What did you just hear?';
-    else if (recogScore <= 3) promptText = 'How would you respond?';
-    else promptText = '';
-    promptEl.textContent = promptText;
-    promptEl.style.display = promptText ? '' : 'none';
-  }
 
   const correctLabel = getTriggerLabel(trigger);
   const distractors = pickRecognitionDistractors(trigger, 3);
@@ -33271,19 +33446,21 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     ...distractors.map(d => ({ text: d, correct: false })),
   ]);
 
-  // Render buttons directly into optsEl. On tap, color in place — no
-  // reveal card, no DOM swap, no setTimeout. The DOM never changes size
-  // after render, so the layout cannot shift.
   let answered = false;
   let correctBtn = null;
   const allBtns = [];
 
   choices.forEach(c => {
     const btn = document.createElement('button');
-    btn.className = 'mc-option';
-    btn.textContent = c.text;
-    btn.style.cssText = 'display:block; width:100%; text-align:left; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; margin-bottom:0.5rem; color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; line-height:1.4; cursor:pointer; transition:background 0.15s, border-color 0.15s, opacity 0.15s, color 0.15s;';
+    btn.className = 'mc-option-v2';
     btn.dataset.correct = c.correct ? 'true' : 'false';
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'label';
+    labelSpan.textContent = c.text;
+    const glyphSpan = document.createElement('span');
+    glyphSpan.className = 'glyph';
+    btn.appendChild(labelSpan);
+    btn.appendChild(glyphSpan);
     if (c.correct) correctBtn = btn;
     allBtns.push(btn);
 
@@ -33291,8 +33468,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       if (answered) return;
       answered = true;
 
-      // Kill any in-flight stimulus audio so its onended (-> onStimulusEnd
-      // -> setAnswersEnabled, etc) can't fire after the answer.
+      // Kill any in-flight stimulus audio so its onended can't fire after.
       if (_activeRecognitionAudio) {
         try { _activeRecognitionAudio.onended = null; } catch (e) {}
         try { _activeRecognitionAudio.onerror = null; } catch (e) {}
@@ -33302,28 +33478,27 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       audioEndedCallback = null;
       if (circle) circle.classList.remove('playing');
 
+      // In-place class swap on the pre-rendered buttons. No DOM mutation
+      // beyond toggling classes and the glyph span's textContent.
       allBtns.forEach(b => {
         b.disabled = true;
-        b.style.cursor = 'default';
-        b.style.pointerEvents = 'none';
-        if (b === btn) {
-          b.style.background = c.correct ? '#22c55e' : '#ef4444';
-          b.style.borderColor = c.correct ? '#22c55e' : '#ef4444';
-          b.style.color = '#fff';
-          b.textContent = (c.correct ? '✓ ' : '✗ ') + b.textContent;
-          b.style.opacity = '1';
+        if (b === btn && c.correct) {
+          b.classList.add('correct');
+          b.querySelector('.glyph').textContent = '✓';
+        } else if (b === btn && !c.correct) {
+          b.classList.add('wrong');
+          b.querySelector('.glyph').textContent = '✕';
         } else if (b === correctBtn && !c.correct) {
-          b.style.background = '#22c55e';
-          b.style.borderColor = '#22c55e';
-          b.style.color = '#fff';
-          b.textContent = '✓ ' + b.textContent;
-          b.style.opacity = '1';
+          b.classList.add('correct');
+          b.querySelector('.glyph').textContent = '✓';
         } else {
-          b.style.opacity = '0.3';
+          b.classList.add('dim');
         }
       });
 
-      nextBtn.style.visibility = 'visible';
+      nextBtn.disabled = false;
+      nextBtn.classList.add('enabled');
+      nextBtn.textContent = c.correct ? 'Continue' : 'Got it';
 
       const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
       if (!seen.includes(trigger.id)) {
@@ -33339,30 +33514,17 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     optsEl.appendChild(btn);
   });
 
-  if (nextBtn) nextBtn.onclick = onContinue;
+  // Reveal sequence — fires after the stimulus audio ends. Adds .revealed
+  // to every .fade-target so the staggered contentFadeIn animation runs.
+  function revealContent() {
+    fadeTargets.forEach(el => el.classList.add('revealed'));
+  }
 
-  // Auto-play audio on screen load. If this trigger has buildup chunks the
-  // learner hasn't seen yet, play scaffold chunks first (with a "Listen
-  // and repeat" label and disabled answer buttons), then the full trigger
-  // as the stimulus. seenBuildupIntro and answer-enable both fire only
-  // after the full trigger audio ends so the gate is durable even if the
-  // learner exits between chunks and stimulus.
-  playHintEl.textContent = 'Listening...';
   const needsTriggerBuildup = trigger
     && trigger.hasBuildup
     && trigger.buildupChunks && trigger.buildupChunks.length > 0
     && !(state.seenBuildupIntro && state.seenBuildupIntro[trigger.id]);
 
-  function setAnswersEnabled(enabled) {
-    Array.from(optsEl.querySelectorAll('.mc-option')).forEach(btn => {
-      btn.disabled = !enabled;
-      btn.style.opacity = enabled ? '' : '0.4';
-      btn.style.pointerEvents = enabled ? '' : 'none';
-    });
-  }
-  // Absolute-positioned overlay so toggling the label never changes the
-  // header height (which would otherwise push the play circle and choices
-  // around). Created lazily, reused across renders, only display-toggled.
   function buildupLabelContainer() {
     if (prefix === 'recog') return document.getElementById('panelRecognition');
     if (prefix === 'recogStd') return document.querySelector('#screenRecognition > .p-screen');
@@ -33377,7 +33539,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       label = document.createElement('div');
       label.id = prefix + 'BuildupLabel';
       label.textContent = 'Listen and repeat';
-      label.style.cssText = 'position:absolute; top:0.5rem; left:0; right:0; text-align:center; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); pointer-events:none; z-index:1;';
+      label.style.cssText = 'position:absolute; top:0.5rem; left:0; right:0; text-align:center; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(245,238,222,0.55); pointer-events:none; z-index:1;';
       host.appendChild(label);
     }
     label.style.display = '';
@@ -33387,20 +33549,16 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     if (label) label.style.display = 'none';
   }
   function onStimulusEnd() {
-    playHintEl.textContent = 'Tap to hear again';
     if (needsTriggerBuildup) {
-      // Mark complete only after the full stimulus has played, then enable.
       if (!state.seenBuildupIntro) state.seenBuildupIntro = {};
       state.seenBuildupIntro[trigger.id] = true;
       if (typeof saveState === 'function') saveState();
-      setAnswersEnabled(true);
     }
+    revealContent();
   }
-  // Defensive: clear any stale label from a prior render that may have
-  // exited mid-buildup before the cleanup step ran.
+
   hideBuildupLabel();
   if (needsTriggerBuildup) {
-    setAnswersEnabled(false);
     showBuildupLabel();
     playChunkSequence(trigger.buildupChunks, { gapMs: 400 }).then(() => {
       hideBuildupLabel();
@@ -33409,10 +33567,6 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   } else {
     playRecognitionAudio(trigger, circle, onStimulusEnd);
   }
-
-  // Show "Hear it slower" at Tier 1-2 (score < 3), hide at Tier 3+
-  const slowerBtn = document.getElementById(prefix + 'SlowerBtn');
-  if (slowerBtn) slowerBtn.style.display = recogScore < 3 ? '' : 'none';
 }
 
 function playRecognitionAudio(trigger, circle, onEnded) {
@@ -33428,7 +33582,14 @@ function playRecognitionAudio(trigger, circle, onEnded) {
   const audio = new Audio(src);
   audio.playbackRate = 1.0;
   _activeRecognitionAudio = audio;
-  if (circle) circle.classList.add('playing');
+  if (circle) {
+    // Remove + reflow + re-add so the .playing keyframe animation
+    // re-fires on every replay (CSS animations don't restart on
+    // a class that's already present).
+    circle.classList.remove('playing');
+    void circle.offsetWidth;
+    circle.classList.add('playing');
+  }
   audio.onended = () => {
     if (circle) circle.classList.remove('playing');
     _activeRecognitionAudio = null;
@@ -33913,7 +34074,9 @@ function renderScenarioPanel(phrase) {
 
   document.getElementById('scenarioGoal').textContent = phrase.situationText || '';
   const nextBtn = document.getElementById('scenarioNextBtn');
-  nextBtn.style.visibility = 'hidden';
+  nextBtn.disabled = true;
+  nextBtn.classList.remove('enabled');
+  nextBtn.textContent = 'Continue';
 
   const distractors = getScenarioDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
@@ -33926,12 +34089,15 @@ function renderScenarioPanel(phrase) {
 
   options.forEach(opt => {
     const btn = document.createElement('button');
-    btn.className = 'mc-option';
-    btn.style.fontFamily = "'Cormorant Garamond', serif";
-    btn.style.fontStyle = 'italic';
-    btn.style.transition = 'background 0.15s, border-color 0.15s, opacity 0.15s, color 0.15s';
-    btn.textContent = displayNative(opt, 'card');
+    btn.className = 'mc-option-v2';
     btn.dataset.phraseId = opt.id;
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'label';
+    labelSpan.textContent = displayNative(opt, 'card');
+    const glyphSpan = document.createElement('span');
+    glyphSpan.className = 'glyph';
+    btn.appendChild(labelSpan);
+    btn.appendChild(glyphSpan);
     if (opt.id === phrase.id) correctBtn = btn;
     allBtns.push(btn);
 
@@ -33942,28 +34108,23 @@ function renderScenarioPanel(phrase) {
 
       allBtns.forEach(b => {
         b.disabled = true;
-        b.onclick = null;
-        b.style.pointerEvents = 'none';
-        b.style.cursor = 'default';
-        if (b === btn) {
-          b.style.background = correct ? '#22c55e' : '#ef4444';
-          b.style.borderColor = correct ? '#22c55e' : '#ef4444';
-          b.style.color = '#fff';
-          b.textContent = (correct ? '✓ ' : '✗ ') + b.textContent;
-          b.style.opacity = '1';
+        if (b === btn && correct) {
+          b.classList.add('correct');
+          b.querySelector('.glyph').textContent = '✓';
+        } else if (b === btn && !correct) {
+          b.classList.add('wrong');
+          b.querySelector('.glyph').textContent = '✕';
         } else if (b === correctBtn && !correct) {
-          b.style.background = '#22c55e';
-          b.style.borderColor = '#22c55e';
-          b.style.color = '#fff';
-          b.textContent = '✓ ' + b.textContent;
-          b.style.opacity = '1';
+          b.classList.add('correct');
+          b.querySelector('.glyph').textContent = '✓';
         } else {
-          b.style.opacity = '0.3';
+          b.classList.add('dim');
         }
       });
 
-      nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
-      nextBtn.style.visibility = 'visible';
+      nextBtn.disabled = false;
+      nextBtn.classList.add('enabled');
+      nextBtn.textContent = correct ? 'Continue' : 'Got it';
 
       bumpIfFinal(phrase.id, 0, correct);
       if (!correct) {
@@ -34175,11 +34336,11 @@ function renderEmojiPanel(phrase) {
   showScreen('screenExercise');
   document.getElementById('emojiPhrase').textContent = displayNative(phrase, 'card');
   const grid = document.getElementById('emojiOptions');
-  // Restore the 2x2 grid layout for emoji buttons directly in the container.
-  grid.style.cssText = 'flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; align-content:center;';
   grid.innerHTML = '';
   const nextBtn = document.getElementById('emojiNextBtn');
-  nextBtn.style.visibility = 'hidden';
+  nextBtn.disabled = true;
+  nextBtn.classList.remove('enabled');
+  nextBtn.textContent = 'Continue';
 
   const distractors = getEmojiDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
@@ -34190,7 +34351,7 @@ function renderEmojiPanel(phrase) {
 
   options.forEach(opt => {
     const btn = document.createElement('button');
-    btn.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; font-size:2.5rem; line-height:1; cursor:pointer; transition:background 0.15s, border-color 0.15s, opacity 0.15s;';
+    btn.style.cssText = 'background:rgba(255,255,255,0.04); border:1px solid rgba(245,238,222,0.18); border-radius:14px; padding:1.25rem; font-size:2.5rem; line-height:1; cursor:pointer; color:#F5EEDE; transition:background 220ms ease, border-color 220ms ease, opacity 220ms ease, box-shadow 220ms ease;';
     btn.textContent = opt.emoji || '';
     if (opt.id === phrase.id) correctBtn = btn;
     allBtns.push(btn);
@@ -34203,23 +34364,29 @@ function renderEmojiPanel(phrase) {
       allBtns.forEach(b => {
         b.disabled = true;
         b.onclick = null;
-        b.style.pointerEvents = 'none';
-        b.style.cursor = 'default';
-        if (b === btn) {
-          b.style.background = correct ? '#22c55e' : '#ef4444';
-          b.style.borderColor = correct ? '#22c55e' : '#ef4444';
+        if (b === btn && correct) {
+          b.style.background = '#1F8A3B';
+          b.style.borderColor = '#2BB14F';
+          b.style.boxShadow = 'inset 0 0 0 1px #2BB14F, 0 0 24px -8px #2BB14F';
+          b.style.opacity = '1';
+        } else if (b === btn && !correct) {
+          b.style.background = '#B5283A';
+          b.style.borderColor = '#DE3B53';
+          b.style.boxShadow = 'inset 0 0 0 1px #DE3B53, 0 0 24px -8px #DE3B53';
           b.style.opacity = '1';
         } else if (b === correctBtn && !correct) {
-          b.style.background = '#22c55e';
-          b.style.borderColor = '#22c55e';
+          b.style.background = '#1F8A3B';
+          b.style.borderColor = '#2BB14F';
+          b.style.boxShadow = 'inset 0 0 0 1px #2BB14F, 0 0 24px -8px #2BB14F';
           b.style.opacity = '1';
         } else {
-          b.style.opacity = '0.3';
+          b.style.opacity = '0.42';
         }
       });
 
-      nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
-      nextBtn.style.visibility = 'visible';
+      nextBtn.disabled = false;
+      nextBtn.classList.add('enabled');
+      nextBtn.textContent = correct ? 'Continue' : 'Got it';
 
       bumpIfFinal(phrase.id, 0, correct);
       if (!correct) {
@@ -34287,7 +34454,10 @@ function renderMinimalPairPanel(item) {
 
   document.getElementById('panelMinimalPairs').classList.remove('hidden');
 
-  document.getElementById('mpNextBtn').style.visibility = 'hidden';
+  const mpNextBtn = document.getElementById('mpNextBtn');
+  mpNextBtn.disabled = true;
+  mpNextBtn.classList.remove('enabled');
+  mpNextBtn.textContent = 'Continue';
 
   const optsEl = document.getElementById('mpOptions');
   optsEl.innerHTML = '';
@@ -34297,9 +34467,15 @@ function renderMinimalPairPanel(item) {
 
   options.forEach(word => {
     const btn = document.createElement('button');
-    btn.className = 'mc-option';
-    btn.style.cssText = 'display:block; width:100%; text-align:center; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; margin-bottom:0.5rem; color:var(--text); font-family:"Cormorant Garamond",serif; font-style:italic; font-size:18px; line-height:1.4; cursor:pointer; transition:background 0.15s, border-color 0.15s, opacity 0.15s, color 0.15s;';
-    btn.textContent = word;
+    btn.className = 'mc-option-v2';
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'label';
+    labelSpan.textContent = word;
+    labelSpan.style.textAlign = 'center';
+    const glyphSpan = document.createElement('span');
+    glyphSpan.className = 'glyph';
+    btn.appendChild(labelSpan);
+    btn.appendChild(glyphSpan);
     if (word === targetWord) correctBtn = btn;
     allBtns.push(btn);
     btn.onclick = () => answerMinimalPairChoice(word, btn);
@@ -34336,26 +34512,24 @@ function answerMinimalPairChoice(word, btn) {
   s.allBtns.forEach(b => {
     b.disabled = true;
     b.onclick = null;
-    b.style.pointerEvents = 'none';
-    b.style.cursor = 'default';
-    if (b === btn) {
-      b.style.background = correct ? '#22c55e' : '#ef4444';
-      b.style.borderColor = correct ? '#22c55e' : '#ef4444';
-      b.style.color = '#fff';
-      b.textContent = (correct ? '✓ ' : '✗ ') + b.textContent;
-      b.style.opacity = '1';
+    if (b === btn && correct) {
+      b.classList.add('correct');
+      b.querySelector('.glyph').textContent = '✓';
+    } else if (b === btn && !correct) {
+      b.classList.add('wrong');
+      b.querySelector('.glyph').textContent = '✕';
     } else if (b === s.correctBtn && !correct) {
-      b.style.background = '#22c55e';
-      b.style.borderColor = '#22c55e';
-      b.style.color = '#fff';
-      b.textContent = '✓ ' + b.textContent;
-      b.style.opacity = '1';
+      b.classList.add('correct');
+      b.querySelector('.glyph').textContent = '✓';
     } else {
-      b.style.opacity = '0.3';
+      b.classList.add('dim');
     }
   });
 
-  document.getElementById('mpNextBtn').style.visibility = 'visible';
+  const mpNextBtn = document.getElementById('mpNextBtn');
+  mpNextBtn.disabled = false;
+  mpNextBtn.classList.add('enabled');
+  mpNextBtn.textContent = correct ? 'Continue' : 'Got it';
 }
 
 // ── Meaning task ──
