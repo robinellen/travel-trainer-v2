@@ -33266,7 +33266,9 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       });
 
       // Let the tap feedback register, then fade choices out and swap reveal
-      // content into the same container so nothing above shifts.
+      // content into the same container so nothing above shifts. Score and
+      // side-effects fire AFTER the swap so nothing can re-render the
+      // choices container mid-transition and re-insert the buttons.
       setTimeout(() => {
         optsEl.style.opacity = '0';
         setTimeout(() => {
@@ -33290,17 +33292,19 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
           `;
           optsEl.style.opacity = '1';
           nextBtn.style.visibility = 'visible';
+
+          // Now that the DOM is stable, run scoring + side-effects.
+          const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
+          if (!seen.includes(trigger.id)) {
+            seen.push(trigger.id);
+            localStorage.setItem('tt_seenTriggers', JSON.stringify(seen));
+          }
+          if (onAnswer) onAnswer(c.correct);
+
           _onCoachMarkDismiss = () => showScreen('screenExercise');
           showCoachMark('tt_seenSignalWordCoachMark');
         }, 150);
       }, 500);
-
-      const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
-      if (!seen.includes(trigger.id)) {
-        seen.push(trigger.id);
-        localStorage.setItem('tt_seenTriggers', JSON.stringify(seen));
-      }
-      if (onAnswer) onAnswer(c.correct);
     };
     btn.dataset.correct = c.correct ? 'true' : 'false';
     optsEl.appendChild(btn);
@@ -33908,15 +33912,9 @@ function renderScenarioPanel(phrase) {
         });
       }
 
-      // Scoring fires immediately on tap (independent of the visual reveal).
-      bumpIfFinal(phrase.id, 0, correct);
-      if (!correct) {
-        const item = getCurrentItem();
-        resurfaceIfEligible(phrase.id, item ? item.type : 'scenario_response');
-      }
-
       // Let the tap feedback register, then swap reveal content into the
-      // choices container so the layout doesn't shift.
+      // choices container so the layout doesn't shift. Scoring runs AFTER
+      // the swap so nothing can re-render mid-transition.
       setTimeout(() => {
         container.style.opacity = '0';
         setTimeout(() => {
@@ -33936,6 +33934,13 @@ function renderScenarioPanel(phrase) {
           container.style.opacity = '1';
           nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
           nextBtn.style.visibility = 'visible';
+
+          // DOM is stable — score + resurface now.
+          bumpIfFinal(phrase.id, 0, correct);
+          if (!correct) {
+            const item = getCurrentItem();
+            resurfaceIfEligible(phrase.id, item ? item.type : 'scenario_response');
+          }
         }, 150);
       }, 500);
     };
@@ -34173,14 +34178,9 @@ function renderEmojiPanel(phrase) {
           }
         });
       }
-      bumpIfFinal(phrase.id, 0, correct);
-      if (!correct) {
-        const item = getCurrentItem();
-        resurfaceIfEligible(phrase.id, item ? item.type : 'emoji_exercise');
-      }
-
       // Let the tap feedback register, then fade grid out and swap reveal
       // content into the same slot so the prompt above never shifts.
+      // Scoring runs AFTER the swap so nothing can re-render mid-transition.
       setTimeout(() => {
         grid.style.opacity = '0';
         setTimeout(() => {
@@ -34200,6 +34200,13 @@ function renderEmojiPanel(phrase) {
           grid.style.opacity = '1';
           nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
           nextBtn.style.visibility = 'visible';
+
+          // DOM is stable — score + resurface now.
+          bumpIfFinal(phrase.id, 0, correct);
+          if (!correct) {
+            const item = getCurrentItem();
+            resurfaceIfEligible(phrase.id, item ? item.type : 'emoji_exercise');
+          }
         }, 150);
       }, 500);
     };
