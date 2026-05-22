@@ -815,10 +815,10 @@ body::after {
     <!-- ── LISTEN / LEARN panel ── -->
     <div id="panelListen" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div class="play-circle" id="listenCircle" onclick="playCurrentAudio()" style="margin-bottom:clamp(0.75rem, 2vh, 1.5rem);">
+        <div class="play-circle" id="listenCircle" onclick="playCurrentAudio()" style="margin-bottom:1.25rem;">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <div style="font-size:13px; color:var(--text-dim); margin-bottom:clamp(0.5rem, 2vh, 2rem);" id="listenHint">Tap to hear</div>
+        <div style="font-size:13px; color:var(--text-dim); margin-bottom:1.5rem;" id="listenHint">Tap to hear</div>
         <div class="phrase-emoji hidden" id="listenEmoji"></div>
       </div>
       <div id="listenRevealArea">
@@ -846,13 +846,13 @@ body::after {
 
     <!-- ── SPEAK panel ── -->
     <div id="panelSpeak" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+      <div style="text-align:center; margin-bottom:0.75rem;">
         <div class="phrase-meaning-label" id="speakMeaning" style="margin-bottom:0.6rem;"></div>
         <div class="phrase-native" id="speakNative" style="margin-bottom:0.3rem; cursor:pointer;" onclick="replayAtNaturalSpeed()"><span id="speakNativeText"></span> <span style="font-size:13px; opacity:0.4; vertical-align:middle;">&#9655;</span></div>
         <button id="speakShowPhrase" class="hidden btn-text" onclick="revealSpeakPhrase()" style="margin-bottom:0.3rem">Show phrase</button>
         <div id="speakRoman" style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-top:0.4rem; opacity:0; transition:opacity 200ms ease;"></div>
       </div>
-      <div id="speakHelpers" class="hidden" style="display:flex; justify-content:center; gap:1.25rem; margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+      <div id="speakHelpers" class="hidden" style="display:flex; justify-content:center; gap:1.25rem; margin-bottom:0.75rem;">
         <button id="speakSlowerBtn" onclick="hearSlower()" class="btn-text">Hear it slower</button>
         <button id="speakPronounceBtn" onclick="togglePronunciation()" class="btn-text">Show pronunciation</button>
       </div>
@@ -876,11 +876,11 @@ body::after {
     <!-- ── VOCAB panel ── -->
     <div id="panelVocab" class="hidden" style="flex:1; display:flex; flex-direction:column;">
       <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div style="font-size:clamp(2.5rem, 5vh, 3.5rem); margin-bottom:clamp(0.75rem, 2vh, 1.5rem); line-height:1;" id="vocabEmoji"></div>
-        <div class="play-circle" id="vocabCircle" onclick="playVocabAudio()" style="margin-bottom:clamp(0.75rem, 2vh, 1.5rem);">
+        <div style="font-size:3rem; margin-bottom:1.25rem; line-height:1;" id="vocabEmoji"></div>
+        <div class="play-circle" id="vocabCircle" onclick="playVocabAudio()" style="margin-bottom:1.25rem;">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <div style="font-size:13px; color:var(--text-dim); margin-bottom:clamp(0.5rem, 2vh, 2rem);" id="vocabHint">Tap to hear</div>
+        <div style="font-size:13px; color:var(--text-dim); margin-bottom:1.5rem;" id="vocabHint">Tap to hear</div>
       </div>
       <div id="vocabRevealArea">
         <div id="vocabTask" style="display:none;">
@@ -960,7 +960,7 @@ body::after {
 
     <!-- ── EMOJI EXERCISE panel (Stage 1) ── -->
     <div id="panelEmoji" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div id="emojiPhrase" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(1.6rem,5vw,2rem); color:var(--text); text-align:center; margin-bottom:clamp(1rem,4vh,2rem); line-height:1.3; flex:0 0 auto;"></div>
+      <div id="emojiPhrase" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:clamp(1.6rem,5vw,2rem); color:var(--text); text-align:center; margin-bottom:1.5rem; line-height:1.3; flex:0 0 auto;"></div>
       <div id="emojiOptions" style="flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center;"></div>
       <div style="margin-top:1.25rem; flex:0 0 auto;">
         <button class="btn-primary" id="emojiNextBtn" onclick="nextExercise()" style="visibility:hidden;">Continue →</button>
@@ -969,8 +969,8 @@ body::after {
 
     <!-- ── MINIMAL PAIRS panel (Stage 2+) ── -->
     <div id="panelMinimalPairs" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:0 0 auto; padding:clamp(0.5rem, 2vh, 1.25rem) 0;">
-        <div class="play-circle" id="mpCircle" onclick="replayMinimalPairAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:0 0 auto; padding:1rem 0;">
+        <div class="play-circle" id="mpCircle" onclick="replayMinimalPairAudio()" style="margin-bottom:0.75rem;">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
         <div style="font-size:13px; color:var(--text-dim);" id="mpPlayHint">Tap to hear again</div>
@@ -985,19 +985,19 @@ body::after {
     <!-- ── RECOGNITION panel ── -->
     <!-- ── BUILDUP SEQUENCE panel (backward chaining scaffold) ── -->
     <div id="panelBuildup" class="hidden" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:1rem;">
-      <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:clamp(1.5rem,4vh,2.5rem);">Listen and repeat</div>
+      <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:2rem;">Listen and repeat</div>
       <div id="buildupChunkText" style="font-family:'Cormorant Garamond',serif; font-size:clamp(1.6rem,5vw,2rem); font-style:italic; font-weight:500; line-height:1.3; text-align:center; color:var(--text); opacity:0; transition:opacity 250ms ease; min-height:2.8rem;"></div>
     </div>
 
     <div id="panelRecognition" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem); flex:0 0 auto;">
+      <div style="text-align:center; margin-bottom:0.75rem; flex:0 0 auto;">
         <div id="recogSignalAnchor" style="margin-bottom:0.75rem; display:none;">
           <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
           <span id="recogAnchorWord" style="font-size:15px; color:var(--text);"></span>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:0 0 auto; padding:clamp(0.5rem, 2vh, 1.25rem) 0;">
-        <div class="play-circle" id="recogCircle" onclick="replayRecognitionAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:0 0 auto; padding:1rem 0;">
+        <div class="play-circle" id="recogCircle" onclick="replayRecognitionAudio()" style="margin-bottom:0.75rem;">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
         <div style="font-size:13px; color:var(--text-dim);" id="recogPlayHint">Listening...</div>
@@ -1026,14 +1026,14 @@ body::after {
   <div style="flex:1; display:flex; flex-direction:column;">
     <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:1.5rem;">
       <div style="max-width:400px; width:100%; background:rgba(255,255,255,0.06); border-radius:16px; padding:24px;">
-        <div style="text-align:center; margin-bottom:clamp(0.75rem, 2vh, 1.25rem);">
+        <div style="text-align:center; margin-bottom:1rem;">
           <div style="font-size:2.5rem; line-height:1; margin-bottom:0.75rem;" id="revealEmoji"></div>
           <div style="font-family:'Cormorant Garamond',serif; font-size:clamp(1.5rem, 5vw, 1.8rem); font-style:italic; font-weight:500; line-height:1.3; margin-bottom:0.3rem;" id="revealNative"></div>
           <div style="font-size:15px; color:var(--text-dim);" id="revealRoman"></div>
         </div>
         <div style="font-size:13px; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-dim); margin-bottom:0.5rem; text-align:center;" id="revealMeaning"></div>
-        <div style="font-size:15px; color:var(--text-dim); line-height:1.5; margin-bottom:clamp(0.5rem, 1.5vh, 0.75rem);" id="revealNote"></div>
-        <div id="revealFrameNote" class="hidden" style="font-size:15px; color:var(--fr); line-height:1.6; margin-bottom:clamp(0.75rem, 2vh, 1.25rem); padding:0.6rem 0.8rem; background:rgba(91,155,213,0.06); border-left:2px solid rgba(91,155,213,0.3); border-radius:0 var(--radius-sm) var(--radius-sm) 0;"></div>
+        <div style="font-size:15px; color:var(--text-dim); line-height:1.5; margin-bottom:0.6rem;" id="revealNote"></div>
+        <div id="revealFrameNote" class="hidden" style="font-size:15px; color:var(--fr); line-height:1.6; margin-bottom:1rem; padding:0.6rem 0.8rem; background:rgba(91,155,213,0.06); border-left:2px solid rgba(91,155,213,0.3); border-radius:0 var(--radius-sm) var(--radius-sm) 0;"></div>
         <div style="display:flex; justify-content:center;">
           <button onclick="playRevealAudio()" style="background:var(--card); border:1px solid var(--border); border-radius:2rem; padding:0.5rem 1.25rem; color:var(--text-dim); font-family:'Lexend',sans-serif; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--text-mid)'" onmouseout="this.style.borderColor='var(--border)'">
             <svg viewBox="0 0 24 24" style="width:14px; height:14px; fill:var(--text-dim);"><path d="M8 5v14l11-7z"/></svg>
@@ -1053,17 +1053,17 @@ body::after {
   ═══════════════════════════════════════════════════ -->
   <div class="screen" id="screenBuildupIntro">
     <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:0;">
-      <div style="font-size:2.5rem; margin-bottom:clamp(0.5rem, 2vh, 1.25rem);">🧩</div>
-      <h2 class="serif" style="font-size:clamp(1.5rem, 4vh, 2rem); margin-bottom:0.75rem;">This one takes a moment.</h2>
-      <p style="font-size:15px; color:var(--text-dim); line-height:1.65; max-width:300px; margin-bottom:clamp(0.5rem, 2vh, 1.5rem);">
+      <div style="font-size:2.5rem; margin-bottom:1rem;">🧩</div>
+      <h2 class="serif" style="font-size:1.75rem; margin-bottom:0.75rem;">This one takes a moment.</h2>
+      <p style="font-size:15px; color:var(--text-dim); line-height:1.65; max-width:300px; margin-bottom:1.25rem;">
         Your recovery phrase is a mouthful — but the most important one in the app.
         We're going to build it piece by piece, starting from the end and working forward.
       </p>
-      <div class="card" style="margin-bottom:clamp(0.75rem, 2vh, 2rem); text-align:left; width:100%;">
+      <div class="card" style="margin-bottom:1.5rem; text-align:left; width:100%;">
         <div class="eyebrow" style="margin-bottom:0.6rem;">You're building toward</div>
         <div class="phrase-native" style="font-size:22px;" id="buildupTargetPhrase"></div>
       </div>
-      <p style="font-size:15px; color:var(--text-dim); line-height:1.65; max-width:280px; margin-bottom:clamp(0.75rem, 2vh, 2rem);">
+      <p style="font-size:15px; color:var(--text-dim); line-height:1.65; max-width:280px; margin-bottom:1.5rem;">
         By the time you hear the whole phrase, you'll already own every part of it.
       </p>
       <button class="btn-primary" onclick="startBuildup()">Let's build it →</button>
@@ -1084,15 +1084,15 @@ body::after {
         <span class="exercise-type-badge">Building up</span>
         <span class="lang-pill fr" style="margin-left:0.4rem;">🇫🇷 French</span>
       </div>
-      <div class="card" style="margin-bottom:clamp(0.5rem, 1.5vh, 1.25rem);">
+      <div class="card" style="margin-bottom:1rem;">
         <div class="eyebrow" style="margin-bottom:0.4rem;">You're building toward</div>
         <div style="font-family:'Cormorant Garamond',serif; font-size:20px; line-height:1.5;" id="buildupFullPhrase"></div>
       </div>
       <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div class="play-circle" id="buildupCircle" onclick="playBuildupChunk()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1.25rem);">
+        <div class="play-circle" id="buildupCircle" onclick="playBuildupChunk()" style="margin-bottom:1rem;">
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <div style="font-size:13px; color:var(--text-dim); margin-bottom:clamp(0.5rem, 1.5vh, 1.5rem);" id="buildupPlayHint">Tap to hear</div>
+        <div style="font-size:13px; color:var(--text-dim); margin-bottom:1.25rem;" id="buildupPlayHint">Tap to hear</div>
         <div class="phrase-reveal" style="width:100%; display:none;" id="buildupChunkCard">
           <div class="phrase-native" id="buildupChunkText" style="font-size:28px; margin-bottom:0.5rem;"></div>
           <div style="font-size:15px; color:var(--text-dim); line-height:1.6;" id="buildupChunkHint"></div>
@@ -1185,14 +1185,14 @@ body::after {
     <div style="flex:1; font-size:17px; color:var(--text); padding-left:0.5rem;">Recognition</div>
   </div>
   <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
-    <div style="text-align:center; margin-bottom:clamp(0.5rem, 1.5vh, 1rem); flex:0 0 auto;">
+    <div style="text-align:center; margin-bottom:0.75rem; flex:0 0 auto;">
       <div id="recogStdSignalAnchor" style="margin-bottom:0.75rem; display:none;">
         <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
         <span id="recogStdAnchorWord" style="font-size:15px; color:var(--text);"></span>
       </div>
     </div>
-    <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:0 0 auto; padding:clamp(0.5rem, 2vh, 1.25rem) 0;">
-      <div class="play-circle" id="recogStdCircle" onclick="replayRecognitionStdAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:0 0 auto; padding:1rem 0;">
+      <div class="play-circle" id="recogStdCircle" onclick="replayRecognitionStdAudio()" style="margin-bottom:0.75rem;">
         <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
       </div>
       <div style="font-size:13px; color:var(--text-dim);" id="recogStdPlayHint">Listening...</div>
