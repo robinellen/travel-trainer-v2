@@ -992,39 +992,17 @@ body::after {
 
     <!-- ── MINIMAL PAIRS panel (Stage 2+) ── -->
     <div id="panelMinimalPairs" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div id="mpStatus" style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:1rem; text-align:center;">Listen carefully</div>
-      <div style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem;">
-        <button id="mpReplayA" onclick="replayMinimalPairAudio('A')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 1rem; color:var(--text); font-family:'Lexend',sans-serif; font-size:15px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:0.75rem;">
-          <span style="font-size:12px; letter-spacing:0.08em; color:var(--text-dim);">A</span>
-          <span id="mpTextA" style="font-family:'Cormorant Garamond',serif; font-style:italic; flex:1;"></span>
-          <span style="font-size:13px; opacity:0.4;">&#9655;</span>
-        </button>
-        <button id="mpReplayB" onclick="replayMinimalPairAudio('B')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 1rem; color:var(--text); font-family:'Lexend',sans-serif; font-size:15px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:0.75rem;">
-          <span style="font-size:12px; letter-spacing:0.08em; color:var(--text-dim);">B</span>
-          <span id="mpTextB" style="font-family:'Cormorant Garamond',serif; font-style:italic; flex:1;"></span>
-          <span style="font-size:13px; opacity:0.4;">&#9655;</span>
-        </button>
-      </div>
-      <div id="mpTestRow" class="hidden" style="display:flex; justify-content:center; margin-bottom:1rem;">
-        <button id="mpReplayTest" onclick="replayMinimalPairTest()" style="background:var(--card); border:1px solid var(--border); border-radius:2rem; padding:0.5rem 1.25rem; color:var(--text-dim); font-family:'Lexend',sans-serif; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:0.4rem;">
-          Replay test clip &#9655;
-        </button>
-      </div>
-      <div id="mpChoices" class="hidden" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; flex:1; align-items:stretch;">
-        <button id="mpChoiceA" onclick="answerMinimalPair('A')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; color:var(--text); font-family:'Lexend',sans-serif; font-size:24px; cursor:pointer;">A</button>
-        <button id="mpChoiceB" onclick="answerMinimalPair('B')" style="background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; color:var(--text); font-family:'Lexend',sans-serif; font-size:24px; cursor:pointer;">B</button>
-      </div>
-      <div id="mpReveal" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); display:flex; gap:0.75rem; visibility:hidden; opacity:0; transition:opacity 0.2s ease;">
-        <div style="flex:1; text-align:center;">
-          <div style="font-size:12px; color:var(--text-dim); margin-bottom:0.25rem;">A</div>
-          <div id="mpRevealA" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; color:var(--text);"></div>
-          <div id="mpRevealEngA" style="font-size:13px; color:var(--text-dim); margin-top:0.2rem;"></div>
+      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
+        <div class="play-circle" id="mpCircle" onclick="replayMinimalPairAudio()" style="margin-bottom:clamp(0.5rem, 1.5vh, 1rem);">
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <div style="flex:1; text-align:center;">
-          <div style="font-size:12px; color:var(--text-dim); margin-bottom:0.25rem;">B</div>
-          <div id="mpRevealB" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:17px; color:var(--text);"></div>
-          <div id="mpRevealEngB" style="font-size:13px; color:var(--text-dim); margin-top:0.2rem;"></div>
-        </div>
+        <div style="font-size:13px; color:var(--text-dim);" id="mpPlayHint">Tap to hear again</div>
+      </div>
+      <div id="mpPrompt" style="font-size:13px; color:var(--text-dim); letter-spacing:0.04em; margin-top:1rem; margin-bottom:0.5rem; text-align:center;">What did you hear?</div>
+      <div id="mpOptions" class="mc-options"></div>
+      <div id="mpReveal" style="margin-top:1rem; padding:0.9rem 1rem; background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:var(--radius-sm); text-align:center; visibility:hidden; opacity:0; transition:opacity 0.2s ease;">
+        <div id="mpRevealWord" style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:20px; color:var(--text); margin-bottom:0.35rem;"></div>
+        <div id="mpRevealMeaning" style="font-size:14px; color:var(--text-dim);"></div>
       </div>
       <div class="mt-auto">
         <button class="btn-primary hidden" id="mpNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
@@ -34211,13 +34189,15 @@ function renderEmojiPanel(phrase) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// MINIMAL PAIRS (Stage 2+ — A/B discrimination)
+// MINIMAL PAIRS (Stage 2+ — hear-one-word discrimination)
 // Inert until MINIMAL_PAIRS records have hasAudioA + hasAudioB true and
-// the corresponding audio files are on disk. Plays A then B then a test
-// clip (randomly A or B); learner picks which one matched.
+// the corresponding audio files are on disk. Plays one word from the pair
+// at random; learner picks the matching written form from the pair partner
+// plus one cross-pair distractor.
 // ═══════════════════════════════════════════════════════════════════
 
 let _minimalPairState = null;
+
 function renderMinimalPairPanel(item) {
   const pair = (typeof MINIMAL_PAIRS !== 'undefined' ? MINIMAL_PAIRS : []).find(p => p.id === item.pairId);
   if (!pair) { state.session.index++; renderCurrentExercise(); return; }
@@ -34228,93 +34208,100 @@ function renderMinimalPairPanel(item) {
     return;
   }
 
-  // Pick one voice variant per render — must be the same for A, B, and the
-  // test so the phonological contrast isn't confounded with a voice change.
+  // Pick one voice variant — both A and B audio in the same pair must come
+  // from the same voice (the pair partner is itself a distractor, so a
+  // voice change would let the learner game it).
   const variantsA = (pair.audioFilenamesA && pair.audioFilenamesA.length) ? pair.audioFilenamesA : [pair.audioFilenameA];
   const variantsB = (pair.audioFilenamesB && pair.audioFilenamesB.length) ? pair.audioFilenamesB : [pair.audioFilenameB];
   const maxVoice = Math.min(variantsA.length, variantsB.length);
   const voiceIdx = maxVoice > 1 ? Math.floor(Math.random() * maxVoice) : 0;
-  const fileA = variantsA[voiceIdx];
-  const fileB = variantsB[voiceIdx];
 
-  _onCoachMarkDismiss = () => showScreen('screenExercise');
-  showCoachMark('tt_seenMinimalPairsCoachMark');
+  const playA = Math.random() < 0.5;
+  const targetWord = playA ? pair.wordA : pair.wordB;
+  const targetAudio = playA ? variantsA[voiceIdx] : variantsB[voiceIdx];
+  const targetEnglish = playA ? pair.englishA : pair.englishB;
+  const sameRecordDistractor = playA ? pair.wordB : pair.wordA;
+
+  // One extra distractor from a different pair in the same language, if
+  // available. Skip words that collide with the target or pair partner.
+  const otherPairs = (typeof MINIMAL_PAIRS !== 'undefined' ? MINIMAL_PAIRS : [])
+    .filter(p => p.id !== pair.id && p.language === pair.language && p.wordA &&
+      p.wordA !== targetWord && p.wordA !== sameRecordDistractor);
+  const extraDistractor = otherPairs.length > 0
+    ? otherPairs[Math.floor(Math.random() * otherPairs.length)].wordA
+    : null;
+
+  const options = shuffle([targetWord, sameRecordDistractor, extraDistractor].filter(Boolean));
+
+  _minimalPairState = { pair, targetWord, targetAudio, targetEnglish, answered: false };
+
+  // Defer auto-play until the coach mark (first encounter only) is dismissed.
+  const startExercise = () => {
+    showScreen('screenExercise');
+    setTimeout(playMinimalPairAudio, 250);
+  };
+  _onCoachMarkDismiss = startExercise;
 
   document.getElementById('panelMinimalPairs').classList.remove('hidden');
-  showScreen('screenExercise');
-  document.getElementById('mpTextA').textContent = pair.wordA;
-  document.getElementById('mpTextB').textContent = pair.wordB;
-  document.getElementById('mpRevealA').textContent = pair.wordA;
-  document.getElementById('mpRevealB').textContent = pair.wordB;
-  document.getElementById('mpRevealEngA').textContent = pair.englishA;
-  document.getElementById('mpRevealEngB').textContent = pair.englishB;
-  document.getElementById('mpTestRow').classList.add('hidden');
-  document.getElementById('mpChoices').classList.add('hidden');
-  const _mpRevealEl = document.getElementById('mpReveal');
-  _mpRevealEl.style.visibility = 'hidden';
-  _mpRevealEl.style.opacity = '0';
+
+  const revealEl = document.getElementById('mpReveal');
+  revealEl.style.visibility = 'hidden';
+  revealEl.style.opacity = '0';
   document.getElementById('mpNextBtn').classList.add('hidden');
-  document.getElementById('mpStatus').textContent = 'Listen carefully';
 
-  const testIsA = Math.random() < 0.5;
-  _minimalPairState = { pair, testIsA, answered: false, fileA, fileB };
+  const optsEl = document.getElementById('mpOptions');
+  optsEl.innerHTML = '';
+  options.forEach(word => {
+    const btn = document.createElement('button');
+    btn.className = 'mc-option';
+    btn.style.cssText = 'display:block; width:100%; text-align:center; background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.85rem 1rem; margin-bottom:0.5rem; color:var(--text); font-family:"Cormorant Garamond",serif; font-style:italic; font-size:18px; line-height:1.4; cursor:pointer; transition:all 0.15s;';
+    btn.textContent = word;
+    btn.onclick = () => answerMinimalPairChoice(word, btn);
+    optsEl.appendChild(btn);
+  });
 
-  // Sequence: play A → 500ms → play B → 500ms → play test → reveal choices.
-  function play(filename, onEnd) {
-    const url = (typeof audioPathFor === 'function') ? audioPathFor(filename) : null;
-    if (!url) return setTimeout(onEnd, 100);
-    const audio = new Audio(url);
-    audio.onended = onEnd;
-    audio.onerror = onEnd;
-    audio.play().catch(onEnd);
+  // If no interstitial fires (already seen), start the exercise directly.
+  if (!showCoachMark('tt_seenMinimalPairsCoachMark')) {
+    startExercise();
   }
-  play(fileA, () => setTimeout(() => {
-    play(fileB, () => setTimeout(() => {
-      document.getElementById('mpStatus').textContent = 'Which one was it?';
-      play(testIsA ? fileA : fileB, () => {
-        document.getElementById('mpTestRow').classList.remove('hidden');
-        document.getElementById('mpChoices').classList.remove('hidden');
-      });
-    }, 500));
-  }, 500));
 }
 
-function replayMinimalPairAudio(which) {
+function playMinimalPairAudio() {
   const s = _minimalPairState;
-  if (!s) return;
-  const filename = which === 'A' ? s.fileA : s.fileB;
-  const url = (typeof audioPathFor === 'function') ? audioPathFor(filename) : null;
+  if (!s || !s.targetAudio) return;
+  const url = (typeof audioPathFor === 'function') ? audioPathFor(s.targetAudio) : null;
   if (!url) return;
   try { new Audio(url).play().catch(() => {}); } catch (e) {}
 }
 
-function replayMinimalPairTest() {
-  const s = _minimalPairState;
-  if (!s) return;
-  const filename = s.testIsA ? s.fileA : s.fileB;
-  const url = (typeof audioPathFor === 'function') ? audioPathFor(filename) : null;
-  if (!url) return;
-  try { new Audio(url).play().catch(() => {}); } catch (e) {}
+function replayMinimalPairAudio() {
+  playMinimalPairAudio();
 }
 
-function answerMinimalPair(choice) {
+function answerMinimalPairChoice(word, btn) {
   const s = _minimalPairState;
   if (!s || s.answered) return;
   s.answered = true;
-  const correct = (choice === 'A') === s.testIsA;
-  const choiceBtns = { A: document.getElementById('mpChoiceA'), B: document.getElementById('mpChoiceB') };
-  Object.values(choiceBtns).forEach(b => { b.style.pointerEvents = 'none'; });
-  const correctKey = s.testIsA ? 'A' : 'B';
-  choiceBtns[correctKey].style.borderColor = '#4ade80';
-  choiceBtns[correctKey].style.background = 'rgba(74,222,128,0.10)';
-  if (!correct) choiceBtns[choice].style.opacity = '0.4';
-  const _mpr = document.getElementById('mpReveal');
-  _mpr.style.visibility = 'visible';
-  _mpr.style.opacity = '1';
-  document.getElementById('mpStatus').textContent = correct ? '✓ Correct' : '✗ Listen for the difference';
-  const nextBtn = document.getElementById('mpNextBtn');
-  nextBtn.textContent = correct ? 'Continue →' : 'Got it →';
-  nextBtn.classList.remove('hidden');
+  const optsEl = document.getElementById('mpOptions');
+  Array.from(optsEl.children).forEach(child => {
+    child.style.cursor = 'default';
+    child.style.pointerEvents = 'none';
+    if (child.textContent === s.targetWord) {
+      child.style.borderColor = '#4ade80';
+      child.style.background = 'rgba(74,222,128,0.08)';
+    } else if (child === btn) {
+      child.style.borderColor = '#f87171';
+      child.style.background = 'rgba(248,113,113,0.08)';
+    } else {
+      child.style.opacity = '0.4';
+    }
+  });
+  document.getElementById('mpRevealWord').textContent = s.targetWord;
+  document.getElementById('mpRevealMeaning').textContent = s.targetEnglish || '';
+  const revealEl = document.getElementById('mpReveal');
+  revealEl.style.visibility = 'visible';
+  revealEl.style.opacity = '1';
+  document.getElementById('mpNextBtn').classList.remove('hidden');
 }
 
 // ── Meaning task ──
@@ -37322,7 +37309,7 @@ const COACH_MARK_COPY = {
   'tt_seenScenarioResponseCoachMark': 'Read the situation, then pick what you\'d actually say. Match the goal, not the literal translation.',
   'tt_seenMatchPairsCoachMark': 'Tap a phrase, then tap its meaning. Correct pairs lock in. Wrong pairs shake and reset.',
   'tt_seenEmojiExerciseCoachMark': 'Tap the emoji that matches the word. Build the meaning by sight, not by translation.',
-  'tt_seenMinimalPairsCoachMark': 'You\'ll hear two words, then one of them again. Pick which one you just heard.',
+  'tt_seenMinimalPairsCoachMark': 'You\'ll hear a word. Pick which one it was from the options below.',
 };
 
 function showCoachMark(storageKey) {
