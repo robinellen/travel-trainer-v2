@@ -33405,6 +33405,23 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   // Show "Hear it slower" at Tier 1-2 (score < 3), hide at Tier 3+
   const slowerBtn = document.getElementById(prefix + 'SlowerBtn');
   if (slowerBtn) slowerBtn.style.display = recogScore < 3 ? '' : 'none';
+
+  // ── TEMPORARY DIAGNOSTIC ──────────────────────────────────────────
+  // Red line pinned to the bottom edge of the play wrapper. Lets us see
+  // in screenshots whether the play area moves between pre-tap and
+  // post-tap. Remove this block once the bug is identified.
+  try {
+    const existing = document.getElementById('_debugMarker');
+    if (existing) existing.remove();
+    const playWrapper = circle.parentElement;
+    requestAnimationFrame(() => {
+      const rect = playWrapper.getBoundingClientRect();
+      const marker = document.createElement('div');
+      marker.id = '_debugMarker';
+      marker.style.cssText = 'position:fixed; left:0; right:0; height:2px; background:red; z-index:9999; pointer-events:none; top:' + rect.bottom + 'px;';
+      document.body.appendChild(marker);
+    });
+  } catch (e) {}
 }
 
 function playRecognitionAudio(trigger, circle, onEnded) {
