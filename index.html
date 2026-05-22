@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
 <title>Travel Trainer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0d0e">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lexend:wght@200;300;400;500&display=swap" rel="stylesheet">
 <style>
 /* ── RESET & TOKENS ─────────────────────────────────────────────── */
@@ -35,7 +39,7 @@ body {
   font-family: 'Lexend', sans-serif;
   font-weight: 400;
   font-size: 17px;
-  min-height: 100vh;
+  min-height: 100dvh;
   line-height: 1.5;
 }
 
@@ -53,7 +57,7 @@ body::after {
 .app {
   max-width: 460px;
   margin: 0 auto;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -62,7 +66,7 @@ body::after {
 .screen {
   display: none;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   animation: screenIn 0.3s ease both;
 }
 .screen.active { display: flex; }
@@ -1041,7 +1045,7 @@ body::after {
      PHRASE REVEAL SCREEN (full-screen card after exercise)
 ═══════════════════════════════════════════════════ -->
 <div class="screen" id="screenPhraseReveal">
-  <div style="flex:1; display:flex; flex-direction:column; min-height:100vh;">
+  <div style="flex:1; display:flex; flex-direction:column; min-height:100dvh;">
     <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:1.5rem;">
       <div style="max-width:400px; width:100%; background:rgba(255,255,255,0.06); border-radius:16px; padding:24px;">
         <div style="text-align:center; margin-bottom:clamp(0.75rem, 2vh, 1.25rem);">
@@ -33405,23 +33409,6 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
   // Show "Hear it slower" at Tier 1-2 (score < 3), hide at Tier 3+
   const slowerBtn = document.getElementById(prefix + 'SlowerBtn');
   if (slowerBtn) slowerBtn.style.display = recogScore < 3 ? '' : 'none';
-
-  // ── TEMPORARY DIAGNOSTIC ──────────────────────────────────────────
-  // Red line pinned to the bottom edge of the play wrapper. Lets us see
-  // in screenshots whether the play area moves between pre-tap and
-  // post-tap. Remove this block once the bug is identified.
-  try {
-    const existing = document.getElementById('_debugMarker');
-    if (existing) existing.remove();
-    const playWrapper = circle.parentElement;
-    requestAnimationFrame(() => {
-      const rect = playWrapper.getBoundingClientRect();
-      const marker = document.createElement('div');
-      marker.id = '_debugMarker';
-      marker.style.cssText = 'position:fixed; left:0; right:0; height:2px; background:red; z-index:9999; pointer-events:none; top:' + rect.bottom + 'px;';
-      document.body.appendChild(marker);
-    });
-  } catch (e) {}
 }
 
 function playRecognitionAudio(trigger, circle, onEnded) {

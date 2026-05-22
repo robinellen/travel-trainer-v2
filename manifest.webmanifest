@@ -1,0 +1,9 @@
+{
+  "name": "Travel Trainer",
+  "short_name": "Travel Trainer",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0d0d0e",
+  "theme_color": "#0d0d0e",
+  "orientation": "portrait"
+}
