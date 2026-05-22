@@ -970,11 +970,11 @@ body::after {
     </div>
 
     <!-- ── MATCH PAIRS panel (Stage 1) ── -->
-    <div id="panelMatchPairs" class="hidden" style="flex:1; display:flex; flex-direction:column;">
+    <div id="panelMatchPairs" class="hidden" style="flex:1; display:flex; flex-direction:column; min-height:0;">
       <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:1rem; text-align:center;">Match each phrase to its meaning</div>
-      <div style="display:flex; gap:0.75rem; flex:1; align-items:flex-start;">
-        <div id="matchPairsLeft"  style="flex:1; display:flex; flex-direction:column; gap:0.5rem;"></div>
-        <div id="matchPairsRight" style="flex:1; display:flex; flex-direction:column; gap:0.5rem;"></div>
+      <div style="display:flex; gap:0.75rem; flex:1; min-height:0; align-items:stretch;">
+        <div id="matchPairsLeft"  style="flex:1; display:flex; flex-direction:column; gap:0.5rem; min-height:0;"></div>
+        <div id="matchPairsRight" style="flex:1; display:flex; flex-direction:column; gap:0.5rem; min-height:0;"></div>
       </div>
       <div class="mt-auto">
         <button class="btn-primary hidden" id="matchPairsNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
@@ -34054,7 +34054,7 @@ function renderMatchPairsPanel() {
   _matchPairsState = { pool, matched: new Set(), selectedLeft: null };
 
   function tileStyle(extra) {
-    return 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.7rem 0.85rem; color:var(--text); font-family:"Lexend",sans-serif; font-size:14px; text-align:left; cursor:pointer; transition:border-color 0.15s, background 0.15s, opacity 0.15s; line-height:1.3;' + (extra || '');
+    return 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.7rem 0.85rem; color:var(--text); font-family:"Lexend",sans-serif; font-size:16px; text-align:center; cursor:pointer; transition:border-color 0.15s, background 0.15s, opacity 0.15s; line-height:1.3; flex:1; min-height:0; display:flex; align-items:center; justify-content:center;' + (extra || '');
   }
 
   pool.forEach(p => {
