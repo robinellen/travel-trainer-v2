@@ -33250,6 +33250,18 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     btn.onclick = () => {
       if (answered) return;
       answered = true;
+
+      // Kill any in-flight stimulus audio so its onended (-> onStimulusEnd
+      // -> setAnswersEnabled, etc) can't fire during the reveal swap.
+      if (_activeRecognitionAudio) {
+        try { _activeRecognitionAudio.onended = null; } catch (e) {}
+        try { _activeRecognitionAudio.onerror = null; } catch (e) {}
+        try { _activeRecognitionAudio.pause(); } catch (e) {}
+        _activeRecognitionAudio = null;
+      }
+      audioEndedCallback = null;
+      if (circle) circle.classList.remove('playing');
+
       Array.from(optsEl.children).forEach(child => {
         const childCorrect = child.dataset.correct === 'true';
         child.style.cursor = 'default';
@@ -33270,8 +33282,10 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       // side-effects fire AFTER the swap so nothing can re-render the
       // choices container mid-transition and re-insert the buttons.
       setTimeout(() => {
+        if (!optsEl.isConnected) return;
         optsEl.style.opacity = '0';
         setTimeout(() => {
+          if (!optsEl.isConnected) return;
           const wordCount = (trigger.signalWord || '').split('/').length;
           const labelText = wordCount > 1 ? 'The words to listen for' : 'The word to listen for';
           const defText = trigger.signalWordDefinition || '';
@@ -33916,8 +33930,10 @@ function renderScenarioPanel(phrase) {
       // choices container so the layout doesn't shift. Scoring runs AFTER
       // the swap so nothing can re-render mid-transition.
       setTimeout(() => {
+        if (!container.isConnected) return;
         container.style.opacity = '0';
         setTimeout(() => {
+          if (!container.isConnected) return;
           const nativeHtml = displayNative(phrase, 'card');
           const roman = stripHtmlTags(phrase.romanization || '');
           const meaning = getMeaning(phrase);
@@ -34182,8 +34198,10 @@ function renderEmojiPanel(phrase) {
       // content into the same slot so the prompt above never shifts.
       // Scoring runs AFTER the swap so nothing can re-render mid-transition.
       setTimeout(() => {
+        if (!grid.isConnected) return;
         grid.style.opacity = '0';
         setTimeout(() => {
+          if (!grid.isConnected) return;
           const resultColor = correct ? '#4ade80' : '#f87171';
           const resultText = correct ? '✓ Correct' : '✗ Not quite';
           grid.style.display = 'flex';
@@ -34327,8 +34345,10 @@ function answerMinimalPairChoice(word, btn) {
   // Let the tap feedback register, then fade choices out and swap reveal
   // content into the same container so nothing above shifts.
   setTimeout(() => {
+    if (!optsEl.isConnected) return;
     optsEl.style.opacity = '0';
     setTimeout(() => {
+      if (!optsEl.isConnected) return;
       const resultColor = correct ? '#4ade80' : '#f87171';
       const resultText = correct ? '✓ Correct' : '✗ Not quite';
       optsEl.innerHTML = `
