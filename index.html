@@ -10,51 +10,63 @@
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#0d0d0e">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lexend:wght@200;300;400;500&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#F5F4F0">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Inter:wght@400;500;600;700&family=Lexend:wght@200;300;400;500&family=Playfair+Display:ital,wght@1,500&display=swap" rel="stylesheet">
 <style>
 /* ── RESET & TOKENS ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 :root {
-  --bg:           #0d0d0e;
-  --surface:      #161618;
-  --card:         #1c1c1f;
-  --border:       #2a2a2e;
-  --border-hi:    #3d3d42;
-  --text:         #f0ede8;
-  --text-mid:     #9b9aa4;
-  --text-dim:     #a0a0aa;
-  --fr:           #5b9bd5;
-  --green:        #4caf7d;2
-  --green-bg:     rgba(76,175,125,0.1);
-  --green-border: rgba(76,175,125,0.4);
-  --red:          #e05c4b;
-  --red-bg:       rgba(224,92,75,0.1);
-  --red-border:   rgba(224,92,75,0.4);
-  --radius:       14px;
-  --radius-sm:    8px;
+  /* ── Light theme (default). Dark theme override block lives below. ── */
+  --bg:             #F5F4F0;
+  --surface:        #FFFFFF;
+  --card:           #FFFFFF;
+  --border:         #D4D0C8;
+  --border-hi:      #A8A49E;
+  --hairline:       rgba(24,24,27,0.08);
+  --text:           #18181B;
+  --text-mid:       #71717A;
+  --text-dim:       #52525B;
+  --text-faint:     rgba(24,24,27,0.42);
+  --text-disabled:  rgba(24,24,27,0.28);
+  --accent:         #0047AB;
+  --accent-soft:    #1968D9;
+  --accent-deep:    #003280;
+  --fr:             #0047AB;
+  --green:          #0D9488;
+  --green-bg:       rgba(13,148,136,0.10);
+  --green-border:   rgba(13,148,136,0.40);
+  --red:            #E11D48;
+  --red-bg:         rgba(225,29,72,0.10);
+  --red-border:     rgba(225,29,72,0.40);
+  --correct-bg:     linear-gradient(135deg, #10B981 0%, #0D9488 100%);
+  --correct-glow:   0 4px 20px rgba(13,148,136,0.45);
+  --wrong-bg:       linear-gradient(135deg, #F43F5E 0%, #E11D48 100%);
+  --wrong-glow:     0 4px 20px rgba(225,29,72,0.45);
+  --shadow-card:    0 1px 2px rgba(24,24,27,0.04), 0 1px 3px rgba(24,24,27,0.06);
+  --shadow-selected:0 6px 18px rgba(0,71,171,0.22), 0 1px 3px rgba(24,24,27,0.06);
+  --shadow-play:    0 12px 28px rgba(0,71,171,0.22), 0 2px 6px rgba(24,24,27,0.08);
+  --radius:         14px;
+  --radius-sm:      8px;
+}
+
+[data-theme="dark"] {
+  /* TODO — restore dark-mode token values when a theme toggle is built. */
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Lexend', sans-serif;
+  font-family: 'Inter', 'Lexend', -apple-system, system-ui, sans-serif;
   font-weight: 400;
   font-size: 17px;
   min-height: 100dvh;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Noise overlay */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9999;
-}
+/* Noise overlay disabled in light mode — re-enable for dark theme. */
 
 /* ── LAYOUT ─────────────────────────────────────────────────────── */
 /* Pin the app to the visual viewport with position:fixed so mobile
@@ -229,16 +241,16 @@ body::after {
 /* Progress bar */
 .progress-bar {
   flex: 1;
-  height: 2px;
-  background: var(--border);
-  border-radius: 1px;
+  height: 8px;
+  background: #D4CFC7;
+  border-radius: 4px;
   overflow: hidden;
 }
 .progress-bar-fill {
   height: 100%;
-  background: var(--text);
-  border-radius: 1px;
-  transition: width 0.5s ease;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 320ms ease;
 }
 
 /* Speed control */
@@ -580,8 +592,8 @@ body::after {
    regions stacked top-to-bottom. Nothing shifts on answer because
    every region's height is fixed at render. */
 .exercise-canvas {
-  background: #171410;
-  color: #F5EEDE;
+  background: var(--bg);
+  color: var(--text);
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -605,8 +617,8 @@ body::after {
   width: 76px;
   height: 76px;
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #F4EFE5 0%, #DDD1B8 70%, #C8B998 100%);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.18), inset 0 3px 6px rgba(255,255,255,0.55);
+  background: var(--accent);
+  box-shadow: var(--shadow-play);
   position: relative;
   display: flex;
   align-items: center;
@@ -616,7 +628,7 @@ body::after {
   padding: 0;
 }
 .play-circle-v2.playing {
-  box-shadow: 0 0 0 6px rgba(232,200,120,0.18), 0 18px 40px rgba(0,0,0,0.5), inset 0 -3px 8px rgba(0,0,0,0.18), inset 0 3px 6px rgba(255,255,255,0.55);
+  box-shadow: 0 0 0 6px rgba(0,71,171,0.18), var(--shadow-play);
 }
 .play-circle-v2 svg {
   width: 26px;
@@ -626,7 +638,7 @@ body::after {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: radial-gradient(circle at 38% 32%, #FFE49A 0%, #E8B450 70%, #A87A2C 100%);
+  background: var(--accent-soft);
   opacity: 0;
   pointer-events: none;
 }
@@ -635,17 +647,17 @@ body::after {
 }
 @keyframes playColorPulse {
   0% { opacity: 0; }
-  30% { opacity: 1; }
-  65% { opacity: 1; }
+  30% { opacity: 0.35; }
+  65% { opacity: 0.35; }
   100% { opacity: 0; }
 }
 .play-caption {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 1.6px;
   text-transform: uppercase;
-  color: rgba(245,238,222,0.42);
+  color: var(--text-faint);
 }
 
 /* Prompt block — 26px below play block, italic display font + emoji. */
@@ -658,13 +670,13 @@ body::after {
   flex: 0 0 auto;
 }
 .prompt-italic {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', Georgia, serif;
   font-style: italic;
   font-weight: 500;
-  font-size: 26px;
-  color: #F5EEDE;
+  font-size: 30px;
+  color: var(--text);
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.12;
 }
 .prompt-emoji-hint {
   font-size: 24px;
@@ -680,24 +692,22 @@ body::after {
   flex: 0 0 auto;
 }
 .mc-option-v2 {
-  height: 60px;
   min-height: 60px;
-  max-height: 60px;
-  border-radius: 14px;
-  padding: 0 18px;
+  border-radius: 30px;
+  padding: 10px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-family: 'Playfair Display', serif;
-  font-style: italic;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-style: normal;
   font-weight: 500;
-  font-size: 22px;
-  letter-spacing: 0.2px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(245,238,222,0.18);
-  color: #F5EEDE;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  font-size: 17px;
+  letter-spacing: -0.1px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
   cursor: pointer;
   transition: background 220ms ease, color 220ms ease, border-color 220ms ease, box-shadow 220ms ease, opacity 220ms ease;
   width: 100%;
@@ -705,33 +715,46 @@ body::after {
 }
 .mc-option-v2 .label {
   flex: 1;
-  white-space: nowrap;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 .mc-option-v2 .glyph {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
   font-size: 18px;
   font-weight: 700;
   line-height: 1;
-  opacity: 0.85;
   min-width: 14px;
   text-align: right;
 }
 .mc-option-v2.correct {
-  background: #1F8A3B;
-  border-color: #2BB14F;
+  background: var(--correct-bg);
+  border-color: transparent;
   color: #EAFBEF;
-  box-shadow: inset 0 0 0 1px #2BB14F, 0 0 24px -8px #2BB14F;
+  box-shadow: var(--correct-glow);
+  animation: answerSpring 520ms cubic-bezier(.34, 1.56, .64, 1);
 }
 .mc-option-v2.wrong {
-  background: #B5283A;
-  border-color: #DE3B53;
+  background: var(--wrong-bg);
+  border-color: transparent;
   color: #FFE6EA;
-  box-shadow: inset 0 0 0 1px #DE3B53, 0 0 24px -8px #DE3B53;
+  box-shadow: var(--wrong-glow);
+  animation: answerShake 480ms ease-in-out;
+}
+.mc-option-v2.correctReveal {
+  background: var(--correct-bg);
+  border-color: transparent;
+  color: #EAFBEF;
+  animation: answerRing 720ms ease-out;
 }
 .mc-option-v2.dim {
-  opacity: 0.42;
+  background: var(--card);
+  border-color: #E5E2DC;
+  color: #A8A49E;
+  box-shadow: none;
 }
 .mc-option-v2:disabled {
   cursor: default;
@@ -748,24 +771,191 @@ body::after {
 .continue-btn {
   height: 56px;
   flex: 0 0 56px;
-  border-radius: 16px;
-  border: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  border-radius: 28px;
+  border: 1px solid var(--hairline);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 1.4px;
   text-transform: uppercase;
-  background: rgba(245,238,222,0.08);
-  color: rgba(245,238,222,0.28);
+  background: transparent;
+  color: var(--text-disabled);
   box-shadow: none;
   cursor: default;
-  transition: background 220ms ease, color 220ms ease, box-shadow 220ms ease;
+  transition: background 220ms ease, color 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
 }
 .continue-btn.enabled {
-  background: #F5EEDE;
-  color: #1A1612;
-  box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #FFFFFF;
+  box-shadow: 0 8px 22px rgba(0,71,171,0.30);
   cursor: pointer;
+}
+
+/* Feedback animations. answerSpring overshoots on correct tap;
+   answerShake jitters on wrong tap; answerRing pulses a halo around
+   the correct pill when the learner picked wrong. */
+@keyframes answerSpring {
+  from { transform: scale(1); }
+  50%  { transform: scale(1.024); }
+  to   { transform: scale(1); }
+}
+@keyframes answerShake {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-5px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes answerRing {
+  from { box-shadow: 0 0 0 0 rgba(13,148,136,0.40); }
+  to   { box-shadow: 0 0 0 16px rgba(13,148,136,0); }
+}
+
+/* ── AUDIO MATCHING ─────────────────────────────────────────────
+   Replaces the legacy Match Pairs exercise. 5 audio pills on the left
+   (EQ-bar glyph; tap to play), 5 English translations on the right
+   (shuffled). Tap a left pill → audio plays + pill selected; while
+   playing, tap a right pill to attempt a match. Correct = both lock
+   green; wrong = both shake red, selection clears. If audio ends
+   before a match is made, the selection auto-clears (real-time drill).
+   ───────────────────────────────────────────────────────────────── */
+.audio-match-title-block {
+  margin-top: 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+.audio-match-title {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.audio-match-subtitle {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+.audio-match-grid {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  column-gap: 10px;
+  row-gap: 10px;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+.audio-pill {
+  width: 92px;
+  min-height: 60px;
+  border-radius: 30px;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  transition: background 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+.audio-pill .eq {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 34px;
+}
+.audio-pill .eq span {
+  display: block;
+  width: 7px;
+  background: #5577AA;
+  border-radius: 3px;
+  transform-origin: center;
+  transition: background 220ms ease;
+}
+.audio-pill .eq span:nth-child(1) { height: 45%; }
+.audio-pill .eq span:nth-child(2) { height: 90%; }
+.audio-pill .eq span:nth-child(3) { height: 60%; }
+.audio-pill .eq span:nth-child(4) { height: 35%; }
+.audio-pill.selected {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-selected);
+}
+.audio-pill.selected .eq span { background: var(--accent); }
+.audio-pill.playing .eq span {
+  animation: eqBar 620ms ease-in-out infinite;
+}
+.audio-pill.playing .eq span:nth-child(1) { animation-delay: 0ms; }
+.audio-pill.playing .eq span:nth-child(2) { animation-delay: 90ms; }
+.audio-pill.playing .eq span:nth-child(3) { animation-delay: 180ms; }
+.audio-pill.playing .eq span:nth-child(4) { animation-delay: 270ms; }
+.audio-pill.matched {
+  background: var(--correct-bg);
+  border-color: transparent;
+  box-shadow: var(--correct-glow);
+}
+.audio-pill.matched .eq { display: none; }
+.audio-pill.matched::after {
+  content: '';
+  width: 22px;
+  height: 22px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5 L6.5 12 L13 4.5'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+.audio-pill.wrong {
+  background: var(--wrong-bg);
+  border-color: transparent;
+  box-shadow: var(--wrong-glow);
+  animation: answerShake 480ms ease-in-out;
+}
+.audio-pill.wrong .eq span { background: #FFFFFF; }
+.translation-pill {
+  min-height: 60px;
+  border-radius: 30px;
+  padding: 12px 18px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  text-align: left;
+  transition: background 220ms ease, border-color 220ms ease, color 220ms ease, box-shadow 220ms ease;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+.translation-pill.armed { border-color: #A8A49E; }
+.translation-pill.matched {
+  background: var(--correct-bg);
+  border-color: transparent;
+  color: #FFFFFF;
+  box-shadow: var(--correct-glow);
+}
+.translation-pill.wrong {
+  background: var(--wrong-bg);
+  border-color: transparent;
+  color: #FFFFFF;
+  box-shadow: var(--wrong-glow);
+  animation: answerShake 480ms ease-in-out;
+}
+@keyframes eqBar {
+  0%, 100% { transform: scaleY(0.4); }
+  50%      { transform: scaleY(1.15); }
 }
 
 /* Staggered post-audio reveal — every element occupies its space from
@@ -1028,12 +1218,12 @@ body::after {
       <div class="play-block-slot">
         <button class="play-circle-v2" id="listenCircle" onclick="playCurrentAudio()" aria-label="Play audio">
           <span class="pulse-overlay"></span>
-          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#2A2620"/></svg>
+          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#FFFFFF"/></svg>
         </button>
         <div class="play-caption fade-target delay-0" id="listenHint">Tap to play</div>
       </div>
       <div class="prompt-block fade-target delay-80">
-        <div id="listenPromptLabel" style="font-family:system-ui,-apple-system,sans-serif; font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:rgba(245,238,222,0.42); font-weight:600;"></div>
+        <div id="listenPromptLabel" style="font-family:system-ui,-apple-system,sans-serif; font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:var(--text-faint); font-weight:600;"></div>
         <div class="prompt-emoji-hint" id="listenEmoji" style="display:none;"></div>
       </div>
       <div class="answer-choices fade-target delay-160" id="listenOptions"></div>
@@ -1130,8 +1320,8 @@ body::after {
 
     <!-- ── SCENARIO RESPONSE panel ── -->
     <div id="panelScenario" class="hidden exercise-canvas">
-      <div id="scenarioGoal" style="background:rgba(255,255,255,0.04); border:1px solid rgba(245,238,222,0.18); border-radius:14px; padding:0.9rem 1.1rem; margin-top:24px; font-size:15px; color:#F5EEDE; line-height:1.4; text-align:center; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; flex:0 0 auto;"></div>
-      <div style="font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:rgba(245,238,222,0.42); margin-top:18px; text-align:center; flex:0 0 auto; font-family:system-ui,-apple-system,sans-serif; font-weight:600;">What would you say?</div>
+      <div id="scenarioGoal" style="background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:14px; padding:0.9rem 1.1rem; margin-top:24px; font-size:15px; color:var(--text); line-height:1.4; text-align:center; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; flex:0 0 auto;"></div>
+      <div style="font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:var(--text-faint); margin-top:18px; text-align:center; flex:0 0 auto; font-family:system-ui,-apple-system,sans-serif; font-weight:600;">What would you say?</div>
       <div class="answer-choices" id="scenarioOptions" style="margin-top:14px;"></div>
       <div class="exercise-spacer"></div>
       <button class="continue-btn" id="scenarioNextBtn" onclick="nextExercise()" disabled>Continue</button>
@@ -1142,21 +1332,20 @@ body::after {
       <div id="anticipationPrompt" style="font-size:18px; color:var(--text); text-align:center; line-height:1.5; max-width:340px; opacity:0; transition:opacity 300ms ease;"></div>
     </div>
 
-    <!-- ── MATCH PAIRS panel (Stage 1) ── -->
-    <div id="panelMatchPairs" class="hidden" style="flex:1; display:flex; flex-direction:column; min-height:0;">
-      <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:1rem; text-align:center;">Match each phrase to its meaning</div>
-      <div style="display:flex; gap:0.75rem; flex:1; min-height:0; align-items:stretch;">
-        <div id="matchPairsLeft"  style="flex:1; display:flex; flex-direction:column; gap:0.5rem; min-height:0;"></div>
-        <div id="matchPairsRight" style="flex:1; display:flex; flex-direction:column; gap:0.5rem; min-height:0;"></div>
+    <!-- ── AUDIO MATCHING panel (replaces match_pairs) ── -->
+    <div id="panelAudioMatch" class="hidden exercise-canvas">
+      <div class="audio-match-title-block">
+        <div class="audio-match-title">Match the pairs</div>
+        <div class="audio-match-subtitle">Tap to play, then choose its translation</div>
       </div>
-      <div class="mt-auto">
-        <button class="btn-primary hidden" id="matchPairsNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
-      </div>
+      <div class="audio-match-grid" id="audioMatchGrid"></div>
+      <div class="exercise-spacer"></div>
+      <button class="continue-btn" id="audioMatchNextBtn" onclick="nextExercise()" disabled>Continue</button>
     </div>
 
     <!-- ── EMOJI EXERCISE panel (Stage 1) ── -->
     <div id="panelEmoji" class="hidden exercise-canvas">
-      <div id="emojiPhrase" style="font-family:'Playfair Display',serif; font-style:italic; font-weight:500; font-size:26px; color:#F5EEDE; line-height:1.2; margin-top:48px; text-align:center; flex:0 0 auto;"></div>
+      <div id="emojiPhrase" style="font-family:'Playfair Display',serif; font-style:italic; font-weight:500; font-size:26px; color:var(--text); line-height:1.2; margin-top:48px; text-align:center; flex:0 0 auto;"></div>
       <div id="emojiOptions" style="flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:14px; align-content:center; margin-top:24px;"></div>
       <div class="exercise-spacer"></div>
       <button class="continue-btn" id="emojiNextBtn" onclick="nextExercise()" disabled>Continue</button>
@@ -1167,12 +1356,12 @@ body::after {
       <div class="play-block-slot">
         <button class="play-circle-v2" id="mpCircle" onclick="replayMinimalPairAudio()" aria-label="Play audio">
           <span class="pulse-overlay"></span>
-          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#2A2620"/></svg>
+          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#FFFFFF"/></svg>
         </button>
         <div class="play-caption" id="mpPlayHint">Tap to play</div>
       </div>
       <div class="prompt-block">
-        <div style="font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:rgba(245,238,222,0.42); font-family:system-ui,-apple-system,sans-serif; font-weight:600;" id="mpPrompt">What did you hear?</div>
+        <div style="font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:var(--text-faint); font-family:system-ui,-apple-system,sans-serif; font-weight:600;" id="mpPrompt">What did you hear?</div>
       </div>
       <div class="answer-choices" id="mpOptions"></div>
       <div class="exercise-spacer"></div>
@@ -1191,14 +1380,14 @@ body::after {
       <div class="play-block-slot">
         <button class="play-circle-v2" id="recogCircle" onclick="replayRecognitionAudio()" aria-label="Play audio">
           <span class="pulse-overlay"></span>
-          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#2A2620"/></svg>
+          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#FFFFFF"/></svg>
         </button>
         <div class="play-caption fade-target delay-0" id="recogPlayHint">Tap to play</div>
       </div>
       <!-- Optional signal-word anchor — shown above prompt when present. -->
       <div id="recogSignalAnchor" class="fade-target delay-80" style="display:none; text-align:center; margin-top:8px;">
-        <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(245,238,222,0.55);">Listen for: </span>
-        <span id="recogAnchorWord" style="font-size:15px; color:#F5EEDE;"></span>
+        <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
+        <span id="recogAnchorWord" style="font-size:15px; color:var(--text);"></span>
       </div>
       <!-- Prompt block: trigger phrase + emoji hint. -->
       <div class="prompt-block fade-target delay-80">
@@ -1391,13 +1580,13 @@ body::after {
     <div class="play-block-slot">
       <button class="play-circle-v2" id="recogStdCircle" onclick="replayRecognitionStdAudio()" aria-label="Play audio">
         <span class="pulse-overlay"></span>
-        <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#2A2620"/></svg>
+        <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#FFFFFF"/></svg>
       </button>
       <div class="play-caption fade-target delay-0" id="recogStdPlayHint">Tap to play</div>
     </div>
     <div id="recogStdSignalAnchor" class="fade-target delay-80" style="display:none; text-align:center; margin-top:8px;">
-      <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(245,238,222,0.55);">Listen for: </span>
-      <span id="recogStdAnchorWord" style="font-size:15px; color:#F5EEDE;"></span>
+      <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
+      <span id="recogStdAnchorWord" style="font-size:15px; color:var(--text);"></span>
     </div>
     <div class="prompt-block fade-target delay-80">
       <div class="prompt-italic" id="recogStdPrompt"></div>
@@ -32745,9 +32934,10 @@ function buildPhraseTouches(phrase) {
   if (phrase.situationText && score >= 2 && _stage >= 2) {
     touches = [...touches, 'scenario_response'];
   }
-  // Stage 1 quickies — only at score < 2, retire automatically once score >= 2.
-  if ((phrase.tier || '1') === '1' && score < 2) {
-    touches = [...touches, 'match_pairs'];
+  // Stage 1 quickies — only at score ≥ 1 (audio_match needs prior exposure),
+  // retire automatically once score >= 2 so it stays fresh-content focused.
+  if ((phrase.tier || '1') === '1' && score >= 1 && score < 2) {
+    touches = [...touches, 'audio_match'];
   }
   if (phrase.emojiExercise && score < 2) {
     touches = [...touches, 'emoji_exercise'];
@@ -33155,25 +33345,22 @@ function startSessionWithMode(mode) {
       });
     }
 
-    // Match Pairs: one exercise per session draws its own 5–6 phrase pool,
-    // so dedupe any per-phrase 'match_pairs' touches down to a single item.
-    // Force _isFinal:true on the kept item so each correct pair scores via
-    // bumpIfFinal regardless of which phrase originally queued the touch.
-    // Reposition to ~60% through the queue so it's not stranded at the end
-    // (the round-robin builder drains tail touches last, so without this
-    // move match_pairs would sit in the deepest slot and rarely fire).
+    // Audio Matching: one exercise per session draws its own 5-phrase pool,
+    // so dedupe any per-phrase 'audio_match' touches down to a single item
+    // and reposition to ~60% of the queue (round-robin tail-draining would
+    // otherwise bury it where many sessions never reach).
     {
       let kept = false;
       for (let i = queue.length - 1; i >= 0; i--) {
-        if (queue[i].type !== 'match_pairs') continue;
+        if (queue[i].type !== 'audio_match') continue;
         if (kept) queue.splice(i, 1);
-        else { kept = true; queue[i]._isFinal = true; }
+        else { kept = true; }
       }
-      const mpIdx = queue.findIndex(item => item.type === 'match_pairs');
-      if (mpIdx !== -1) {
-        const [mpItem] = queue.splice(mpIdx, 1);
+      const amIdx = queue.findIndex(item => item.type === 'audio_match');
+      if (amIdx !== -1) {
+        const [amItem] = queue.splice(amIdx, 1);
         const insertAt = Math.floor(queue.length * 0.6);
-        queue.splice(insertAt, 0, mpItem);
+        queue.splice(insertAt, 0, amItem);
       }
     }
 
@@ -33540,7 +33727,7 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       label = document.createElement('div');
       label.id = prefix + 'BuildupLabel';
       label.textContent = 'Listen and repeat';
-      label.style.cssText = 'position:absolute; top:0.5rem; left:0; right:0; text-align:center; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(245,238,222,0.55); pointer-events:none; z-index:1;';
+      label.style.cssText = 'position:absolute; top:0.5rem; left:0; right:0; text-align:center; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); pointer-events:none; z-index:1;';
       host.appendChild(label);
     }
     label.style.display = '';
@@ -33772,7 +33959,7 @@ function updateExerciseHeader() {
 }
 
 function hidePanels() {
-  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelRecognition', 'panelBuildup', 'panelScenario', 'panelAnticipation', 'panelMatchPairs', 'panelEmoji', 'panelMinimalPairs'].forEach(id => {
+  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelRecognition', 'panelBuildup', 'panelScenario', 'panelAnticipation', 'panelAudioMatch', 'panelEmoji', 'panelMinimalPairs'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
@@ -33810,7 +33997,7 @@ function renderCurrentExercise() {
   else if (type === 'recognition') renderRecognitionPanel(phrase);
   else if (type === 'scenario_response') renderScenarioPanel(phrase);
   else if (type === 'anticipation') renderAnticipationPanel(phrase);
-  else if (type === 'match_pairs') renderMatchPairsPanel();
+  else if (type === 'audio_match') renderAudioMatchPanel();
   else if (type === 'emoji_exercise') renderEmojiPanel(phrase);
   else if (type === 'minimal_pair') renderMinimalPairPanel(item);
 }
@@ -34205,130 +34392,212 @@ function renderAnticipationPanel(phrase) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// MATCH PAIRS (Stage 1 — tap-to-pair foreign / English)
-// Draws its own 5–6 phrase pool from active Tier 1 / score<2, dedup'd
-// by exclusionGroup. Each correct pair scores; each wrong pair scores
-// as incorrect. Continue button appears only when all pairs matched.
+// AUDIO MATCHING (replaces Match Pairs)
+// 5 audio pills on the left (EQ bar glyph; tap to play that phrase's
+// audio), 5 English translations on the right (deterministic shuffle).
+// Tap left → audio plays + pill selected; while playing, tap a right
+// pill to attempt a match. Correct = both lock green; wrong = both
+// shake red, selection clears. If audio ends without a match, the
+// selection auto-clears — learner must replay to try again.
 // ═══════════════════════════════════════════════════════════════════
 
-let _matchPairsState = null;
-function pickMatchPairsPool(targetCount) {
+let _audioMatchState = null;
+
+function pickAudioMatchPool(targetCount) {
+  // Pool: phrases at score ≥ 1, current language, with audio available
+  // and a meaning. Shuffle and take targetCount.
   const active = getActivePhrases().filter(p =>
-    (p.tier || '1') === '1' &&
-    getScore(p.id) < 2 &&
+    getScore(p.id) >= 1 &&
     p.native && getMeaning(p)
   );
-  // Dedupe by exclusionGroup: at most one phrase per group makes the cut.
-  const seenGroups = new Set();
-  const ordered = shuffle(active.slice()).filter(p => {
-    if (!p.exclusionGroup) return true;
-    if (seenGroups.has(p.exclusionGroup)) return false;
-    seenGroups.add(p.exclusionGroup); return true;
-  });
-  return ordered.slice(0, targetCount);
+  return shuffle(active.slice()).slice(0, targetCount);
 }
 
-function renderMatchPairsPanel() {
-  const target = 5 + Math.floor(Math.random() * 2); // 5 or 6
-  const pool = pickMatchPairsPool(target);
+// Deterministic shuffle so the same set of pairs yields the same right
+// column order across renders within a session (seeded by length).
+function _shuffledIndices(n, seed) {
+  const idx = Array.from({length: n}, (_, i) => i);
+  let s = seed || 7;
+  for (let i = idx.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const j = Math.floor((s / 233280) * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  // Derangement nudge — no item should land in its own row.
+  for (let i = 0; i < idx.length; i++) {
+    if (idx[i] === i) {
+      const swap = (i + 1) % idx.length;
+      [idx[i], idx[swap]] = [idx[swap], idx[i]];
+    }
+  }
+  return idx;
+}
 
-  // Minimum viable set is 4. A 1–3 phrase grid is broken — skip silently
-  // without flashing the panel or burning the coach mark.
-  if (pool.length < 4) {
+function renderAudioMatchPanel() {
+  const pool = pickAudioMatchPool(5);
+
+  // Pool guard — skip silently if fewer than 5 eligible phrases.
+  if (pool.length < 5) {
     state.session.index++;
     if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
     return;
   }
 
   _onCoachMarkDismiss = () => showScreen('screenExercise');
-  showCoachMark('tt_seenMatchPairsCoachMark');
+  showCoachMark('tt_seenAudioMatchCoachMark');
 
-  document.getElementById('panelMatchPairs').classList.remove('hidden');
+  document.getElementById('panelAudioMatch').classList.remove('hidden');
   showScreen('screenExercise');
-  const leftCol = document.getElementById('matchPairsLeft');
-  const rightCol = document.getElementById('matchPairsRight');
-  leftCol.innerHTML = '';
-  rightCol.innerHTML = '';
-  document.getElementById('matchPairsNextBtn').classList.add('hidden');
 
-  const meanings = shuffle(pool.slice());
-  _matchPairsState = { pool, matched: new Set(), selectedLeft: null };
+  const grid = document.getElementById('audioMatchGrid');
+  const nextBtn = document.getElementById('audioMatchNextBtn');
+  grid.innerHTML = '';
+  nextBtn.disabled = true;
+  nextBtn.classList.remove('enabled');
+  nextBtn.textContent = 'Continue';
 
-  function tileStyle(extra) {
-    return 'background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.7rem 0.85rem; color:var(--text); font-family:"Lexend",sans-serif; font-size:16px; text-align:center; cursor:pointer; transition:border-color 0.15s, background 0.15s, opacity 0.15s; line-height:1.3; flex:1; min-height:0; display:flex; align-items:center; justify-content:center;' + (extra || '');
+  const shuffledIdx = _shuffledIndices(pool.length, pool[0].id.length + 7);
+
+  _audioMatchState = {
+    pool,
+    shuffledIdx,
+    matched: new Set(),
+    selected: null,
+    playingIdx: null,
+    wrongPair: null,
+    audio: null,
+    leftEls: [],
+    rightEls: [],
+  };
+
+  // Build the grid: 5 rows × (audio pill | translation pill).
+  for (let i = 0; i < pool.length; i++) {
+    const phrase = pool[i];
+    const rightIdx = shuffledIdx.indexOf(i); // where this phrase's translation lives
+    const translationPhrase = pool[shuffledIdx[i]]; // what translation sits in row i
+
+    // Left audio pill (row i, plays pool[i] audio when tapped)
+    const left = document.createElement('button');
+    left.className = 'audio-pill';
+    left.dataset.poolIdx = String(i);
+    const eq = document.createElement('div');
+    eq.className = 'eq';
+    eq.innerHTML = '<span></span><span></span><span></span><span></span>';
+    left.appendChild(eq);
+    left.onclick = () => _audioMatchLeftTap(i);
+    grid.appendChild(left);
+    _audioMatchState.leftEls.push(left);
+
+    // Right translation pill (row i, holds the translation for pool[shuffledIdx[i]])
+    const right = document.createElement('button');
+    right.className = 'translation-pill';
+    right.dataset.rowIdx = String(i);
+    right.dataset.targetPoolIdx = String(shuffledIdx[i]);
+    right.textContent = getMeaning(translationPhrase);
+    right.onclick = () => _audioMatchRightTap(i);
+    grid.appendChild(right);
+    _audioMatchState.rightEls.push(right);
   }
+}
 
-  pool.forEach(p => {
-    const btn = document.createElement('button');
-    btn.dataset.phraseId = p.id;
-    btn.style.cssText = tileStyle();
-    btn.textContent = displayNative(p, 'card');
-    btn.onclick = () => handleMatchPairsLeftTap(p.id, btn);
-    leftCol.appendChild(btn);
+function _audioMatchRenderState() {
+  const s = _audioMatchState;
+  if (!s) return;
+  s.leftEls.forEach((el, i) => {
+    el.classList.toggle('selected', s.selected === i && !s.matched.has(i));
+    el.classList.toggle('playing', s.playingIdx === i);
+    el.classList.toggle('matched', s.matched.has(i));
+    el.classList.toggle('wrong', s.wrongPair && s.wrongPair.left === i);
   });
-  meanings.forEach(p => {
-    const btn = document.createElement('button');
-    btn.dataset.phraseId = p.id;
-    btn.style.cssText = tileStyle();
-    btn.textContent = getMeaning(p);
-    btn.onclick = () => handleMatchPairsRightTap(p.id, btn);
-    rightCol.appendChild(btn);
+  s.rightEls.forEach((el, j) => {
+    const targetIdx = parseInt(el.dataset.targetPoolIdx, 10);
+    el.classList.toggle('armed', s.selected !== null && !s.matched.has(targetIdx));
+    el.classList.toggle('matched', s.matched.has(targetIdx));
+    el.classList.toggle('wrong', s.wrongPair && s.wrongPair.right === j);
   });
 }
 
-function handleMatchPairsLeftTap(phraseId, btn) {
-  if (_matchPairsState.matched.has(phraseId)) return;
-  // Clear previous left selection visual.
-  if (_matchPairsState.selectedLeft && _matchPairsState.selectedLeft.btn) {
-    _matchPairsState.selectedLeft.btn.style.borderColor = 'var(--border)';
-    _matchPairsState.selectedLeft.btn.style.background = 'var(--card)';
+function _audioMatchStopAudio() {
+  const s = _audioMatchState;
+  if (s && s.audio) {
+    try { s.audio.onended = null; } catch (e) {}
+    try { s.audio.onerror = null; } catch (e) {}
+    try { s.audio.pause(); } catch (e) {}
+    s.audio = null;
   }
-  _matchPairsState.selectedLeft = { phraseId, btn };
-  btn.style.borderColor = 'var(--text-mid)';
-  btn.style.background = 'rgba(255,255,255,0.06)';
 }
 
-function handleMatchPairsRightTap(phraseId, btn) {
-  if (_matchPairsState.matched.has(phraseId)) return;
-  const sel = _matchPairsState.selectedLeft;
-  if (!sel) return;
-  const correct = sel.phraseId === phraseId;
+function _audioMatchLeftTap(i) {
+  const s = _audioMatchState;
+  if (!s || s.matched.has(i)) return;
+  _audioMatchStopAudio();
+  s.selected = i;
+  s.playingIdx = i;
+
+  const phrase = s.pool[i];
+  const src = (typeof pickAudioUrl === 'function') ? pickAudioUrl(phrase) : null;
+  if (src) {
+    try {
+      const audio = new Audio(src);
+      s.audio = audio;
+      audio.onended = () => {
+        if (_audioMatchState !== s) return;
+        s.selected = null;
+        s.playingIdx = null;
+        s.audio = null;
+        _audioMatchRenderState();
+      };
+      audio.onerror = audio.onended;
+      audio.play().catch(() => {
+        s.audio = null;
+      });
+    } catch (e) { s.audio = null; }
+  } else {
+    // No audio available — give the learner ~1.5s to pick before clearing.
+    setTimeout(() => {
+      if (_audioMatchState === s && s.playingIdx === i && !s.matched.has(i)) {
+        s.selected = null;
+        s.playingIdx = null;
+        _audioMatchRenderState();
+      }
+    }, 1500);
+  }
+
+  _audioMatchRenderState();
+}
+
+function _audioMatchRightTap(j) {
+  const s = _audioMatchState;
+  if (!s || s.selected === null) return;
+  const targetIdx = parseInt(s.rightEls[j].dataset.targetPoolIdx, 10);
+  if (s.matched.has(targetIdx)) return;
+  const correct = targetIdx === s.selected;
+
   if (correct) {
-    _matchPairsState.matched.add(phraseId);
-    [sel.btn, btn].forEach(b => {
-      b.style.color = 'var(--text-dim)';
-      b.style.borderColor = 'var(--border)';
-      b.style.background = 'var(--card)';
-      b.style.opacity = '0.55';
-      b.style.pointerEvents = 'none';
-    });
-    bumpIfFinal(phraseId, 0, true);
-    _matchPairsState.selectedLeft = null;
-    if (_matchPairsState.matched.size === _matchPairsState.pool.length) {
-      document.getElementById('matchPairsNextBtn').classList.remove('hidden');
+    s.matched.add(s.selected);
+    _audioMatchStopAudio();
+    s.selected = null;
+    s.playingIdx = null;
+    _audioMatchRenderState();
+
+    if (s.matched.size === s.pool.length) {
+      // All pairs locked — bump every phrase and enable Continue.
+      s.pool.forEach(p => bumpScore(p.id, (getScore(p.id) || 0) + 1, true));
+      const btn = document.getElementById('audioMatchNextBtn');
+      btn.disabled = false;
+      btn.classList.add('enabled');
     }
   } else {
-    bumpIfFinal(sel.phraseId, 0, false);
-    bumpIfFinal(phraseId, 0, false);
-    // Shake both briefly, then reset.
-    [sel.btn, btn].forEach(b => {
-      b.style.transition = 'transform 80ms ease';
-      let t = 0;
-      const shake = () => {
-        if (t >= 4) {
-          b.style.transform = '';
-          b.style.borderColor = 'var(--border)';
-          b.style.background = 'var(--card)';
-          b.style.transition = 'border-color 0.15s, background 0.15s, opacity 0.15s';
-          return;
-        }
-        b.style.transform = (t % 2 === 0 ? 'translateX(4px)' : 'translateX(-4px)');
-        t++;
-        setTimeout(shake, 80);
-      };
-      shake();
-    });
-    _matchPairsState.selectedLeft = null;
+    s.wrongPair = { left: s.selected, right: j };
+    _audioMatchRenderState();
+    setTimeout(() => {
+      if (_audioMatchState !== s) return;
+      s.wrongPair = null;
+      s.selected = null;
+      s.playingIdx = null;
+      _audioMatchStopAudio();
+      _audioMatchRenderState();
+    }, 620);
   }
 }
 
@@ -34382,7 +34651,7 @@ function renderEmojiPanel(phrase) {
 
   options.forEach(opt => {
     const btn = document.createElement('button');
-    btn.style.cssText = 'background:rgba(255,255,255,0.04); border:1px solid rgba(245,238,222,0.18); border-radius:14px; padding:1.25rem; font-size:2.5rem; line-height:1; cursor:pointer; color:#F5EEDE; transition:background 220ms ease, border-color 220ms ease, opacity 220ms ease, box-shadow 220ms ease;';
+    btn.style.cssText = 'background:var(--card); border:1px solid var(--border); border-radius:30px; padding:1.25rem; font-size:2.5rem; line-height:1; cursor:pointer; color:var(--text); box-shadow:var(--shadow-card); transition:background 220ms ease, border-color 220ms ease, opacity 220ms ease, box-shadow 220ms ease;';
     btn.textContent = opt.emoji || '';
     if (opt.id === phrase.id) correctBtn = btn;
     allBtns.push(btn);
@@ -37584,7 +37853,7 @@ const COACH_MARK_COPY = {
   'tt_seenExperiencePracticeCoachMark': 'Practice mode. Run through the whole interaction from start to finish.',
   'tt_seenListenModeCoachMark': 'These are real conversations. You\'re not being tested — just listen and see how much you catch.',
   'tt_seenScenarioResponseCoachMark': 'Read the situation, then pick what you\'d actually say. Match the goal, not the literal translation.',
-  'tt_seenMatchPairsCoachMark': 'Tap a phrase, then tap its meaning. Correct pairs lock in. Wrong pairs shake and reset.',
+  'tt_seenAudioMatchCoachMark': 'Tap a phrase to hear it, then tap what it means. You have to match while the audio is playing.',
   'tt_seenEmojiExerciseCoachMark': 'Tap the emoji that matches the word. Build the meaning by sight, not by translation.',
   'tt_seenMinimalPairsCoachMark': 'You\'ll hear a word. Pick which one it was from the options below.',
 };

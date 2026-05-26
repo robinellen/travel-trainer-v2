@@ -3,7 +3,7 @@
   "short_name": "Travel Trainer",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#0d0d0e",
-  "theme_color": "#0d0d0e",
+  "background_color": "#F5F4F0",
+  "theme_color": "#F5F4F0",
   "orientation": "portrait"
 }
