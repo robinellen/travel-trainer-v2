@@ -34543,7 +34543,8 @@ function _audioMatchLeftTap(i) {
       s.audio = audio;
       audio.onended = () => {
         if (_audioMatchState !== s) return;
-        s.selected = null;
+        // Only stop the EQ animation — keep the cobalt outline (s.selected)
+        // so the learner can still tap a translation without replaying.
         s.playingIdx = null;
         s.audio = null;
         _audioMatchRenderState();
@@ -34554,10 +34555,10 @@ function _audioMatchLeftTap(i) {
       });
     } catch (e) { s.audio = null; }
   } else {
-    // No audio available — give the learner ~1.5s to pick before clearing.
+    // No audio available — just stop the simulated "playing" state after
+    // ~1.5s. Selection still persists until match/wrong/different-left.
     setTimeout(() => {
-      if (_audioMatchState === s && s.playingIdx === i && !s.matched.has(i)) {
-        s.selected = null;
+      if (_audioMatchState === s && s.playingIdx === i) {
         s.playingIdx = null;
         _audioMatchRenderState();
       }
