@@ -959,20 +959,15 @@ body {
   50%      { transform: scaleY(1.15); }
 }
 
-/* Staggered post-audio reveal — every element occupies its space from
-   render (opacity:0), so the layout is calculated once. */
-@keyframes contentFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.fade-target { opacity: 0; }
-.fade-target.revealed {
-  animation: contentFadeIn 1400ms ease-out forwards;
-}
-.fade-target.revealed.delay-0   { animation-delay: 0ms; }
-.fade-target.revealed.delay-80  { animation-delay: 80ms; }
-.fade-target.revealed.delay-160 { animation-delay: 160ms; }
-.fade-target.revealed.delay-240 { animation-delay: 240ms; }
+/* Fade pattern removed per design handoff note ("the fade pattern was
+   removed in the final files due to a CSS animation pause issue;
+   content now renders immediately"). Classes preserved as no-ops so
+   existing markup + JS calls (renderer adds .revealed after audio)
+   keep working without modification. Foreign-language prompts were
+   showing as near-invisible because the fade-target opacity:0 stayed
+   stuck whenever audio.onended didn't fire reliably. */
+.fade-target { opacity: 1; }
+.fade-target.revealed { animation: none; }
 .exercise-type-badge {
   font-size: 13px;
   letter-spacing: 0.2em;
@@ -34914,6 +34909,7 @@ function renderListenIdentify(phrase) {
     labelSpan.textContent = displayNative(opt, 'card');
     labelSpan.style.fontFamily = "'Playfair Display', serif";
     labelSpan.style.fontStyle = 'italic';
+    labelSpan.style.color = 'var(--text)';
     const glyphSpan = document.createElement('span');
     glyphSpan.className = 'glyph';
     btn.appendChild(labelSpan);
