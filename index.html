@@ -813,6 +813,165 @@ body {
   to   { box-shadow: 0 0 0 16px rgba(13,148,136,0); }
 }
 
+/* ── MEANING ASSEMBLY ───────────────────────────────────────────
+   Learner builds the English meaning of a foreign phrase by tapping
+   word chips into an assembly zone. Bank uses ghost slots so the
+   grid never reflows when a chip moves. Submit needs only a
+   non-empty zone (distractors may be left behind). After a wrong
+   submit, the zone reveals the correct sequence as locked chips. */
+@keyframes chipPop {
+  from { transform: scale(0.86); opacity: 0; }
+  60%  { transform: scale(1.03); opacity: 1; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.ma-bank {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 16px;
+  flex: 0 0 auto;
+}
+.ma-chip {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: -0.1px;
+  border-radius: 14px;
+  padding: 11px 17px;
+  min-height: 48px;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(24,24,27,0.05), 0 2px 6px rgba(24,24,27,0.06);
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
+}
+.ma-chip:disabled { cursor: default; }
+.ma-chip.ghost {
+  color: transparent;
+  border: 1.5px dashed #D8D4CC;
+  background: rgba(24,24,27,0.035);
+  box-shadow: none;
+  pointer-events: none;
+}
+.ma-zone {
+  margin-top: 8px;
+  border-radius: 18px;
+  padding: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  align-content: center;
+  min-height: 76px;
+  border: 1.5px dashed var(--border);
+  background: #FBFAF8;
+  flex: 0 0 auto;
+  transition: background 220ms ease, border-color 220ms ease;
+}
+.ma-zone.has-words { border-style: solid; }
+.ma-zone.correct {
+  border-color: #0D9488;
+  background: rgba(13,148,136,0.09);
+  animation: answerSpring 520ms cubic-bezier(.34, 1.56, .64, 1);
+}
+.ma-zone.wrong {
+  border-color: #E11D48;
+  background: rgba(225,29,72,0.07);
+  animation: answerShake 480ms ease-in-out;
+}
+.ma-zone-chip {
+  background: var(--card);
+  border: 1.5px solid var(--accent);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: -0.1px;
+  border-radius: 14px;
+  padding: 11px 17px;
+  min-height: 48px;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0,71,171,0.18), 0 1px 3px rgba(24,24,27,0.06);
+  cursor: pointer;
+  animation: chipPop 240ms cubic-bezier(.34, 1.56, .64, 1);
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
+}
+.ma-zone.correct .ma-zone-chip {
+  background: var(--correct-bg);
+  border-color: transparent;
+  color: #FFFFFF;
+  box-shadow: var(--correct-glow);
+  pointer-events: none;
+}
+.ma-zone.wrong .ma-zone-chip {
+  color: #E11D48;
+  background: rgba(225,29,72,0.07);
+  pointer-events: none;
+}
+.ma-placeholder {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-disabled);
+  text-align: center;
+  width: 100%;
+}
+.ma-status {
+  height: 18px;
+  flex: 0 0 18px;
+  margin-bottom: 8px;
+  margin-top: 8px;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  line-height: 1;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ma-status.correct { color: #0D9488; }
+.ma-status.wrong   { color: #E11D48; }
+.ma-eyebrow {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: center;
+}
+.ma-action-row {
+  margin-top: 18px;
+  display: flex;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding-bottom: 30px;
+}
+.ma-action-row .continue-btn { flex: 1; }
+.ma-clear {
+  height: 56px;
+  padding: 0 22px;
+  border-radius: 28px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 /* ── AUDIO MATCHING ─────────────────────────────────────────────
    Replaces the legacy Match Pairs exercise. 5 audio pills on the left
    (EQ-bar glyph; tap to play), 5 English translations on the right
@@ -1337,6 +1496,24 @@ body {
       <div class="audio-match-grid" id="audioMatchGrid"></div>
       <div class="exercise-spacer"></div>
       <button class="continue-btn" id="audioMatchNextBtn" onclick="nextExercise()" disabled>Continue</button>
+    </div>
+
+    <!-- ── MEANING ASSEMBLY panel (build the English meaning) ── -->
+    <div id="panelMeaningAssembly" class="hidden exercise-canvas">
+      <div class="exercise-spacer" style="min-height:22px;"></div>
+      <div style="text-align:center; flex:0 0 auto;">
+        <div class="ma-eyebrow">What does this mean?</div>
+        <div class="prompt-italic" id="maPrompt" style="margin-top:14px; font-size:32px;"></div>
+      </div>
+      <div class="exercise-spacer" style="min-height:28px;"></div>
+      <div class="ma-status" id="maStatus"></div>
+      <div class="ma-zone" id="maZone"></div>
+      <div class="ma-bank" id="maBank"></div>
+      <div class="exercise-spacer" style="min-height:18px;"></div>
+      <div class="ma-action-row">
+        <button class="ma-clear" id="maClearBtn" onclick="meaningAssemblyClear()" style="display:none;">Clear</button>
+        <button class="continue-btn" id="maNextBtn" onclick="meaningAssemblySubmitOrContinue()" disabled>Submit</button>
+      </div>
     </div>
 
     <!-- ── EMOJI EXERCISE panel (Stage 1) ── -->
@@ -32216,6 +32393,7 @@ let state = {
   scores: {},
   seenBuildupIntro: {},
   seenAnticipation: {},
+  seenMeaningAssembly: {},
   leitner: {},
   seenTierUnlock: {},
   sessionLength: 'long',
@@ -32246,6 +32424,7 @@ function loadState() {
       state.scores = parsed.scores || {};
       state.seenBuildupIntro = parsed.seenBuildupIntro || {};
       state.seenAnticipation = parsed.seenAnticipation || {};
+      state.seenMeaningAssembly = parsed.seenMeaningAssembly || {};
       state.leitner = parsed.leitner || {};
       state.seenTierUnlock = parsed.seenTierUnlock || {};
       state.sessionLength = parsed.sessionLength || 'long';
@@ -32259,6 +32438,7 @@ function saveState() {
       scores: state.scores,
       seenBuildupIntro: state.seenBuildupIntro,
       seenAnticipation: state.seenAnticipation,
+      seenMeaningAssembly: state.seenMeaningAssembly,
       leitner: state.leitner,
       seenTierUnlock: state.seenTierUnlock,
       sessionLength: state.sessionLength,
@@ -33040,6 +33220,14 @@ function buildPhraseTouches(phrase) {
   }
   if (phrase.emojiExercise && score < 2) {
     touches = [...touches, 'emoji_exercise'];
+  }
+  // Meaning Assembly — Stage 2+, tier-based score gate (T1/T2: score 2+,
+  // T3: 3+, T4: 4+). Fires once per phrase then retires via
+  // seenMeaningAssembly so a learner never re-sees the same assembly.
+  if (_stage >= 2 && !(state.seenMeaningAssembly && state.seenMeaningAssembly[phrase.id])) {
+    const tierNum = parseInt(phrase.tier || '1', 10);
+    const threshold = tierNum >= 4 ? 4 : tierNum >= 3 ? 3 : 2;
+    if (score >= threshold) touches = [...touches, 'meaning_assembly'];
   }
   // Anticipation is a retrieval exercise, not an introduction — gate on
   // score >= 2 so the learner has something to retrieve. Fires once then
@@ -34084,7 +34272,7 @@ function updateExerciseHeader() {
 }
 
 function hidePanels() {
-  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelRecognition', 'panelBuildup', 'panelScenario', 'panelAnticipation', 'panelAudioMatch', 'panelEmoji', 'panelMinimalPairs'].forEach(id => {
+  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelRecognition', 'panelBuildup', 'panelScenario', 'panelAnticipation', 'panelAudioMatch', 'panelMeaningAssembly', 'panelEmoji', 'panelMinimalPairs'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
@@ -34124,6 +34312,7 @@ function renderCurrentExercise() {
   else if (type === 'anticipation') renderAnticipationPanel(phrase);
   else if (type === 'audio_match') renderAudioMatchPanel();
   else if (type === 'emoji_exercise') renderEmojiPanel(phrase);
+  else if (type === 'meaning_assembly') renderMeaningAssemblyPanel(phrase);
   else if (type === 'minimal_pair') renderMinimalPairPanel(item);
 }
 
@@ -34752,6 +34941,254 @@ function getEmojiDistractors(phrase, count) {
     p.emoji && p.emoji !== phrase.emoji
   );
   return shuffle(pool).slice(0, count);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MEANING ASSEMBLY (Stage 2+)
+// Learner taps English words from a bank to assemble the meaning of
+// the shown foreign phrase. Bank stays full (ghost slots hold position
+// when chips move to the zone). Submit needs only a non-empty zone —
+// distractors are meant to be left behind.
+// ═══════════════════════════════════════════════════════════════════
+
+const _MA_STOPWORDS = new Set(['a','an','the','to','of','in','on','at','for','with','my','your','is','it','i','and','or']);
+let _meaningAssemblyState = null;
+
+// Seeded shuffle so a refresh of the same phrase keeps the same bank order.
+function _maSeededShuffle(arr, seed) {
+  const out = arr.slice();
+  let s = seed >>> 0 || 7;
+  for (let i = out.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    const j = Math.floor((s / 0x100000000) * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function _maTokenize(meaning) {
+  if (!meaning) return [];
+  // Strip leading/trailing punctuation; split on whitespace; drop empties.
+  return meaning.trim().split(/\s+/).map(w => w.replace(/^[^\w']+|[^\w']+$/g, '')).filter(Boolean);
+}
+
+// Pull distractor tokens from other seen phrases in the same language that
+// are similar in length. Filters out the answer's own words and stopwords.
+function getMeaningAssemblyDistractors(phrase, answerTokens, maxCount) {
+  const answerWordSet = new Set(answerTokens.map(w => w.toLowerCase()));
+  const answerLen = answerTokens.length;
+  const candidatePool = getActivePhrases().filter(p =>
+    p.id !== phrase.id &&
+    p.lang === phrase.lang &&
+    getScore(p.id) > 0 &&
+    getMeaning(p)
+  );
+  // Prefer phrases of similar length first.
+  const ranked = candidatePool.slice().sort((a, b) =>
+    Math.abs(_maTokenize(getMeaning(a)).length - answerLen) -
+    Math.abs(_maTokenize(getMeaning(b)).length - answerLen)
+  );
+  const seen = new Set();
+  const out = [];
+  for (const p of ranked) {
+    for (const tok of _maTokenize(getMeaning(p))) {
+      const k = tok.toLowerCase();
+      if (answerWordSet.has(k)) continue;
+      if (_MA_STOPWORDS.has(k)) continue;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(tok);
+      if (out.length >= maxCount) return out;
+    }
+  }
+  return out;
+}
+
+function renderMeaningAssemblyPanel(phrase) {
+  const meaning = (typeof getMeaning === 'function') ? getMeaning(phrase) : phrase.meaning;
+  const answer = _maTokenize(meaning);
+  if (answer.length < 2) {
+    // Trivial single-token meaning — skip silently.
+    state.session.index++;
+    if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
+    return;
+  }
+
+  _onCoachMarkDismiss = () => showScreen('screenExercise');
+  showCoachMark('tt_seenMeaningAssemblyCoachMark');
+
+  document.getElementById('panelMeaningAssembly').classList.remove('hidden');
+  showScreen('screenExercise');
+
+  // Pool: answer words + ~answer.length distractors (capped at 3 so the
+  // bank stays surveyable at 6-7 chips per spec).
+  const distractorTarget = Math.min(3, Math.max(1, Math.floor(answer.length * 0.5)));
+  const distractors = getMeaningAssemblyDistractors(phrase, answer, distractorTarget);
+  // Stable shuffle seeded by phrase id length so a refresh = same layout.
+  const seed = (phrase.id || '').split('').reduce((s, c) => s + c.charCodeAt(0), 0) || 7;
+  const bankWords = _maSeededShuffle([...answer, ...distractors], seed);
+  // Each bank slot gets a stable index = its position after shuffle. Map
+  // answer words to concrete slots greedily so duplicates resolve to
+  // distinct slots.
+  const used = new Set();
+  const correctIds = answer.map(w => {
+    const slotIdx = bankWords.findIndex((bw, i) => bw === w && !used.has(i));
+    used.add(slotIdx);
+    return slotIdx;
+  });
+
+  document.getElementById('maPrompt').textContent = phrase.native || '';
+  document.getElementById('maStatus').textContent = '';
+  document.getElementById('maStatus').className = 'ma-status';
+
+  _meaningAssemblyState = {
+    phrase,
+    answer,
+    bankWords,
+    correctIds,
+    placed: [],
+    submitted: 'none',
+    revealed: false,
+  };
+
+  _maRenderState();
+}
+
+function _maRenderState() {
+  const s = _meaningAssemblyState;
+  if (!s) return;
+  const bankEl = document.getElementById('maBank');
+  const zoneEl = document.getElementById('maZone');
+  const statusEl = document.getElementById('maStatus');
+  const nextBtn = document.getElementById('maNextBtn');
+  const clearBtn = document.getElementById('maClearBtn');
+
+  // Bank: render every slot. In-zone slots become ghost.
+  bankEl.innerHTML = '';
+  s.bankWords.forEach((word, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'ma-chip' + (s.placed.includes(idx) ? ' ghost' : '');
+    btn.textContent = word;
+    if (s.submitted === 'none' && !s.placed.includes(idx)) {
+      btn.onclick = () => _maTapBank(idx);
+    } else {
+      btn.disabled = true;
+    }
+    bankEl.appendChild(btn);
+  });
+
+  // Zone: render placed sequence, or placeholder if empty.
+  const hasWords = s.placed.length > 0;
+  zoneEl.className = 'ma-zone' + (hasWords ? ' has-words' : '') +
+    (s.submitted === 'correct' || s.revealed ? ' correct' : '') +
+    (s.submitted === 'incorrect' && !s.revealed ? ' wrong' : '');
+  zoneEl.innerHTML = '';
+  if (!hasWords) {
+    const ph = document.createElement('span');
+    ph.className = 'ma-placeholder';
+    ph.textContent = 'Tap the words below to build the meaning';
+    zoneEl.appendChild(ph);
+  } else {
+    s.placed.forEach(id => {
+      const btn = document.createElement('button');
+      btn.className = 'ma-zone-chip';
+      btn.textContent = s.bankWords[id];
+      if (s.submitted === 'none') {
+        btn.onclick = () => _maTapZone(id);
+      } else {
+        btn.disabled = true;
+      }
+      zoneEl.appendChild(btn);
+    });
+  }
+
+  // Status eyebrow
+  if (s.submitted === 'correct') {
+    statusEl.textContent = "Perfetto — that's right";
+    statusEl.className = 'ma-status correct';
+  } else if (s.submitted === 'incorrect' && s.revealed) {
+    statusEl.textContent = 'Correct answer';
+    statusEl.className = 'ma-status correct';
+  } else if (s.submitted === 'incorrect') {
+    statusEl.textContent = 'Not quite';
+    statusEl.className = 'ma-status wrong';
+  } else {
+    statusEl.textContent = '';
+    statusEl.className = 'ma-status';
+  }
+
+  // Action row: Clear visible only while building; primary toggles Submit/Continue.
+  const isDone = s.submitted !== 'none';
+  clearBtn.style.display = (!isDone && hasWords) ? '' : 'none';
+  if (isDone) {
+    nextBtn.textContent = 'Continue';
+    nextBtn.disabled = false;
+    nextBtn.classList.add('enabled');
+  } else {
+    nextBtn.textContent = 'Submit';
+    nextBtn.disabled = !hasWords;
+    nextBtn.classList.toggle('enabled', hasWords);
+  }
+}
+
+function _maTapBank(idx) {
+  const s = _meaningAssemblyState;
+  if (!s || s.submitted !== 'none') return;
+  if (s.placed.includes(idx)) return;
+  s.placed.push(idx);
+  _maRenderState();
+}
+
+function _maTapZone(idx) {
+  const s = _meaningAssemblyState;
+  if (!s || s.submitted !== 'none') return;
+  s.placed = s.placed.filter(x => x !== idx);
+  _maRenderState();
+}
+
+function meaningAssemblyClear() {
+  const s = _meaningAssemblyState;
+  if (!s || s.submitted !== 'none') return;
+  s.placed = [];
+  _maRenderState();
+}
+
+function meaningAssemblySubmitOrContinue() {
+  const s = _meaningAssemblyState;
+  if (!s) { nextExercise(); return; }
+  if (s.submitted !== 'none') {
+    // Continue: mark seen on correct and advance.
+    if (s.submitted === 'correct' || s.revealed) {
+      if (!state.seenMeaningAssembly) state.seenMeaningAssembly = {};
+      state.seenMeaningAssembly[s.phrase.id] = true;
+      if (typeof saveState === 'function') saveState();
+    }
+    _meaningAssemblyState = null;
+    nextExercise();
+    return;
+  }
+  if (!s.placed.length) return;
+
+  const assembled = s.placed.map(id => s.bankWords[id]).join(' ');
+  const target = s.answer.join(' ');
+  const correct = assembled === target;
+
+  bumpIfFinal(s.phrase.id, 2, correct);
+
+  if (correct) {
+    s.submitted = 'correct';
+    _maRenderState();
+  } else {
+    s.submitted = 'incorrect';
+    _maRenderState();
+    // After the 480ms shake, reveal the correct sequence as locked chips.
+    setTimeout(() => {
+      if (_meaningAssemblyState !== s) return;
+      s.placed = s.correctIds.slice();
+      s.revealed = true;
+      _maRenderState();
+    }, 580);
+  }
 }
 
 function renderEmojiPanel(phrase) {
@@ -37996,6 +38433,7 @@ const COACH_MARK_COPY = {
   'tt_seenListenModeCoachMark': 'These are real conversations. You\'re not being tested — just listen and see how much you catch.',
   'tt_seenScenarioResponseCoachMark': 'Read the situation, then pick what you\'d actually say. Match the goal, not the literal translation.',
   'tt_seenAudioMatchCoachMark': 'Tap a phrase to hear it, then tap what it means. You have to match while the audio is playing.',
+  'tt_seenMeaningAssemblyCoachMark': "You'll see a phrase and tap English words to build what it means. Order matters.",
   'tt_seenEmojiExerciseCoachMark': 'Tap the emoji that matches the word. Build the meaning by sight, not by translation.',
   'tt_seenMinimalPairsCoachMark': 'You\'ll hear a word. Pick which one it was from the options below.',
 };
