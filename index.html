@@ -32400,17 +32400,13 @@ function stripHtmlTags(str) {
   return str.replace(/<[^>]*>/g, '');
 }
 
-function displayNative(phrase, context) {
-  const raw = phrase.native;
-  if (!raw) return raw;
-  if (phrase.alwaysCapitalize) return raw;
-  if (context === 'card') {
-    return raw.charAt(0).toLowerCase() + raw.slice(1);
-  }
-  if (context === 'response') {
-    return raw.charAt(0).toUpperCase() + raw.slice(1);
-  }
-  return raw;
+function displayNative(phrase, _context) {
+  // Phrase Native (fldEaE57x6H2NcC3M) is audited — render exactly as
+  // stored. Casing is intentional: lowercase single words, sentence
+  // case for multi-word phrases, German nouns always capitalized,
+  // French accented capitals preserved. _context arg kept for backward
+  // compatibility with the 15 call sites that pass 'card' or 'response'.
+  return phrase.native;
 }
 
 // Returns all meanings for a phrase as an array. Never returns slashes.
