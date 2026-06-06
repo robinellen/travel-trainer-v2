@@ -33553,26 +33553,16 @@ const SITUATION_ADJACENCY = {
   'Recovery':          ['At the Restaurant', 'At the Café'],
 };
 
-// Grammatical-form helpers. If the stimulus's English form ends with '?',
-// the answer choices must all be questions too — otherwise the form
-// itself leaks the answer. Fall back to unfiltered if filtering would
-// starve the pool.
+// Question = English form ends with '?'. Stimulus and distractors must
+// match so trailing punctuation can't leak the answer.
 function _endsWithQuestion(s) {
-  return typeof s === 'string' && s.trim().endsWith('?');
-}
-function _matchQuestionFormTrigger(t, isQuestion) {
-  return _endsWithQuestion(t && t.englishTranslation) === isQuestion;
-}
-function _matchQuestionFormPhrase(p, isQuestion) {
-  const m = (typeof getMeaning === 'function') ? getMeaning(p) : (p && (p.meaning || ''));
-  return _endsWithQuestion(m) === isQuestion;
+  return !!s && s.trim().endsWith('?');
 }
 
 function pickRecognitionDistractors(trigger, count) {
   let pool = getRecognitionPool().filter(t => t.id !== trigger.id && t.intent !== trigger.intent);
-  // Match the stimulus's grammatical form (question vs statement).
   const isQuestion = _endsWithQuestion(trigger.englishTranslation);
-  const formMatched = pool.filter(t => _matchQuestionFormTrigger(t, isQuestion));
+  const formMatched = pool.filter(t => _endsWithQuestion(t.englishTranslation) === isQuestion);
   if (formMatched.length >= count) pool = formMatched;
   const targetSituation = trigger.experience || '';
   const adjacent = SITUATION_ADJACENCY[targetSituation] || [];
@@ -34054,11 +34044,8 @@ function getDistractors(phrase, count) {
   // Filter out semantically similar phrases
   pool = pool.filter(p => !isSemanticallyClose(phrase, p));
 
-  // Match stimulus's question/statement form (preserves only when the
-  // filtered pool still has enough — otherwise fall back to mixed forms
-  // so the exercise can still render).
   const isQuestion = _endsWithQuestion(getMeaning(phrase));
-  const formMatched = pool.filter(p => _matchQuestionFormPhrase(p, isQuestion));
+  const formMatched = pool.filter(p => _endsWithQuestion(getMeaning(p)) === isQuestion);
   if (formMatched.length >= count) pool = formMatched;
 
   // Distractors must come from seen phrases (score 1+), fall back to unseen
@@ -34900,10 +34887,8 @@ function getListenPickFrenchDistractors(phrase, count) {
     (p.tier || '1') === '1' &&
     p.native
   );
-  // Match stimulus's question/statement form so the punctuation on the
-  // foreign options doesn't leak the answer either.
   const isQuestion = _endsWithQuestion(getMeaning(phrase));
-  const formMatched = all.filter(p => _matchQuestionFormPhrase(p, isQuestion));
+  const formMatched = all.filter(p => _endsWithQuestion(getMeaning(p)) === isQuestion);
   if (formMatched.length >= count) all = formMatched;
   const targetLen = phrase.native.length;
   const targetFirst = phrase.native.charAt(0).toLowerCase();
