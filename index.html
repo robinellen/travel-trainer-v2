@@ -1365,10 +1365,22 @@ body {
     </div>
 
     <!-- ── RECOGNITION panel ── -->
-    <!-- ── BUILDUP SEQUENCE panel (backward chaining scaffold) ── -->
-    <div id="panelBuildup" class="hidden" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:1rem;">
-      <div style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-bottom:2rem;">Listen and repeat</div>
-      <div id="buildupChunkText" style="font-family:'Cormorant Garamond',serif; font-size:clamp(1.6rem,5vw,2rem); font-style:italic; font-weight:500; line-height:1.3; text-align:center; color:var(--text); opacity:0; transition:opacity 250ms ease; min-height:2.8rem;"></div>
+    <!-- ── BUILDUP CHUNK panel (one step per chunk, learner-paced) ── -->
+    <!-- IDs prefixed `bc` to avoid colliding with the legacy
+         screenBuildupChunk recovery screen further down. -->
+    <div id="panelBuildup" class="hidden exercise-canvas">
+      <div class="play-block-slot">
+        <button class="play-circle-v2" id="bcCircle" onclick="replayBuildupChunk()" aria-label="Play chunk">
+          <span class="pulse-overlay"></span>
+          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#FFFFFF"/></svg>
+        </button>
+        <div class="play-caption" id="bcHint">Listen and repeat</div>
+      </div>
+      <div class="prompt-block">
+        <div class="prompt-italic" id="bcText"></div>
+      </div>
+      <div class="exercise-spacer"></div>
+      <button class="continue-btn enabled" id="bcNextBtn" onclick="advanceBuildupChunk()">Continue</button>
     </div>
 
     <div id="panelRecognition" class="hidden exercise-canvas">
@@ -32554,53 +32566,124 @@ function playChunkSequence(chunks, opts) {
   });
 }
 
-function renderBuildupSequence(phrase) {
+// One chunk per exercise step. Learner hears the chunk, can replay it
+// via the play circle, taps Continue to advance. The final chunk plays
+// the full phrase audio once after Continue (before advancing to the
+// first scored exercise) and only then marks seenBuildupIntro so a
+// future session won't replay the sequence.
+let _activeBuildupChunkAudio = null;
+let _activeBuildupChunk = null;
+
+function renderBuildupChunkPanel(phrase, chunkIndex, isLastChunk) {
+  const chunks = (phrase && phrase.buildupChunks) || [];
+  const chunk = chunks[chunkIndex];
+  if (!chunk) {
+    // Defensive — bad index. Skip silently.
+    state.session.index++;
+    if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
+    return;
+  }
+
+  _activeBuildupChunk = { phrase, chunk, isLastChunk };
+
   document.getElementById('panelBuildup').classList.remove('hidden');
   showScreen('screenExercise');
-  const textEl = document.getElementById('buildupChunkText');
 
-  const FADE_MS = 250;
-  const GAP_MS = 400;
-  function setText(text) {
-    textEl.style.opacity = '0';
-    setTimeout(() => {
-      textEl.textContent = text;
-      // Force reflow so the opacity transition fires reliably.
-      // eslint-disable-next-line no-unused-expressions
-      textEl.offsetHeight;
-      textEl.style.opacity = '1';
-    }, FADE_MS);
-  }
-  function fadeOut() {
-    textEl.style.opacity = '0';
-  }
+  document.getElementById('bcText').textContent = chunk.text || '';
+  document.getElementById('bcHint').textContent = isLastChunk ? 'Full phrase' : 'Listen and repeat';
 
-  const chunks = phrase.buildupChunks || [];
-  playChunkSequence(chunks, {
-    gapMs: GAP_MS,
-    onChunkStart: (chunk) => setText(chunk.text),
-    onChunkEnd: () => fadeOut(),
-  }).then(() => {
-    // After scaffold chunks, play the full phrase as the final step.
-    setText(displayNative(phrase, 'card'));
-    const fullUrl = (typeof getAudio === 'function') ? getAudio(phrase) : null;
-    const finish = () => {
-      if (!state.seenBuildupIntro) state.seenBuildupIntro = {};
-      state.seenBuildupIntro[phrase.id] = true;
-      if (typeof saveState === 'function') saveState();
-      // Brief pause on the full phrase, then advance to the first real exercise.
-      setTimeout(() => {
-        state.session.index++;
-        if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
-        else if (typeof advanceSession === 'function') advanceSession();
-      }, 800);
+  const circle = document.getElementById('bcCircle');
+  circle.classList.remove('playing');
+  void circle.offsetWidth;
+  circle.classList.add('playing');
+
+  // Auto-play chunk audio (with a short delay so the click + screen
+  // transition settles before the audio fires).
+  setTimeout(_playActiveBuildupChunk, 200);
+}
+
+function _playActiveBuildupChunk() {
+  const a = _activeBuildupChunk;
+  if (!a) return;
+  if (_activeBuildupChunkAudio) {
+    try { _activeBuildupChunkAudio.onended = null; } catch (e) {}
+    try { _activeBuildupChunkAudio.pause(); } catch (e) {}
+    _activeBuildupChunkAudio = null;
+  }
+  const url = (typeof pickAudioUrl === 'function')
+    ? pickAudioUrl(a.chunk)
+    : ((typeof audioPathFor === 'function') ? audioPathFor(a.chunk.audioFileName) : null);
+  if (!url) return;
+  try {
+    const audio = new Audio(url);
+    _activeBuildupChunkAudio = audio;
+    const done = () => {
+      if (_activeBuildupChunkAudio === audio) _activeBuildupChunkAudio = null;
+      document.getElementById('bcCircle')?.classList.remove('playing');
     };
-    if (!fullUrl) return finish();
+    audio.onended = done;
+    audio.onerror = done;
+    audio.play().catch(done);
+  } catch (e) {}
+}
+
+function replayBuildupChunk() {
+  const circle = document.getElementById('bcCircle');
+  if (circle) {
+    circle.classList.remove('playing');
+    void circle.offsetWidth;
+    circle.classList.add('playing');
+  }
+  _playActiveBuildupChunk();
+}
+
+function advanceBuildupChunk() {
+  const a = _activeBuildupChunk;
+  if (!a) {
+    nextExercise();
+    return;
+  }
+  // Cancel any in-flight chunk audio.
+  if (_activeBuildupChunkAudio) {
+    try { _activeBuildupChunkAudio.onended = null; } catch (e) {}
+    try { _activeBuildupChunkAudio.pause(); } catch (e) {}
+    _activeBuildupChunkAudio = null;
+  }
+
+  if (!a.isLastChunk) {
+    _activeBuildupChunk = null;
+    nextExercise();
+    return;
+  }
+
+  // Last chunk: play the full phrase once, mark seenBuildupIntro, then advance.
+  const phrase = a.phrase;
+  _activeBuildupChunk = null;
+  if (!state.seenBuildupIntro) state.seenBuildupIntro = {};
+  state.seenBuildupIntro[phrase.id] = true;
+  if (typeof saveState === 'function') saveState();
+
+  document.getElementById('bcHint').textContent = 'Full phrase';
+  document.getElementById('bcText').textContent = displayNative(phrase, 'card');
+
+  const circle = document.getElementById('bcCircle');
+  if (circle) {
+    circle.classList.remove('playing');
+    void circle.offsetWidth;
+    circle.classList.add('playing');
+  }
+
+  const fullUrl = (typeof getAudio === 'function') ? getAudio(phrase) : null;
+  const finish = () => {
+    setTimeout(() => nextExercise(), 600);
+  };
+  if (!fullUrl) return finish();
+  try {
     const audio = new Audio(fullUrl);
     audio.onended = finish;
     audio.onerror = finish;
-    setTimeout(() => audio.play().catch(finish), FADE_MS + 50);
-  });
+    setTimeout(() => audio.play().catch(finish), 250);
+  } catch (e) { finish(); }
 }
 
 function checkAndStartBuildup(phrase) {
@@ -32858,6 +32941,30 @@ function isEligibleForSpeakFromEnglish(phrase) {
 // multiple back-to-back auto-advancing chunk plays don't blur into one
 // continuous stream of audio. Reset in startSessionWithMode().
 let _buildupFiredThisSession = false;
+
+// Expand each buildup_sequence queue item into N buildup_chunk items —
+// one per scaffold chunk, each a learner-paced step (audio plays,
+// learner can replay, then taps Continue). The final chunk carries
+// _isLastChunk so its renderer plays the full phrase + sets
+// seenBuildupIntro before advancing. Must run AFTER any anti-clustering
+// pass — the chunks all share phraseId and must stay consecutive + in
+// order. Mutates the queue in place.
+function expandBuildupSequenceItems(queue) {
+  for (let i = queue.length - 1; i >= 0; i--) {
+    if (queue[i].type !== 'buildup_sequence') continue;
+    const phrase = PHRASES.find(p => p.id === queue[i].phraseId);
+    const chunks = (phrase && phrase.buildupChunks) || [];
+    if (!chunks.length) { queue.splice(i, 1); continue; }
+    const chunkItems = chunks.map((_c, ci) => ({
+      phraseId: queue[i].phraseId,
+      type: 'buildup_chunk',
+      chunkIndex: ci,
+      _isLastChunk: ci === chunks.length - 1,
+      _isFinal: false,
+    }));
+    queue.splice(i, 1, ...chunkItems);
+  }
+}
 
 function buildPhraseTouches(phrase) {
   // Only three exercise types fire right now:
@@ -33319,6 +33426,8 @@ function startSessionWithMode(mode) {
         }
       }
     }
+
+    expandBuildupSequenceItems(queue);
 
     // Priority injection: Train users must hear the Composting Reminder
     // trigger before their first normal recognition. This is the single
@@ -33983,8 +34092,8 @@ function renderCurrentExercise() {
 
 
   // Route to correct panel
-  if (type === 'buildup_sequence') {
-    if (phrase) renderBuildupSequence(phrase);
+  if (type === 'buildup_chunk') {
+    if (phrase) renderBuildupChunkPanel(phrase, item.chunkIndex || 0, !!item._isLastChunk);
   }
   else if (type === 'vocab_card') {
     if (phrase) showPhraseRevealScreen(phrase);
@@ -38725,10 +38834,9 @@ function startTripPrepSpeaking() {
   state.session._resurfaced = {};
   state.session._startScores = {};
   state.session._sessionPhrases = phrases.map(p => p.id);
-  // Prepend buildup_sequence items for phrases the learner hasn't scaffolded
-  // yet. renderCurrentExercise() already dispatches buildup_sequence →
-  // renderBuildupSequence(phrase); after the chunks play and the full phrase
-  // audio ends, it auto-advances into the speak exercise below.
+  // Prepend buildup_sequence items for phrases the learner hasn't
+  // scaffolded yet. expandBuildupSequenceItems() explodes each into
+  // N learner-paced buildup_chunk steps below.
   state.session.queue = phrases.flatMap(p => {
     const needsBuildup = p.hasBuildup
       && p.buildupChunks && p.buildupChunks.length > 0
@@ -38738,6 +38846,7 @@ function startTripPrepSpeaking() {
       ? [{ phraseId: p.id, type: 'buildup_sequence' }, speak]
       : [speak];
   });
+  expandBuildupSequenceItems(state.session.queue);
 
   showScreen('screenExercise');
   renderCurrentExercise();
