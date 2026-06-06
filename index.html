@@ -33668,11 +33668,26 @@ function _endsWithQuestion(s) {
   return !!s && s.trim().endsWith('?');
 }
 
+// Word count of the displayed text. Used to filter distractors to
+// within ±2 words of the stimulus so length alone can't give it away.
+// Tries ±2 first; falls back to ±3 if the strict pool is too small.
+function _wordCount(s) {
+  return s ? s.trim().split(/\s+/).filter(Boolean).length : 0;
+}
+function _applyLengthFilter(pool, target, count, textOf) {
+  const targetLen = _wordCount(target);
+  const strict = pool.filter(p => Math.abs(_wordCount(textOf(p)) - targetLen) <= 2);
+  if (strict.length >= count) return strict;
+  const loose = pool.filter(p => Math.abs(_wordCount(textOf(p)) - targetLen) <= 3);
+  return loose.length >= count ? loose : pool;
+}
+
 function pickRecognitionDistractors(trigger, count) {
   let pool = getRecognitionPool().filter(t => t.id !== trigger.id && t.intent !== trigger.intent);
   const isQuestion = _endsWithQuestion(trigger.englishTranslation);
   const formMatched = pool.filter(t => _endsWithQuestion(t.englishTranslation) === isQuestion);
   if (formMatched.length >= count) pool = formMatched;
+  pool = _applyLengthFilter(pool, getTriggerLabel(trigger), count, getTriggerLabel);
   const targetSituation = trigger.experience || '';
   const adjacent = SITUATION_ADJACENCY[targetSituation] || [];
 
@@ -34156,6 +34171,7 @@ function getDistractors(phrase, count) {
   const isQuestion = _endsWithQuestion(getMeaning(phrase));
   const formMatched = pool.filter(p => _endsWithQuestion(getMeaning(p)) === isQuestion);
   if (formMatched.length >= count) pool = formMatched;
+  pool = _applyLengthFilter(pool, getMeaning(phrase), count, getMeaning);
 
   // Distractors must come from seen phrases (score 1+), fall back to unseen
   const seen = shuffle(pool.filter(p => getScore(p.id) >= 1));
@@ -34370,7 +34386,7 @@ function _listenAnswerInPlace(allBtns, tappedBtn, correctBtn, correct, phrase) {
 // Distractors: same contextLabel + same language, different native + meaning.
 // Falls back to same-tier same-language pool if fewer than 3 candidates.
 function getScenarioDistractors(phrase, count) {
-  const all = getActivePhrases().filter(p =>
+  let all = getActivePhrases().filter(p =>
     p.id !== phrase.id &&
     p.lang === phrase.lang &&
     p.tier !== 'Recovery' &&
@@ -34378,6 +34394,13 @@ function getScenarioDistractors(phrase, count) {
     p.native.toLowerCase() !== (phrase.native || '').toLowerCase() &&
     getMeaning(p).toLowerCase() !== getMeaning(phrase).toLowerCase()
   );
+  // Form + length filters so trailing '?' and word count can't leak the
+  // answer. Match length on phrase.native (what's displayed); form on
+  // English meaning (where question marks are reliable).
+  const isQuestion = _endsWithQuestion(getMeaning(phrase));
+  const formMatched = all.filter(p => _endsWithQuestion(getMeaning(p)) === isQuestion);
+  if (formMatched.length >= count) all = formMatched;
+  all = _applyLengthFilter(all, phrase.native, count, p => p.native);
   const sameContext = phrase.contextLabel
     ? shuffle(all.filter(p => p.contextLabel === phrase.contextLabel))
     : [];
@@ -34999,6 +35022,7 @@ function getListenPickFrenchDistractors(phrase, count) {
   const isQuestion = _endsWithQuestion(getMeaning(phrase));
   const formMatched = all.filter(p => _endsWithQuestion(getMeaning(p)) === isQuestion);
   if (formMatched.length >= count) all = formMatched;
+  all = _applyLengthFilter(all, phrase.native, count, p => p.native);
   const targetLen = phrase.native.length;
   const targetFirst = phrase.native.charAt(0).toLowerCase();
   const scored = all.map(p => {
