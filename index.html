@@ -793,6 +793,71 @@ body {
   cursor: pointer;
 }
 
+/* Self-assessment exercise — replaces all speak_* mic exercises.
+   Two ghost-vs-cobalt action buttons in a row, full width with 10px gap. */
+.self-assess-actions {
+  display: flex;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.self-assess-actions button { flex: 1; }
+.self-assess-yes {
+  height: 56px;
+  border: 1px solid var(--accent);
+  border-radius: 28px;
+  background: var(--accent);
+  color: #FFFFFF;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  box-shadow: 0 8px 22px rgba(0,71,171,0.30);
+  cursor: pointer;
+  transition: opacity 220ms ease;
+}
+.self-assess-no {
+  height: 56px;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 220ms ease;
+}
+.self-assess-reveal-hint {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  text-transform: uppercase;
+}
+.self-assess-meaning {
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text);
+  text-align: center;
+  max-width: 340px;
+  margin: 0 auto;
+}
+.self-assess-reveal {
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+.self-assess-reveal.shown { opacity: 1; }
+
 /* Feedback animations. answerSpring overshoots on correct tap;
    answerShake jitters on wrong tap; answerRing pulses a halo around
    the correct pill when the learner picked wrong. */
@@ -1137,20 +1202,6 @@ body {
   border-radius: 20px;
 }
 
-/* Skip */
-.btn-skip {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 13px;
-  font-family: 'Lexend', sans-serif;
-  font-weight: 400;
-  cursor: pointer;
-  padding: 0.4rem 0;
-  transition: color 0.15s;
-  letter-spacing: 0.03em;
-}
-.btn-skip:hover { color: var(--text-mid); }
 
 /* Utility */
 .hidden { display: none !important; }
@@ -1386,32 +1437,32 @@ body {
       <button class="continue-btn fade-target delay-240" id="listenNextBtn" onclick="nextExercise()" disabled>Continue</button>
     </div>
 
-    <!-- ── SPEAK panel ── -->
-    <div id="panelSpeak" class="hidden" style="flex:1; display:flex; flex-direction:column;">
-      <div style="text-align:center; margin-bottom:0.75rem;">
-        <div class="phrase-meaning-label" id="speakMeaning" style="margin-bottom:0.6rem;"></div>
-        <div class="phrase-native" id="speakNative" style="margin-bottom:0.3rem; cursor:pointer;" onclick="replayAtNaturalSpeed()"><span id="speakNativeText"></span> <span style="font-size:13px; opacity:0.4; vertical-align:middle;">&#9655;</span></div>
-        <button id="speakShowPhrase" class="hidden btn-text" onclick="revealSpeakPhrase()" style="margin-bottom:0.3rem">Show phrase</button>
-        <div id="speakRoman" style="font-size:14px; color:var(--text-dim); font-style:italic; line-height:1.5; margin-top:0.4rem; opacity:0; transition:opacity 200ms ease;"></div>
-      </div>
-      <div id="speakHelpers" class="hidden" style="display:flex; justify-content:center; gap:1.25rem; margin-bottom:0.75rem;">
-        <button id="speakSlowerBtn" onclick="hearSlower()" class="btn-text">Hear it slower</button>
-        <button id="speakPronounceBtn" onclick="togglePronunciation()" class="btn-text">Show pronunciation</button>
-      </div>
-      <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem; flex:1; justify-content:center;">
-        <button class="mic-btn" id="micBtn" onclick="toggleMic()">
-          <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1 1.93c-3.95-.49-7-3.85-7-7.93h2c0 3.31 2.69 6 6 6s6-2.69 6-6h2c0 4.08-3.05 7.44-7 7.93V22h-2v-4.07z"/></svg>
+    <!-- ── SELF-ASSESS panel (replaces all speak_* mic exercises) ── -->
+    <!-- Learner reads the English meaning, says the foreign phrase out loud
+         themselves, taps to reveal, then judges whether they knew it. No
+         microphone, no speech recognition. -->
+    <div id="panelSelfAssess" class="hidden exercise-canvas">
+      <div class="play-block-slot">
+        <button class="play-circle-v2" id="saCircle" onclick="replaySelfAssessAudio()" aria-label="Play audio">
+          <span class="pulse-overlay"></span>
+          <svg viewBox="0 0 42 42"><path d="M14 9 L33 21 L14 33 Z" fill="#FFFFFF"/></svg>
         </button>
-        <div class="eyebrow" id="micHint" style="letter-spacing:0.15em;">Tap to speak</div>
-        <div style="font-size:15px; color:var(--text-mid); font-style:italic; min-height:1.2rem;" id="heardText"></div>
+        <div class="play-caption" id="saHint">Tap to hear</div>
       </div>
-      <div class="result-bar" id="speakResult">
-        <div class="result-bar-title" id="speakResultTitle"></div>
-        <div class="result-bar-body" id="speakResultBody"></div>
+      <div class="prompt-block">
+        <div class="ma-eyebrow">How would you say…</div>
+        <div class="self-assess-meaning" id="saMeaning"></div>
+        <div class="self-assess-reveal" id="saReveal" style="margin-top:18px;">
+          <div class="prompt-italic" id="saNative" style="font-size:26px;"></div>
+        </div>
       </div>
-      <div class="mt-auto" style="display:flex; flex-direction:column; gap:0.5rem; padding-top:1rem;">
-        <button class="btn-primary hidden" id="speakNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
-        <button class="btn-skip" onclick="skipExercise()">Skip this one</button>
+      <div class="exercise-spacer"></div>
+      <div id="saRevealRow" style="text-align:center; margin-bottom:14px;">
+        <button class="self-assess-reveal-hint" id="saRevealBtn" onclick="selfAssessReveal()">Tap to reveal</button>
+      </div>
+      <div class="self-assess-actions" id="saActions" style="display:none; padding-bottom:30px;">
+        <button class="self-assess-no" onclick="selfAssessAnswer(false)">Not yet</button>
+        <button class="self-assess-yes" onclick="selfAssessAnswer(true)">I know this</button>
       </div>
     </div>
 
@@ -1468,7 +1519,6 @@ body {
       </div>
       <div class="mt-auto" style="display:flex; flex-direction:column; gap:0.5rem; padding-top:1rem;">
         <button class="btn-primary hidden" id="situNextBtn" onclick="nextExercise()" style="margin-top:1.25rem;">Continue →</button>
-        <button class="btn-skip" onclick="skipExercise()">Skip this one</button>
       </div>
     </div>
 
@@ -1588,10 +1638,6 @@ body {
     </div>
 
 
-    <!-- Universal skip fallback — appears after 5s of no interaction -->
-    <div id="universalSkip" style="text-align:center; padding:0.5rem 0 0;">
-      <button class="btn-skip" onclick="skipExercise()" style="font-size:13px;">Skip this one</button>
-    </div>
   </div>
 </div>
 
@@ -1987,10 +2033,10 @@ body {
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55; margin-top:0.5rem;">
       <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-bottom:0.4rem;">EXERCISE PROGRESSION BY SCORE</div>
       <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 0</span> listen_pick_english (vocab card chains as follow-up)</div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_pick_english, listen_pick_french, speak_from_french</div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> speak_from_french, speak_from_english, speak_from_french <span style="color:var(--text-mid);">(SFE skipped for bonne journée, bon appétit)</span></div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 3</span> speak_from_english, speak_from_french <span style="color:var(--text-mid);">(situation: in code, disabled)</span></div>
-      <div><span style="color:var(--text);">Score 4+</span> speak_from_english cold, speak_from_french cold <span style="color:var(--text-mid);">(recognition Tier 3: not built)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_meaning, listen_pick_french, self_assess</div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> listen_pick_french, self_assess ×2 <span style="color:var(--text-mid);">(single self_assess for bonne journée, bon appétit)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 3+</span> self_assess ×2 <span style="color:var(--text-mid);">(25% chance listen_pick_french as warm-up)</span></div>
+      <div><span style="color:var(--text);">Score 4+</span> self_assess ×2 cold <span style="color:var(--text-mid);">(recognition Tier 3: not built)</span></div>
     </div>
 
     <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-top:0.25rem;">SHORTCUTS</div>
@@ -36794,7 +36840,6 @@ function showScreen(id) {
 function goHome() {
   currentAudio?.pause();
   window.speechSynthesis?.cancel();
-  stopMic();
   showScreen('screenWelcome');
   updateWelcomeProgress();
 }
@@ -36937,10 +36982,12 @@ function expandBuildupSequenceItems(queue) {
 }
 
 function buildPhraseTouches(phrase) {
-  // Only three exercise types fire right now:
+  // Core exercise types that fire from this builder:
   //   listen_meaning      (Listen and Pick - English)
-  //   speak_from_french   (audio plays, user repeats from memory)
-  //   speak_from_english  (English shown, no audio, user produces French)
+  //   listen_pick_french  (Listen and Pick - French, bridge to production)
+  //   self_assess         (read the meaning, say it out loud, tap to reveal
+  //                        + judge yourself — replaces all old speak_* mic
+  //                        exercises; no microphone, no speech recognition)
   // The vocab card transition screen is chained as a follow-up of the
   // listen_meaning touch on first encounter, not a separate queue item.
 
@@ -36958,7 +37005,7 @@ function buildPhraseTouches(phrase) {
   // handles it, in which case we prepend buildup_sequence here instead.
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
-    const base = score === 0 ? ['listen_meaning'] : ['speak_from_french'];
+    const base = score === 0 ? ['listen_meaning'] : ['self_assess'];
     if (needsBuildup) {
       _buildupFiredThisSession = true;
       return ['buildup_sequence', ...base];
@@ -36973,28 +37020,22 @@ function buildPhraseTouches(phrase) {
   let touches;
   if (score === 0) touches = ['listen_meaning'];
   // Score 1: listen + pick English, listen + pick French as the bridge to
-  // production, then speak from French.
-  else if (score === 1) touches = ['listen_meaning', 'listen_pick_french', 'speak_from_french'];
-  // Score 2: listen + pick French as a written-form warm-up, then the speak
-  // progression. Falls back to a pure speak progression for phrases that
-  // can't fire speak from English.
+  // production, then self-assessment.
+  else if (score === 1) touches = ['listen_meaning', 'listen_pick_french', 'self_assess'];
+  // Score 2: listen + pick French as a written-form warm-up, then two
+  // self-assess passes (one for each direction in the old SFE/SFF split).
+  // The eligibleSFE flag now controls only depth, not exercise type.
   else if (score === 2) {
     touches = eligibleSFE
-      ? ['listen_pick_french', 'speak_from_english', 'speak_from_french']
-      : ['listen_pick_french', 'speak_from_french', 'speak_from_french'];
+      ? ['listen_pick_french', 'self_assess', 'self_assess']
+      : ['listen_pick_french', 'self_assess'];
   } else {
-    // Score 3+: speak from English, then speak from French. Listen + pick
-    // French still appears occasionally as a low-frequency warm-up touch.
+    // Score 3+: self-assessment is the primary production exercise. Listen
+    // + pick French still appears occasionally as a low-frequency warm-up.
     const occasionalLPF = Math.random() < 0.25;
-    if (eligibleSFE) {
-      touches = occasionalLPF
-        ? ['listen_pick_french', 'speak_from_english', 'speak_from_french']
-        : ['speak_from_english', 'speak_from_french'];
-    } else {
-      touches = occasionalLPF
-        ? ['listen_pick_french', 'speak_from_french', 'speak_from_french']
-        : ['speak_from_french', 'speak_from_french'];
-    }
+    touches = occasionalLPF
+      ? ['listen_pick_french', 'self_assess', 'self_assess']
+      : ['self_assess', 'self_assess'];
   }
   // Scenario response — final touch for phrases with a situation goal once
   // the learner has reached Stage 2+ and score 2+. Appending it makes it
@@ -38062,7 +38103,7 @@ function updateExerciseHeader() {
 }
 
 function hidePanels() {
-  ['panelListen', 'panelSpeak', 'panelVocab', 'panelSituation', 'panelRecognition', 'panelBuildup', 'panelScenario', 'panelAnticipation', 'panelAudioMatch', 'panelMeaningAssembly', 'panelEmoji', 'panelMinimalPairs'].forEach(id => {
+  ['panelListen', 'panelSelfAssess', 'panelVocab', 'panelSituation', 'panelRecognition', 'panelBuildup', 'panelScenario', 'panelAnticipation', 'panelAudioMatch', 'panelMeaningAssembly', 'panelEmoji', 'panelMinimalPairs'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
@@ -38079,11 +38120,6 @@ function renderCurrentExercise() {
   const phrase = item.phraseId ? PHRASES.find(p => p.id === item.phraseId) : null;
   const type = item.type;
 
-  // Skip is restricted to speaking exercises only. Listen, vocab, and
-  // recognition exercises never show a skip button.
-  document.getElementById('universalSkip').classList.add('hidden');
-
-
   // Route to correct panel
   if (type === 'buildup_chunk') {
     if (phrase) renderBuildupChunkPanel(phrase, item.chunkIndex || 0, !!item._isLastChunk);
@@ -38094,8 +38130,7 @@ function renderCurrentExercise() {
   else if (type === 'listen_meaning') renderListenPanel(phrase, 'listen', 'meaning');
   else if (type === 'listen_pick_french' || type === 'listen_identify') renderListenPanel(phrase, 'listen', 'identify');
   else if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
-  else if (type === 'speak' || type === 'speak_from_french') renderSpeakPanel(phrase, { fromEnglish: false });
-  else if (type === 'speak_from_english') renderSpeakPanel(phrase, { fromEnglish: true });
+  else if (type === 'speak' || type === 'speak_from_french' || type === 'speak_from_english' || type === 'self_assess') renderSelfAssessPanel(phrase);
   else if (type === 'situation') renderSituationPanel(phrase);
   else if (type === 'recognition') renderRecognitionPanel(phrase);
   else if (type === 'scenario_response') renderScenarioPanel(phrase);
@@ -39338,7 +39373,6 @@ function showPhraseRevealScreen(phrase) {
     frameNoteEl.classList.add('hidden');
   }
 
-  document.getElementById('universalSkip').classList.add('hidden');
   showScreen('screenPhraseReveal');
 
   // Vocab coach mark — first time seeing a phrase reveal card
@@ -39350,278 +39384,88 @@ function playRevealAudio() {
   if (_revealPhrase) playPhrase(_revealPhrase, null);
 }
 
-// ── SPEAK ────────────────────────────────────────────────────────
+// ── SELF-ASSESS (replaces all speak_* mic exercises) ──────────────
+// Learner reads the English meaning, says the foreign phrase out loud
+// themselves (no mic input, no speech recognition), taps "Tap to reveal"
+// to see the correct phrase, then judges themselves with "I know this"
+// (correct → score advances) or "Not yet" (incorrect → does not advance).
+//
+// The reveal step is required before the assessment buttons appear —
+// the learner must see the correct phrase before judging themselves.
 
-let recognition = null;
-let isListening = false;
+let _selfAssessState = null;
 
-function renderSpeakPanel(phrase, opts = {}) {
-  const fromEnglish = opts.fromEnglish === true;
-  document.getElementById('panelSpeak').classList.remove('hidden');
-  document.getElementById('micBtn').className = 'mic-btn';
-  document.getElementById('micHint').textContent = 'Tap to speak';
-  document.getElementById('heardText').textContent = '';
-  document.getElementById('speakResult').className = 'result-bar';
-  document.getElementById('speakNextBtn').classList.add('hidden');
-  document.getElementById('speakHelpers').classList.add('hidden');
-
-  // Store phrase ref for helper functions
-  _currentSpeakPhrase = phrase;
-  _currentSpeakFromEnglish = fromEnglish;
-
-  // Speak coach mark — first speaking exercise ever
-  _onCoachMarkDismiss = () => showScreen('screenExercise');
-  showCoachMark('tt_seenSpeakCoachMark');
-
-  const score = getScore(phrase.id);
-  const _sub = getCurrentSubstage();
-  const scaffoldingRemoved = _sub.stage >= 4;
-
-  document.getElementById('speakMeaning').textContent = getMeaning(phrase).toUpperCase();
-
-  // Reset romanization: hidden, no text leak. Button starts as "Show".
-  const roman = (phrase.romanization || '').trim();
-  const romanEl = document.getElementById('speakRoman');
-  const pronounceBtn = document.getElementById('speakPronounceBtn');
-  romanEl.textContent = stripHtmlTags(roman);
-  romanEl.style.opacity = '0';
-  romanEl.style.display = roman ? '' : 'none';
-  pronounceBtn.textContent = 'Show pronunciation';
-  // Hide the button when there is nothing to reveal, or when scaffolding
-  // is off (Stage 4+ / speak-from-English are audio-only by design).
-  pronounceBtn.style.display = (roman && !scaffoldingRemoved && !fromEnglish) ? '' : 'none';
-
-  const speakNative = document.getElementById('speakNative');
-  const showPhraseBtn = document.getElementById('speakShowPhrase');
-
-  if (fromEnglish || scaffoldingRemoved) {
-    // Speak from English OR Stage 4+: no French text, no romanization,
-    // no Show phrase link. Audio-only at Stage 4+.
-    document.getElementById('speakNativeText').textContent = '';
-    speakNative.classList.add('hidden');
-    showPhraseBtn.classList.add('hidden');
-    // Romanization visibility for scaffoldingRemoved / fromEnglish handled
-    // above via pronounceBtn.style.display = 'none'.
-  } else if (score <= 1) {
-    // Score 0-1: French text visible automatically
-    document.getElementById('speakNativeText').textContent = displayNative(phrase, 'card');
-    speakNative.classList.remove('hidden');
-    showPhraseBtn.classList.add('hidden');
-  } else if (score <= 3) {
-    // Score 2-3: French text hidden, "Show phrase" link available
-    document.getElementById('speakNativeText').textContent = displayNative(phrase, 'card');
-    speakNative.classList.add('hidden');
-    showPhraseBtn.classList.remove('hidden');
-  } else {
-    // Score 4+: no French text, no link
-    document.getElementById('speakNativeText').textContent = '';
-    speakNative.classList.add('hidden');
-    showPhraseBtn.classList.add('hidden');
+function replaySelfAssessAudio() {
+  const s = _selfAssessState;
+  if (!s || !s.phrase) return;
+  const url = (typeof getAudio === 'function') ? getAudio(s.phrase) : null;
+  if (!url) return;
+  const circle = document.getElementById('saCircle');
+  if (circle) {
+    circle.classList.remove('playing');
+    void circle.offsetWidth;
+    circle.classList.add('playing');
   }
-
-  // "Hear it slower" available at score 0-2 only, hidden at 3+, and always
-  // hidden in speak-from-English or Stage 4+ (audio-only, no scaffolding).
-  const slowerBtn = document.getElementById('speakSlowerBtn');
-  slowerBtn.style.display = (!fromEnglish && !scaffoldingRemoved && score < 3 && getAudio(phrase)) ? '' : 'none';
-
-  // Set recognition language
-  if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SR();
-    recognition.lang = LANG_CODES[phrase.lang] || 'fr-FR';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 3;
-  }
-
-  if (fromEnglish) {
-    // No audio. Just show helpers (Show phrase / Pronunciation hidden anyway)
-    // and let the user tap the mic when ready. Brief pause keeps the mic from
-    // feeling like it pops in instantly.
-    setTimeout(() => {
-      const el = document.getElementById('speakHelpers');
-      if (el) el.classList.remove('hidden');
-    }, 400);
-  } else {
-    // Play phrase first, then show helpers
-    let helpersShown = false;
-    const showHelpers = () => {
-      if (helpersShown) return;
-      helpersShown = true;
-      const el = document.getElementById('speakHelpers');
-      if (el) el.classList.remove('hidden');
+  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+  try {
+    const audio = new Audio(url);
+    currentAudio = audio;
+    const done = () => {
+      if (currentAudio === audio) currentAudio = null;
+      circle?.classList.remove('playing');
     };
-    audioEndedCallback = showHelpers;
-    setTimeout(() => playPhrase(phrase, null), 400);
-    // Safety: show helpers after 5s even if audio callback never fires
-    setTimeout(showHelpers, 5000);
+    audio.onended = done;
+    audio.onerror = done;
+    audio.play().catch(done);
+  } catch (e) {}
+}
+
+function selfAssessReveal() {
+  const s = _selfAssessState;
+  if (!s || s.revealed) return;
+  s.revealed = true;
+  document.getElementById('saReveal').classList.add('shown');
+  document.getElementById('saRevealRow').style.display = 'none';
+  document.getElementById('saActions').style.display = 'flex';
+}
+
+function selfAssessAnswer(correct) {
+  const s = _selfAssessState;
+  if (!s || s.answered) return;
+  s.answered = true;
+  if (typeof bumpIfFinal === 'function') bumpIfFinal(s.phrase.id, null, correct);
+  if (!correct) {
+    const item = (typeof getCurrentItem === 'function') ? getCurrentItem() : null;
+    if (typeof resurfaceIfEligible === 'function') resurfaceIfEligible(s.phrase.id, item ? item.type : 'self_assess');
   }
+  _selfAssessState = null;
+  if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
+  nextExercise();
 }
 
-let _currentSpeakPhrase = null;
-let _currentSpeakFromEnglish = false;
+function renderSelfAssessPanel(phrase) {
+  _selfAssessState = { phrase, revealed: false, answered: false };
 
-function hearSlower() {
-  if (!_currentSpeakPhrase) return;
-  const url = getAudio(_currentSpeakPhrase);
-  if (!url) return;
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  // Always create a fresh Audio instance with rate set before play
-  const audio = new Audio(url);
-  audio.playbackRate = 0.65;
-  currentAudio = audio;
-  audio.onended = () => { currentAudio = null; };
-  audio.onerror = () => { currentAudio = null; };
-  audio.play().catch(() => { currentAudio = null; });
-  document.getElementById('speakSlowerBtn').style.display = 'none';
+  _onCoachMarkDismiss = () => showScreen('screenExercise');
+  showCoachMark('tt_seenSelfAssessCoachMark');
+
+  document.getElementById('panelSelfAssess').classList.remove('hidden');
+  showScreen('screenExercise');
+
+  document.getElementById('saMeaning').textContent = (typeof getMeaning === 'function') ? getMeaning(phrase) : (phrase.meaning || '');
+  document.getElementById('saNative').textContent = displayNative(phrase, 'card');
+  document.getElementById('saHint').textContent = 'Tap to hear';
+
+  // Reset visual state — reveal pre-populated but at opacity 0; "Tap to
+  // reveal" hint visible; assessment buttons hidden.
+  document.getElementById('saReveal').classList.remove('shown');
+  document.getElementById('saRevealRow').style.display = '';
+  document.getElementById('saActions').style.display = 'none';
+
+  const circle = document.getElementById('saCircle');
+  circle?.classList.remove('playing');
 }
 
-function replayAtNaturalSpeed() {
-  if (!_currentSpeakPhrase) return;
-  const url = getAudio(_currentSpeakPhrase);
-  if (!url) return;
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  const audio = new Audio(url);
-  audio.playbackRate = 1.0;
-  currentAudio = audio;
-  audio.onended = () => { currentAudio = null; };
-  audio.onerror = () => { currentAudio = null; };
-  audio.play().catch(() => { currentAudio = null; });
-}
-
-function revealSpeakPhrase() {
-  document.getElementById('speakNative').classList.remove('hidden');
-  document.getElementById('speakShowPhrase').classList.add('hidden');
-}
-
-function togglePronunciation() {
-  const romanEl = document.getElementById('speakRoman');
-  const btn = document.getElementById('speakPronounceBtn');
-  const showing = romanEl.style.opacity === '1';
-  romanEl.style.opacity = showing ? '0' : '1';
-  btn.textContent = showing ? 'Show pronunciation' : 'Hide pronunciation';
-}
-
-function toggleMic() {
-  if (isListening) { stopMic(); return; }
-  startMic(getCurrentPhrase(), 'micBtn', 'micHint', 'heardText', 'speakResult', 'speakResultTitle', 'speakResultBody', 'speakNextBtn');
-}
-
-function startMic(phrase, btnId, hintId, heardId, resultId, titleId, bodyId, nextId) {
-  if (!recognition) {
-    document.getElementById(hintId).textContent = 'Mic not supported — try Chrome';
-    return;
-  }
-  isListening = true;
-  document.getElementById(btnId).classList.add('listening');
-  document.getElementById(hintId).textContent = 'Listening...';
-  document.getElementById(heardId).textContent = '';
-
-  recognition.onresult = (event) => {
-    const transcript = Array.from(event.results).map(res => res[0].transcript).join('').toLowerCase().trim();
-    document.getElementById(heardId).textContent = '"' + transcript + '"';
-    if (event.results[0].isFinal) evaluateSpeak(transcript, phrase, btnId, hintId, resultId, titleId, bodyId, nextId);
-  };
-
-  recognition.onerror = (event) => {
-    isListening = false;
-    document.getElementById(btnId).className = 'mic-btn';
-    const msgs = { 'no-speech': 'No speech detected — try again', 'not-allowed': 'Microphone access denied' };
-    document.getElementById(hintId).textContent = msgs[event.error] || 'Try again';
-  };
-
-  recognition.onend = () => {
-    isListening = false;
-    const btn = document.getElementById(btnId);
-    if (!btn.classList.contains('correct')) {
-      btn.classList.remove('listening');
-      if (document.getElementById(hintId).textContent === 'Listening...') {
-        document.getElementById(hintId).textContent = 'Tap to speak';
-      }
-    }
-  };
-
-  recognition.start();
-}
-
-function stopMic() {
-  isListening = false;
-  recognition?.stop();
-}
-
-// Check if spoken text matches a target phrase (keyword matching)
-function matchesSpeech(heard, targetNative) {
-  const heardClean = heard.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
-  const target = targetNative.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
-  const keywords = target.split(' ').filter(w => w.length > 2);
-  const matched = keywords.filter(kw => heardClean.includes(kw));
-  const threshold = Math.max(1, Math.floor(keywords.length * 0.4));
-  return matched.length >= threshold;
-}
-
-// Check spoken text against primary phrase + alsoAccepted alternatives
-// Returns: { correct: bool, usedAlternative: bool }
-function checkSpeechMatch(heard, phrase) {
-  if (matchesSpeech(heard, phrase.native)) return { correct: true, usedAlternative: false };
-  if (phrase.alsoAccepted && phrase.alsoAccepted.length) {
-    for (const alt of phrase.alsoAccepted) {
-      if (matchesSpeech(heard, alt)) return { correct: true, usedAlternative: true };
-    }
-  }
-  return { correct: false, usedAlternative: false };
-}
-
-function evaluateSpeak(heard, phrase, btnId, hintId, resultId, titleId, bodyId, nextId) {
-  const { correct: isGood, usedAlternative } = checkSpeechMatch(heard, phrase);
-  const item = getCurrentItem();
-  const retry = item && item._isRetry;
-
-  const btn = document.getElementById(btnId);
-  if (isGood) {
-    btn.className = 'mic-btn correct';
-    if (retry) {
-      document.getElementById(hintId).textContent = 'Got it.';
-      document.getElementById(resultId).className = 'result-bar correct visible';
-      document.getElementById(titleId).textContent = '✓ Got it';
-      document.getElementById(bodyId).textContent = phrase.native;
-    } else {
-      document.getElementById(hintId).textContent = usedAlternative ? 'That works too.' : 'Nice!';
-      document.getElementById(resultId).className = 'result-bar correct visible';
-      document.getElementById(titleId).textContent = '✓ Got it';
-      document.getElementById(bodyId).textContent = phrase.native;
-      bumpIfFinal(phrase.id, (getScore(phrase.id) || 0) + 1, true);
-    }
-  } else {
-    btn.className = 'mic-btn';
-    document.getElementById(hintId).textContent = '';
-    document.getElementById(resultId).className = 'result-bar wrong visible';
-    document.getElementById(titleId).textContent = phrase.native;
-    document.getElementById(bodyId).textContent = getMeaning(phrase);
-    if (!retry) {
-      // Resurface the failed exercise mid-session for another attempt
-      resurfaceIfEligible(phrase.id, item ? item.type : 'speak');
-    }
-    // Play the correct phrase audio, then show Got it button
-    const nextBtn = document.getElementById(nextId);
-    nextBtn.textContent = 'Got it →';
-    const url = getAudio(phrase);
-    if (url) {
-      const audio = new Audio(url);
-      audio.playbackRate = 1.0;
-      currentAudio = audio;
-      audio.onended = () => { currentAudio = null; nextBtn.classList.remove('hidden'); };
-      audio.onerror = () => { currentAudio = null; nextBtn.classList.remove('hidden'); };
-      audio.play().catch(() => { currentAudio = null; nextBtn.classList.remove('hidden'); });
-    } else {
-      nextBtn.classList.remove('hidden');
-    }
-    return;
-  }
-  // Correct — show Continue button immediately
-  const nextBtn = document.getElementById(nextId);
-  nextBtn.textContent = 'Continue →';
-  nextBtn.classList.remove('hidden');
-}
 
 // ── VOCAB ─────────────────────────────────────────────────────────
 
@@ -39652,7 +39496,7 @@ function getSituationForPhrase(phrase) {
 
 function renderSituationPanel(phrase) {
   const situ = getSituationForPhrase(phrase);
-  if (!situ) { skipExercise(); return; }
+  if (!situ) { nextExercise(); return; }
 
   const score = getScore(phrase.id);
   _currentSituPhrase = phrase;
@@ -39680,23 +39524,11 @@ function renderSituationPanel(phrase) {
   // "Give me a hint" available if englishHint exists
   document.getElementById('situHintBtn').style.display = situ.englishHint ? '' : 'none';
 
-  // Set up mic
+  // The mic button has become a self-assess confirmation (mic infra
+  // was removed when speak_* exercises became self-assess). Reset its
+  // visual state — no auto-listen.
   document.getElementById('situMicBtn').className = 'mic-btn';
-  document.getElementById('situMicHint').textContent = '';
-  if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    recognition = new SR();
-    recognition.lang = LANG_CODES[phrase.lang] || 'fr-FR';
-    recognition.continuous = false;
-    recognition.interimResults = true;
-  }
-
-  // Auto-open mic after 1 second
-  setTimeout(() => {
-    if (document.getElementById('panelSituation') && !document.getElementById('panelSituation').classList.contains('hidden')) {
-      toggleSituMic();
-    }
-  }, 1000);
+  document.getElementById('situMicHint').textContent = 'Tap when you said it';
 
   // Show hint/reveal helpers after 3 seconds
   clearTimeout(_situHelpersTimer);
@@ -39719,133 +39551,21 @@ function revealSituPhrase() {
 }
 
 function toggleSituMic() {
-  if (isListening) { stopMic(); return; }
+  // Mic infrastructure was removed when speak_* exercises became
+  // self-assess. The Situation panel now uses the same model: tap the
+  // button to confirm you said the phrase out loud, then score + advance.
   const phrase = _currentSituPhrase || getCurrentPhrase();
-  startSituMic(phrase);
-}
-
-function startSituMic(phrase) {
-  if (!recognition) {
-    document.getElementById('situMicHint').textContent = 'Mic not supported';
-    return;
-  }
-  isListening = true;
-  document.getElementById('situMicBtn').classList.add('listening');
-  document.getElementById('situMicHint').textContent = 'Listening...';
-  document.getElementById('situHeardText').textContent = '';
-
-  recognition.onresult = (event) => {
-    const transcript = Array.from(event.results).map(res => res[0].transcript).join('').toLowerCase().trim();
-    document.getElementById('situHeardText').textContent = '"' + transcript + '"';
-    if (event.results[0].isFinal) evaluateSituSpeak(transcript, phrase);
-  };
-
-  recognition.onerror = (event) => {
-    isListening = false;
-    document.getElementById('situMicBtn').className = 'mic-btn';
-    const msgs = { 'no-speech': 'No speech detected', 'not-allowed': 'Microphone access denied' };
-    document.getElementById('situMicHint').textContent = msgs[event.error] || 'Try again';
-  };
-
-  recognition.onend = () => {
-    isListening = false;
-    const btn = document.getElementById('situMicBtn');
-    if (!btn.classList.contains('correct')) {
-      btn.classList.remove('listening');
-      if (document.getElementById('situMicHint').textContent === 'Listening...') {
-        document.getElementById('situMicHint').textContent = '';
-      }
-    }
-  };
-
-  recognition.start();
-}
-
-function evaluateSituSpeak(heard, phrase) {
-  isListening = false;
+  if (!phrase) { nextExercise(); return; }
   const btn = document.getElementById('situMicBtn');
-  btn.classList.remove('listening');
-
-  // Check primary phrase + alsoAccepted alternatives
-  let { correct: isCorrect, usedAlternative } = checkSpeechMatch(heard, phrase);
-  let usedRecovery = false;
-
-  // Check recovery phrase if recoveryAlsoValid
-  if (!isCorrect && _currentSituation && _currentSituation.recoveryAlsoValid) {
-    const recoveryPhrase = PHRASES.find(p => p.tier === 'Recovery');
-    if (recoveryPhrase && matchesSpeech(heard, recoveryPhrase.native)) {
-      isCorrect = true;
-      usedRecovery = true;
-    }
-  }
-
-  const item = getCurrentItem();
-  const retry = item && item._isRetry;
-
-  if (isCorrect) {
-    btn.className = 'mic-btn correct';
-    if (retry) {
-      document.getElementById('situMicHint').textContent = 'Got it.';
-      document.getElementById('situResult').className = 'result-bar correct visible';
-      document.getElementById('situResultTitle').textContent = '✓ Got it';
-      document.getElementById('situResultBody').textContent = phrase.native;
-    } else {
-      document.getElementById('situMicHint').textContent = (usedAlternative || usedRecovery) ? 'That works too.' : 'Nice!';
-      document.getElementById('situResult').className = 'result-bar correct visible';
-      if (usedRecovery) {
-        document.getElementById('situResultTitle').textContent = 'That works too.';
-        document.getElementById('situResultBody').textContent = 'The full recovery phrase is always a valid way out.';
-      } else {
-        document.getElementById('situResultTitle').textContent = '✓ Got it';
-        document.getElementById('situResultBody').textContent = usedAlternative ? 'That works too.' : phrase.native;
-      }
-      bumpIfFinal(phrase.id, (getScore(phrase.id) || 0) + 1, true);
-    }
-    const situBtn = document.getElementById('situNextBtn');
-    situBtn.textContent = 'Continue →';
-    situBtn.classList.remove('hidden');
-    clearTimeout(_situHelpersTimer);
-  } else if (!_situRetried) {
-    _situRetried = true;
-    document.getElementById('situMicHint').textContent = 'Try again';
-    // Re-open mic after a pause
-    setTimeout(() => {
-      if (document.getElementById('panelSituation') && !document.getElementById('panelSituation').classList.contains('hidden')) {
-        if (window.SpeechRecognition || window.webkitSpeechRecognition) {
-          const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-          recognition = new SR();
-          recognition.lang = LANG_CODES[phrase.lang] || 'fr-FR';
-          recognition.continuous = false;
-          recognition.interimResults = true;
-        }
-        startSituMic(phrase);
-      }
-    }, 1200);
-  } else {
-    // Second failure — show correct answer + play audio
-    btn.className = 'mic-btn';
-    document.getElementById('situResult').className = 'result-bar wrong visible';
-    document.getElementById('situResultTitle').textContent = phrase.native;
-    document.getElementById('situResultBody').textContent = getMeaning(phrase);
-    if (!retry) {
-      // Resurface the failed exercise mid-session
-      resurfaceIfEligible(phrase.id, item ? item.type : 'situation');
-    }
-    const situBtn2 = document.getElementById('situNextBtn');
-    situBtn2.textContent = 'Got it →';
-    const url = getAudio(phrase);
-    if (url) {
-      const audio = new Audio(url);
-      audio.playbackRate = 1.0;
-      currentAudio = audio;
-      audio.onended = () => { currentAudio = null; situBtn2.classList.remove('hidden'); };
-      audio.onerror = () => { currentAudio = null; situBtn2.classList.remove('hidden'); };
-      audio.play().catch(() => { currentAudio = null; situBtn2.classList.remove('hidden'); });
-    } else {
-      situBtn2.classList.remove('hidden');
-    }
-    clearTimeout(_situHelpersTimer);
-  }
+  if (btn) btn.classList.add('correct');
+  document.getElementById('situMicHint').textContent = 'Got it';
+  document.getElementById('situResult').className = 'result-bar correct visible';
+  document.getElementById('situResultTitle').textContent = '✓ Got it';
+  document.getElementById('situResultBody').textContent = phrase.native;
+  bumpIfFinal(phrase.id, (getScore(phrase.id) || 0) + 1, true);
+  const situBtn = document.getElementById('situNextBtn');
+  if (situBtn) { situBtn.textContent = 'Continue →'; situBtn.classList.remove('hidden'); }
+  clearTimeout(_situHelpersTimer);
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -39868,8 +39588,6 @@ function isCurrentRetry() {
 function nextExercise() {
   currentAudio?.pause();
   window.speechSynthesis?.cancel();
-  stopMic();
-  document.getElementById('universalSkip').classList.add('hidden');
 
   state.session.index++;
 
@@ -39919,12 +39637,6 @@ function advanceSession() {
   renderCurrentExercise();
 }
 
-function skipExercise() {
-  stopMic();
-  // Skip must not change score in any direction. Score only changes when
-  // the user actually speaks.
-  nextExercise();
-}
 
 // ═══════════════════════════════════════════════════════════════════
 // COMPLETION
@@ -41660,11 +41372,7 @@ function practiceStateSpeak() {
 
   const btn = document.getElementById('expMicBtn');
   btn.onclick = () => startExpMic(target);
-
-  // Auto-open mic after 500ms
-  setTimeout(() => {
-    if (document.getElementById('expMicBtn')) startExpMic(target);
-  }, 500);
+  document.getElementById('expMicHint').textContent = 'Tap when you said it';
 }
 
 function replayExpPhrase(text) {
@@ -41680,83 +41388,28 @@ function replayExpPhrase(text) {
 }
 
 function startExpMic(target) {
-  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
-    document.getElementById('expMicHint').textContent = 'Mic not supported';
-    setTimeout(() => advanceToNextTrigger(), 1500);
-    return;
-  }
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const rec = new SR();
-  rec.lang = 'fr-FR';
-  rec.continuous = false;
-  rec.interimResults = true;
-
+  // Web Speech API was removed when speak_* exercises became self-assess.
+  // The experience mic button now acts as a self-assess confirmation: tap
+  // it to credit yourself for saying the phrase and advance. Auto-open is
+  // skipped — the learner taps when they're ready.
   const btn = document.getElementById('expMicBtn');
   if (!btn) return;
-  btn.classList.add('listening');
-  document.getElementById('expMicHint').textContent = 'Listening...';
-
-  let handled = false;
-
-  rec.onresult = (event) => {
-    const transcript = Array.from(event.results).map(r => r[0].transcript).join('').toLowerCase().trim();
-    const heard = document.getElementById('expHeardText');
-    if (heard) heard.textContent = '"' + transcript + '"';
-    if (event.results[0].isFinal && !handled) {
-      handled = true;
-      const targetClean = target.toLowerCase().replace(/[.,!?¡¿—]/g, '').trim();
-      const keywords = targetClean.split(' ').filter(w => w.length > 2);
-      const matched = keywords.filter(kw => transcript.includes(kw));
-      const pass = matched.length >= Math.max(1, Math.floor(keywords.length * 0.4));
-
-      btn.classList.remove('listening');
-      if (pass) {
-        btn.classList.add('correct');
-        document.getElementById('expMicHint').textContent = 'Nice!';
-        if (_expTriggerIdx < _expTriggers.length) {
-          incTriggerCorrect(_expTriggers[_expTriggerIdx].id);
-        }
-        // Check if this is a React type — auto-advance for quick reactions
-        const currentTp = _expTriggers[_expTriggerIdx];
-        if (currentTp && currentTp.type === 'React') {
-          setTimeout(() => advanceToNextTrigger(), 1000);
-        } else {
-          // Show Continue button for Respond type
-          const contBtn = document.createElement('button');
-          contBtn.className = 'btn-primary';
-          contBtn.textContent = 'Continue →';
-          contBtn.style.cssText = 'margin-top:1rem;';
-          contBtn.onclick = () => advanceToNextTrigger();
-          document.getElementById('expPracticeContent').appendChild(contBtn);
-        }
-      } else if (!_expSpeakRetry) {
-        _expSpeakRetry = true;
-        document.getElementById('expMicHint').textContent = 'Try once more';
-        setTimeout(() => startExpMic(target), 1200);
-      } else {
-        // Show correct answer, play audio, then auto-advance
-        showExpCorrectAndAdvance(target);
-      }
-    }
-  };
-  rec.onerror = () => {
-    if (handled) return;
-    handled = true;
-    btn.classList.remove('listening');
-    if (!_expSpeakRetry) {
-      _expSpeakRetry = true;
-      document.getElementById('expMicHint').textContent = 'Try once more';
-      setTimeout(() => startExpMic(target), 1200);
-    } else {
-      showExpCorrectAndAdvance(target);
-    }
-  };
-  rec.onend = () => {
-    if (!handled && btn) {
-      btn.classList.remove('listening');
-    }
-  };
-  rec.start();
+  btn.classList.add('correct');
+  document.getElementById('expMicHint').textContent = 'Got it';
+  if (_expTriggerIdx < _expTriggers.length) {
+    incTriggerCorrect(_expTriggers[_expTriggerIdx].id);
+  }
+  const currentTp = _expTriggers[_expTriggerIdx];
+  if (currentTp && currentTp.type === 'React') {
+    setTimeout(() => advanceToNextTrigger(), 600);
+  } else {
+    const contBtn = document.createElement('button');
+    contBtn.className = 'btn-primary';
+    contBtn.textContent = 'Continue →';
+    contBtn.style.cssText = 'margin-top:1rem;';
+    contBtn.onclick = () => advanceToNextTrigger();
+    document.getElementById('expPracticeContent').appendChild(contBtn);
+  }
 }
 
 function showExpCorrectAndAdvance(target) {
@@ -42309,7 +41962,7 @@ function onListenModeComplete() {
 // (listen, review, vocab, speak, experience, etc.) are no-ops for now.
 const COACH_MARK_COPY = {
   'tt_seenVocabCoachMark':    'This card shows you everything about the phrase. Tap the play button to hear it, then continue when you\'re ready.',
-  'tt_seenSpeakCoachMark':    'Now you\'ll say it out loud. Speak clearly and the app will check your pronunciation.',
+  'tt_seenSelfAssessCoachMark': "Say the phrase out loud, then reveal it. Be honest — only tap 'I know this' if you actually said it.",
   'tt_seenSignalWordCoachMark': 'The highlighted word is your signal. It\'s what to listen for when a native speaker says this phrase quickly.',
   'tt_seenExperiencePass1CoachMark': 'Watch how this interaction plays out. You\'ll hear both sides before you practice anything.',
   'tt_seenExperiencePass2CoachMark': 'Now follow along. You\'ll see each phrase as it comes up.',
@@ -43144,11 +42797,11 @@ function startTripPrepMode(mode) {
   else if (mode === 'speaking') startTripPrepSpeaking();
 }
 
-// Speaking-only Trip Prep: serves 10 speak_from_french touches per round
-// from the tier-filtered phrase pool. Phrases at score 0 get a temporary
-// in-memory bump to 1 so the speak exercise fires — no saveState, so the
-// bump itself doesn't persist (only real correct answers do, via the
-// normal scoring path).
+// Speaking-only Trip Prep: serves 10 self_assess touches per round from
+// the tier-filtered phrase pool. Phrases at score 0 get a temporary
+// in-memory bump to 1 so the self-assess exercise fires — no saveState,
+// so the bump itself doesn't persist (only real correct answers do, via
+// the normal scoring path).
 function startTripPrepSpeaking() {
   const langCode = langToCode(_tripPrepLang);
   const tiers = getTripPrepTiers();
@@ -43188,7 +42841,7 @@ function startTripPrepSpeaking() {
     const needsBuildup = p.hasBuildup
       && p.buildupChunks && p.buildupChunks.length > 0
       && !(state.seenBuildupIntro && state.seenBuildupIntro[p.id]);
-    const speak = { phraseId: p.id, type: 'speak_from_french', _isFinal: true };
+    const speak = { phraseId: p.id, type: 'self_assess', _isFinal: true };
     return needsBuildup
       ? [{ phraseId: p.id, type: 'buildup_sequence' }, speak]
       : [speak];
