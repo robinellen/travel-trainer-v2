@@ -38202,6 +38202,8 @@ function exitListenMode() {
   _stopListenChunkAudio();
   _listenChunkIdx = null;
   document.getElementById('listenChunkBlock')?.classList.add('hidden');
+  const _lpbExit = document.getElementById('listenModePlayBtn');
+  if (_lpbExit) _lpbExit.style.display = '';
   _listenPaused = false;
   const wasContextDrill = !!_contextDrillSection;
   const wasTripPrep = _tripPrepActive && _tripPrepMode === 'listen';
@@ -38297,11 +38299,16 @@ function _renderListenChunkStep() {
   if (currentAudio) { try { currentAudio.pause(); } catch (e) {} currentAudio = null; }
   _stopListenChunkAudio();
 
-  // Hide reveal surface — chunk steps are pre-reveal scaffolding.
+  // Hide reveal surface AND the main play button — chunk steps are
+  // pre-reveal scaffolding. Leaving the play button visible lets a tap
+  // call playCurrentListenClip() which falls through to the full-clip
+  // branch (since _listenChunkIdx !== null), effectively skipping the
+  // remaining chunks and looking like auto-advance.
   document.getElementById('listenModeFrench').classList.add('hidden');
   document.getElementById('listenModeEnglish').classList.add('hidden');
   document.getElementById('listenModeRevealHint').classList.add('hidden');
   document.getElementById('listenModePulse').classList.add('hidden');
+  document.getElementById('listenModePlayBtn').style.display = 'none';
 
   // Show chunk block + chunk text.
   const block = document.getElementById('listenChunkBlock');
@@ -38316,7 +38323,10 @@ function _renderListenChunkStep() {
   try {
     const audio = new Audio(url);
     _listenChunkAudio = audio;
-    const done = () => { if (_listenChunkAudio === audio) _listenChunkAudio = null; };
+    const done = () => {
+      if (localStorage.getItem('tt_devMode')) console.log('[buildup] chunk audio ended, NOT auto-advancing');
+      if (_listenChunkAudio === audio) _listenChunkAudio = null;
+    };
     audio.onended = done;
     audio.onerror = done;
     audio.play().catch(done);
@@ -38327,6 +38337,7 @@ function _renderListenChunkStep() {
 // the last chunk — sets seenBuildupIntro and falls through to the full
 // clip's main playback.
 function advanceListenBuildupChunk() {
+  if (localStorage.getItem('tt_devMode')) console.log('[buildup] advanceListenBuildupChunk called, _listenChunkIdx:', _listenChunkIdx);
   if (_listenPaused) return;
   const clip = _listenClips[_listenClipIdx];
   if (!clip || _listenChunkIdx === null) return;
@@ -38340,12 +38351,14 @@ function advanceListenBuildupChunk() {
   }
 
   // Last chunk dismissed — mark the clip's scaffold as seen and play the
-  // full clip with the normal post-audio reveal.
+  // full clip with the normal post-audio reveal. Restore the play button
+  // visibility so the learner can replay the clip from the reveal view.
   if (!state.seenBuildupIntro) state.seenBuildupIntro = {};
   state.seenBuildupIntro[clip.id] = true;
   if (typeof saveState === 'function') saveState();
   _listenChunkIdx = null;
   document.getElementById('listenChunkBlock').classList.add('hidden');
+  document.getElementById('listenModePlayBtn').style.display = '';
   playCurrentListenClip();
 }
 
@@ -38463,6 +38476,8 @@ function playListenClip() {
   _stopListenChunkAudio();
   _listenChunkIdx = null;
   document.getElementById('listenChunkBlock')?.classList.add('hidden');
+  const _lpb = document.getElementById('listenModePlayBtn');
+  if (_lpb) _lpb.style.display = '';
 
   const clip = _listenClips[_listenClipIdx];
   const total = _listenClips.length;
