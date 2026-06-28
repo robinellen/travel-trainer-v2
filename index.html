@@ -32359,30 +32359,48 @@ function getActivePhrases() {
   return PHRASES.filter(p => {
     if (p.lang !== lang) return false;
     if (!(p.meaning || (p.meanings && p.meanings.length)) || !getAudio(p)) return false;
-    const tier = p.tier || '1';
-    if (tier === '1') { /* manifest check above is sufficient */ }
-    else if (tier === 'Recovery') { if (!localStorage.getItem('tt_recoveryUnlocked')) return false; }
-    else if (tier === '2') {
-      if (!localStorage.getItem('tt_recoveryUnlocked')) return false;
-      // Wave gate: Tier 2 phrases only enter the pool when their wave is unlocked.
-      // The wave's filter must also match (covers preference + tripFocus rules).
-      const _wlang = localStorage.getItem('tt_language') || 'French';
-      const _wlangCode = langToCode(_wlang);
-      const _wprefs = getSelectedPreferences();
-      const inUnlockedWave = TIER2_WAVES.some(waveDef =>
-        isWaveUnlocked(waveDef.wave, _wlang) &&
-        waveDef.filter(p, _wlangCode, _wprefs)
-      );
-      if (!inUnlockedWave) return false;
+
+    // Substage-tagged phrases are part of the curated progression path
+    // (S1-A / S1-B / S2-A/B/C / S3+ / S4+ / S5). They bypass the tier/wave
+    // gate so getCurrentSubstage()'s score requirements can actually be
+    // satisfied — without this, a Tier-2 phrase tagged S2-A is gated by
+    // its wave-lock and can never enter a session, blocking progression.
+    // Gating here is by substage group's unlock state, NOT by tier.
+    if (p.substage) {
+      if (p.substage === 'S2-A' || p.substage === 'S2-B' || p.substage === 'S2-C') {
+        if (!localStorage.getItem('tt_foundationComplete')) return false;
+      }
+      // S1-A / S1-B / S3+ / S4+ / S5: always available once authored. Stage
+      // appropriateness is enforced downstream by getCurrentSubstage() +
+      // session selection, not by hiding the phrase from the pool.
+    } else {
+      // Non-substage phrases: existing tier/wave gating.
+      const tier = p.tier || '1';
+      if (tier === '1') { /* manifest check above is sufficient */ }
+      else if (tier === 'Recovery') { if (!localStorage.getItem('tt_recoveryUnlocked')) return false; }
+      else if (tier === '2') {
+        if (!localStorage.getItem('tt_recoveryUnlocked')) return false;
+        // Wave gate: Tier 2 phrases only enter the pool when their wave is unlocked.
+        // The wave's filter must also match (covers preference + tripFocus rules).
+        const _wlang = localStorage.getItem('tt_language') || 'French';
+        const _wlangCode = langToCode(_wlang);
+        const _wprefs = getSelectedPreferences();
+        const inUnlockedWave = TIER2_WAVES.some(waveDef =>
+          isWaveUnlocked(waveDef.wave, _wlang) &&
+          waveDef.filter(p, _wlangCode, _wprefs)
+        );
+        if (!inUnlockedWave) return false;
+      }
+      else if (tier === '3') { if (!localStorage.getItem('tt_tier3Unlocked')) return false; }
+      else if (tier === '4') { if (!localStorage.getItem('tt_tier4Unlocked')) return false; }
+      else if (tier === '5') { if (!localStorage.getItem('tt_tier5Unlocked')) return false; }
+      else return false;
     }
-    else if (tier === '3') { if (!localStorage.getItem('tt_tier3Unlocked')) return false; }
-    else if (tier === '4') { if (!localStorage.getItem('tt_tier4Unlocked')) return false; }
-    else if (tier === '5') { if (!localStorage.getItem('tt_tier5Unlocked')) return false; }
-    else return false;
-    // Preference filtering: after the gate, only include preference-tagged
-    // phrases if the user selected at least one matching preference group.
-    // Pescatarian users also accept Vegetarian-tagged phrases (pescatarian
-    // implies vegetarian-friendly).
+
+    // Preference filtering: applies to both substage and non-substage
+    // paths. Only include preference-tagged phrases if the user selected
+    // at least one matching preference group. Pescatarian users also
+    // accept Vegetarian-tagged phrases (pescatarian implies veg-friendly).
     if (prefGateSeen && p.preferenceGroup && p.preferenceGroup.length > 0) {
       const directMatch = p.preferenceGroup.some(g => isPreferenceSelected(g));
       const pescatarianAcceptsVeg = isPreferenceSelected('Pescatarian') &&
@@ -36493,8 +36511,12 @@ function getCurrentSubstage() {
 
   if (!hasAnyProgress()) return { stage: 1, substage: 'S1-A' };
 
-  // Stage 1 phrases: all phrases tagged S1-A, S1-B, or S1-C
-  const s1All = [...getPhrasesForSubstage('S1-A'), ...getPhrasesForSubstage('S1-B'), ...getPhrasesForSubstage('S1-C')];
+  // Stage 1 phrases: all phrases tagged S1-A or S1-B. S1-C is a
+  // reserved curriculum slot with no phrases assigned yet —
+  // getPhrasesForSubstage('S1-C') returns []. Dropped from the pool so
+  // the math is obvious; the dev-override map still recognises 'S1-C'
+  // as a manual override target for when phrases land there later.
+  const s1All = [...getPhrasesForSubstage('S1-A'), ...getPhrasesForSubstage('S1-B')];
   const s1_at2 = s1All.filter(p => getScore(p.id) >= 2).length;
   const s1_at1 = s1All.filter(p => getScore(p.id) >= 1).length;
 
