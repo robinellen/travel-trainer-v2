@@ -858,6 +858,26 @@ body {
 }
 .self-assess-reveal.shown { opacity: 1; }
 
+/* Anticipation Method countdown bar — drains over the 3.5s pause between
+   showing the English meaning and playing the foreign audio. Makes the
+   wait window feel intentional instead of like a loading delay. */
+.anticipation-timer-bar {
+  width: 100%;
+  max-width: 340px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 1.5rem auto 0;
+  overflow: hidden;
+}
+.anticipation-timer-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  width: 100%;
+  transition: width 3500ms linear;
+}
+
 /* Feedback animations. answerSpring overshoots on correct tap;
    answerShake jitters on wrong tap; answerRing pulses a halo around
    the correct pill when the learner picked wrong. */
@@ -1535,6 +1555,9 @@ body {
     <!-- ── ANTICIPATION panel (first-encounter presentation) ── -->
     <div id="panelAnticipation" class="hidden" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:1rem;">
       <div id="anticipationPrompt" style="font-size:18px; color:var(--text); text-align:center; line-height:1.5; max-width:340px; opacity:0; transition:opacity 300ms ease;"></div>
+      <div class="anticipation-timer-bar">
+        <div class="anticipation-timer-fill" id="anticipationTimerFill"></div>
+      </div>
     </div>
 
     <!-- ── AUDIO MATCHING panel (replaces match_pairs) ── -->
@@ -38589,6 +38612,21 @@ function renderAnticipationPanel(phrase) {
   promptEl.style.opacity = '0';
   // Fade in
   requestAnimationFrame(() => { promptEl.style.opacity = '1'; });
+
+  // Countdown bar — reset to full instantly (no transition), then double-
+  // rAF to 0% so the browser commits the 100% baseline before the linear
+  // 3500ms transition starts. Otherwise the bar can flash empty.
+  const fill = document.getElementById('anticipationTimerFill');
+  if (fill) {
+    fill.style.transition = 'none';
+    fill.style.width = '100%';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        fill.style.transition = '';
+        fill.style.width = '0%';
+      });
+    });
+  }
 
   clearTimeout(_anticipationTimer);
   _anticipationTimer = setTimeout(() => {
