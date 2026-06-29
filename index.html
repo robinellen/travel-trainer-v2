@@ -36265,6 +36265,7 @@ function loadState() {
       state.seenTierUnlock = parsed.seenTierUnlock || {};
       state.sessionLength = parsed.sessionLength || 'long';
     }
+    console.log('[state] loaded scores:', Object.keys(state.scores).length, 'phrases');
   } catch(e) { console.warn('Failed to load state:', e); }
 }
 
@@ -36279,6 +36280,7 @@ function saveState() {
       seenTierUnlock: state.seenTierUnlock,
       sessionLength: state.sessionLength,
     }));
+    console.log('[state] saved scores:', Object.keys(state.scores).length, 'phrases');
   } catch(e) { console.warn('Failed to save state:', e); }
 }
 
@@ -37546,16 +37548,20 @@ function startSessionWithMode(mode) {
 }
 
 // Score should only change on the final touch for a phrase in the session.
-// Correct on final touch increments score by 1. Incorrect does not change score.
-// Resurfaced retries never affect score.
+// Correct on a final touch increments score by 1. Incorrect never changes
+// score. Resurfaced retries normally don't score either — but if the
+// phrase is still at score 0 (i.e. the original wrong answer left it
+// unscored), a correct retry counts as the scoring event so the phrase
+// can leave score 0 instead of getting stuck there forever.
 function bumpIfFinal(phraseId, _ignoredTo, correct = true) {
   const item = state.session.queue[state.session.index];
   if (!item) return;
-  if (item._isRetry) return;
-  if (!item._isFinal) return;
   if (!correct) return;
+  if (item._isRetry && getScore(phraseId) > 0) return;
+  if (!item._isFinal && !item._isRetry) return;
   const newScore = (getScore(phraseId) || 0) + 1;
   bumpScore(phraseId, newScore, true);
+  console.log('[score] bumped', phraseId, 'to', getScore(phraseId), '_isFinal:', item._isFinal, '_isRetry:', item._isRetry);
 }
 
 // Resurface a failed exercise once per phrase per session, 2+ positions later.
