@@ -37019,9 +37019,12 @@ function buildPhraseTouches(phrase) {
   // Score 0: one scored touch (listen + pick meaning), vocab card chains after.
   let touches;
   if (score === 0) touches = ['listen_meaning'];
-  // Score 1: listen + pick English, listen + pick French as the bridge to
-  // production, then self-assessment.
-  else if (score === 1) touches = ['listen_meaning', 'listen_pick_french', 'self_assess'];
+  // Score 1: listen + pick French as the bridge to production, then
+  // self-assessment. listen_meaning is intentionally absent — it's the
+  // same exercise that fired at score 0, so repeating it as a warm-up
+  // would mean every score-1 session starts with the same English-pick
+  // the learner just saw on the prior encounter.
+  else if (score === 1) touches = ['listen_pick_french', 'self_assess'];
   // Score 2: listen + pick French as a written-form warm-up, then two
   // self-assess passes (one for each direction in the old SFE/SFF split).
   // The eligibleSFE flag now controls only depth, not exercise type.
@@ -37063,7 +37066,7 @@ function buildPhraseTouches(phrase) {
   // Anticipation is a retrieval exercise, not an introduction — gate on
   // score >= 2 so the learner has something to retrieve. Fires once then
   // seenAnticipation[id] suppresses it forever.
-  const needsAnticipation = !(state.seenAnticipation && state.seenAnticipation[phrase.id]) && score >= 2;
+  const needsAnticipation = !(state.seenAnticipation && state.seenAnticipation[phrase.id]) && score === 0;
   const head = [];
   if (needsAnticipation) head.push('anticipation');
   if (needsBuildup) {
@@ -43111,6 +43114,20 @@ function devShowScores() {
 
 function initApp() {
   loadState();
+  // Clear stale sessions that were built with removed exercise types.
+  // speak_from_french / speak_from_english were the old mic-based speak
+  // exercises; if a session was paused mid-queue before the self_assess
+  // migration shipped, its queue still references those types — and
+  // although the dispatch has a backward-compat alias for them, the
+  // queue was also built against the old touch sequences and would
+  // serve a stale exercise mix. Cleanest fix: drop and rebuild.
+  const staleTypes = ['speak_from_french', 'speak_from_english'];
+  if (state.session?.queue?.some(item => staleTypes.includes(item.type))) {
+    state.session.queue = [];
+    state.session.index = 0;
+    state.session.pendingUnlock = null;
+    saveState();
+  }
   // Restore any wave unlocks that should have fired before this session
   // (idempotent — only sets flags that aren't already set).
   checkWaveTriggers();
