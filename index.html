@@ -1634,7 +1634,14 @@ body {
         <div class="prompt-italic" id="bcText"></div>
       </div>
       <div class="exercise-spacer"></div>
-      <button class="continue-btn enabled" id="bcNextBtn" onclick="advanceBuildupChunk()">Continue</button>
+      <button class="continue-btn" id="bcNextBtn" onclick="advanceBuildupChunk()" disabled>Continue</button>
+      <!-- Last-chunk self-assess: same Not yet / I know this pair the
+           regular self_assess exercise uses. Shown by advanceBuildupChunk
+           when isLastChunk is true and the full-phrase audio plays. -->
+      <div class="self-assess-actions" id="bcSelfAssessRow" style="display:none; padding-bottom:30px;">
+        <button class="self-assess-no" onclick="buildupSelfAssess(false)">Not yet</button>
+        <button class="self-assess-yes" onclick="buildupSelfAssess(true)">I know this</button>
+      </div>
     </div>
 
     <div id="panelRecognition" class="hidden exercise-canvas">
@@ -36619,6 +36626,9 @@ function playChunkSequence(chunks, opts) {
 let _activeBuildupChunkAudio = null;
 let _activeBuildupChunk = null;
 
+// Render a single buildup chunk step. On the last chunk, Continue is
+// replaced by a "Not yet / I know this" self-assess row after the full
+// phrase plays.
 function renderBuildupChunkPanel(phrase, chunkIndex, isLastChunk) {
   const chunks = (phrase && phrase.buildupChunks) || [];
   const chunk = chunks[chunkIndex];
@@ -36629,27 +36639,65 @@ function renderBuildupChunkPanel(phrase, chunkIndex, isLastChunk) {
     return;
   }
 
-  _activeBuildupChunk = { phrase, chunk, isLastChunk };
+  _activeBuildupChunk = { phrase, chunk, chunkIndex, isLastChunk };
 
   document.getElementById('panelBuildup').classList.remove('hidden');
   showScreen('screenExercise');
 
-  document.getElementById('bcText').textContent = chunk.text || '';
+  // Highlight the newly added words (chunks grow from the right tail of
+  // the previous chunk, with new material added to the LEFT). The new
+  // portion shows in accent + semibold; the carried-over tail shows
+  // dimmed. First chunk has no carried tail — colour the whole thing.
+  const bcText = document.getElementById('bcText');
+  const prevChunk = chunkIndex > 0 ? chunks[chunkIndex - 1] : null;
+  const text = chunk.text || '';
+  const prevText = (prevChunk && prevChunk.text) || '';
+  if (prevText && text.endsWith(prevText)) {
+    const newPart = text.slice(0, text.length - prevText.length).trimEnd();
+    bcText.innerHTML =
+      `<span style="color:var(--accent); font-weight:600;">${escapeHtml(newPart)}</span> ` +
+      `<span style="color:var(--text-dim);">${escapeHtml(prevText)}</span>`;
+  } else {
+    bcText.innerHTML = `<span style="color:var(--accent); font-weight:600;">${escapeHtml(text)}</span>`;
+  }
   document.getElementById('bcHint').textContent = isLastChunk ? 'Full phrase' : 'Listen and repeat';
+
+  // Hide the self-assess row in case it was shown by a previous render.
+  document.getElementById('bcSelfAssessRow').style.display = 'none';
+  // Disable Continue until audio finishes. Without this guard, a touch
+  // event from the previous exercise can bleed through this panel's
+  // first frame and instantly tap Continue, chain-advancing through
+  // every chunk in a few hundred ms.
+  const nextBtn = document.getElementById('bcNextBtn');
+  nextBtn.style.display = '';
+  nextBtn.disabled = true;
+  nextBtn.classList.remove('enabled');
 
   const circle = document.getElementById('bcCircle');
   circle.classList.remove('playing');
   void circle.offsetWidth;
   circle.classList.add('playing');
 
-  // Auto-play chunk audio (with a short delay so the click + screen
-  // transition settles before the audio fires).
-  setTimeout(_playActiveBuildupChunk, 200);
+  const enableContinue = () => {
+    nextBtn.disabled = false;
+    nextBtn.classList.add('enabled');
+  };
+
+  // Auto-play chunk audio. Continue stays disabled until audio ends or
+  // errors; a 5s safety timer enables it even if neither event fires.
+  setTimeout(() => _playActiveBuildupChunk(enableContinue), 200);
+  setTimeout(enableContinue, 5000);
 }
 
-function _playActiveBuildupChunk() {
+// Minimal HTML escape for chunk text — chunk content is from Airtable
+// but may contain quotes/ampersands.
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function _playActiveBuildupChunk(onDone) {
   const a = _activeBuildupChunk;
-  if (!a) return;
+  if (!a) { if (onDone) onDone(); return; }
   if (_activeBuildupChunkAudio) {
     try { _activeBuildupChunkAudio.onended = null; } catch (e) {}
     try { _activeBuildupChunkAudio.pause(); } catch (e) {}
@@ -36658,20 +36706,23 @@ function _playActiveBuildupChunk() {
   const url = (typeof pickAudioUrl === 'function')
     ? pickAudioUrl(a.chunk)
     : ((typeof audioPathFor === 'function') ? audioPathFor(a.chunk.audioFileName) : null);
-  if (!url) return;
+  if (!url) { if (onDone) onDone(); return; }
   try {
     const audio = new Audio(url);
     _activeBuildupChunkAudio = audio;
     const done = () => {
       if (_activeBuildupChunkAudio === audio) _activeBuildupChunkAudio = null;
       document.getElementById('bcCircle')?.classList.remove('playing');
+      if (onDone) onDone();
     };
     audio.onended = done;
     audio.onerror = done;
     audio.play().catch(done);
-  } catch (e) {}
+  } catch (e) { if (onDone) onDone(); }
 }
 
+// Manual replay does not pass an onDone callback — the Continue button
+// is already enabled by the initial auto-play; replays must not touch it.
 function replayBuildupChunk() {
   const circle = document.getElementById('bcCircle');
   if (circle) {
@@ -36679,7 +36730,7 @@ function replayBuildupChunk() {
     void circle.offsetWidth;
     circle.classList.add('playing');
   }
-  _playActiveBuildupChunk();
+  _playActiveBuildupChunk(null);
 }
 
 function advanceBuildupChunk() {
@@ -36701,15 +36752,17 @@ function advanceBuildupChunk() {
     return;
   }
 
-  // Last chunk: play the full phrase once, mark seenBuildupIntro, then advance.
+  // Last chunk: show the full phrase, play full audio once, then swap
+  // Continue for the Not-yet / I-know-this self-assess pair. Mark
+  // seenBuildupIntro now so a future session won't re-run the buildup.
   const phrase = a.phrase;
-  _activeBuildupChunk = null;
   if (!state.seenBuildupIntro) state.seenBuildupIntro = {};
   state.seenBuildupIntro[phrase.id] = true;
   if (typeof saveState === 'function') saveState();
 
-  document.getElementById('bcHint').textContent = 'Full phrase';
-  document.getElementById('bcText').textContent = displayNative(phrase, 'card');
+  document.getElementById('bcHint').textContent = 'Say the full phrase';
+  document.getElementById('bcText').innerHTML =
+    `<span style="color:var(--text);">${escapeHtml(displayNative(phrase, 'card'))}</span>`;
 
   const circle = document.getElementById('bcCircle');
   if (circle) {
@@ -36718,17 +36771,44 @@ function advanceBuildupChunk() {
     circle.classList.add('playing');
   }
 
+  // Stash phrase for buildupSelfAssess to consume on tap.
+  _activeBuildupChunk = { phrase, isLastChunk: true, awaitingSelfAssess: true };
+
+  // Swap Continue → self-assess row.
+  const nextBtn = document.getElementById('bcNextBtn');
+  nextBtn.style.display = 'none';
+  document.getElementById('bcSelfAssessRow').style.display = 'flex';
+
+  // Play full-phrase audio (no auto-advance — wait for self-assess tap).
   const fullUrl = (typeof getAudio === 'function') ? getAudio(phrase) : null;
-  const finish = () => {
-    setTimeout(() => nextExercise(), 600);
-  };
-  if (!fullUrl) return finish();
-  try {
-    const audio = new Audio(fullUrl);
-    audio.onended = finish;
-    audio.onerror = finish;
-    setTimeout(() => audio.play().catch(finish), 250);
-  } catch (e) { finish(); }
+  if (fullUrl) {
+    try {
+      const audio = new Audio(fullUrl);
+      const stop = () => { circle?.classList.remove('playing'); };
+      audio.onended = stop;
+      audio.onerror = stop;
+      setTimeout(() => audio.play().catch(stop), 250);
+    } catch (e) { circle?.classList.remove('playing'); }
+  } else {
+    circle?.classList.remove('playing');
+  }
+}
+
+function buildupSelfAssess(correct) {
+  const a = _activeBuildupChunk;
+  if (!a || !a.awaitingSelfAssess) { nextExercise(); return; }
+  const phrase = a.phrase;
+  _activeBuildupChunk = null;
+  // bumpIfFinal is a no-op on buildup_chunk items (BONUS_TYPES, no
+  // _isFinal flag) — scoring happens on the listen_meaning that
+  // follows. The call is kept for parity with selfAssessAnswer in case
+  // _isFinal lands here in some future configuration.
+  if (typeof bumpIfFinal === 'function') bumpIfFinal(phrase.id, null, correct);
+  if (!correct && typeof resurfaceIfEligible === 'function') {
+    const item = (typeof getCurrentItem === 'function') ? getCurrentItem() : null;
+    resurfaceIfEligible(phrase.id, item ? item.type : 'buildup_chunk');
+  }
+  nextExercise();
 }
 
 function checkAndStartBuildup(phrase) {
