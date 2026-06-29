@@ -36915,22 +36915,17 @@ function checkUnlocks() {
   const lang = langToCode(localStorage.getItem('tt_language') || 'French');
   const playable = PHRASES.filter(p => p.lang === lang && (p.meaning || (p.meanings && p.meanings.length)) && getAudio(p));
   const tier1 = playable.filter(p => (p.tier || '1') === '1');
-  const recovery = playable.filter(p => p.tier === 'Recovery');
 
   // Recovery unlocks when ALL playable Tier 1 phrases reach score 3+.
-  // If the active language has a Recovery-tagged phrase, it must also reach
-  // score 2+; if no Recovery phrase exists for the language yet, unlock anyway.
+  // No Recovery-phrase score requirement: the Recovery phrase itself
+  // is gated out of every session until tt_recoveryUnlocked is set, so
+  // requiring it to be at score 2+ first creates a deadlock — the phrase
+  // can never enter a session to score up. Once unlocked here, Recovery
+  // enters getActivePhrases() and is introduced through the normal flow.
   if (!localStorage.getItem('tt_recoveryUnlocked')) {
     if (tier1.length && tier1.every(p => getScore(p.id) >= 3)) {
-      const recoveryPhrase = playable.find(p => p.tier === 'Recovery');
-      if (!recoveryPhrase) {
-        localStorage.setItem('tt_recoveryUnlocked', 'true');
-        return 'recovery';
-      }
-      if (getScore(recoveryPhrase.id) >= 2) {
-        localStorage.setItem('tt_recoveryUnlocked', 'true');
-        return 'recovery';
-      }
+      localStorage.setItem('tt_recoveryUnlocked', 'true');
+      return 'recovery';
     }
   }
 
@@ -43263,6 +43258,12 @@ function initApp() {
   // Restore any wave unlocks that should have fired before this session
   // (idempotent — only sets flags that aren't already set).
   checkWaveTriggers();
+  // Re-evaluate tier unlocks at startup so anyone who was blocked by the
+  // old recovery-deadlock gets their flag set on next load. Return value
+  // is intentionally ignored — we don't want a celebration screen mid-
+  // app-load; the unlocked tier just becomes available for the next
+  // session.
+  checkUnlocks();
   updateWelcomeProgress();
 }
 
