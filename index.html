@@ -37396,11 +37396,13 @@ function startSessionWithMode(mode) {
 
     const selected = [...newPicks, ...reviewPicks];
 
-    // Anticipation cap: at most half the new phrases, hard-ceiling of 3.
-    // Computed here (after newPicks is known) so the cap scales with the
-    // session shape — first-ever session (5 new) gets up to 3; later
-    // sessions (3 new + 3 review) get up to 2; small pools cap themselves.
-    _anticipationCapThisSession = Math.min(Math.ceil(newPicks.length / 2), 3);
+    // Anticipation cap: at most half the eligible (score >= 2) review
+    // pool, hard-ceiling of 3. Computed from reviewPicks because the
+    // anticipation gate fires only on already-known phrases — newPicks
+    // are score 0 and never eligible. First-ever session (0 review) →
+    // cap of 0; typical session 2+ (3 review) → cap of 2; large review
+    // batches still cap at 3.
+    _anticipationCapThisSession = Math.min(Math.ceil(reviewPicks.length / 2), 3);
 
     // Preference gate: fire once before the first preference-tagged phrase
     if (!localStorage.getItem('tt_prefGateSeen') &&
