@@ -854,9 +854,13 @@ body {
 }
 .self-assess-reveal {
   opacity: 0;
+  visibility: hidden;
   transition: opacity 240ms ease;
 }
-.self-assess-reveal.shown { opacity: 1; }
+.self-assess-reveal.shown {
+  opacity: 1;
+  visibility: visible;
+}
 
 /* Anticipation Method countdown bar — drains over the 3.5s pause between
    showing the English meaning and playing the foreign audio. Makes the
@@ -39561,9 +39565,20 @@ function renderSelfAssessPanel(phrase) {
   document.getElementById('saNative').textContent = displayNative(phrase, 'card');
   document.getElementById('saHint').textContent = 'Tap to hear';
 
-  // Reset visual state — reveal pre-populated but at opacity 0; "Tap to
-  // reveal" hint visible; assessment buttons hidden.
-  document.getElementById('saReveal').classList.remove('shown');
+  // Reset visual state — reveal pre-populated but at opacity 0 +
+  // visibility:hidden so it can't flash on screen. We suppress the
+  // 240ms opacity transition during the reset (otherwise removing
+  // .shown from a previously-revealed render would fade 1→0 over
+  // the first frames of the new exercise, briefly showing the new
+  // phrase) and re-enable it after one frame so the user-triggered
+  // reveal still animates in smoothly.
+  const reveal = document.getElementById('saReveal');
+  reveal.style.transition = 'none';
+  reveal.classList.remove('shown');
+  // Force a style flush so the no-transition reset commits before the
+  // next frame re-enables the transition.
+  void reveal.offsetWidth;
+  requestAnimationFrame(() => { reveal.style.transition = ''; });
   document.getElementById('saRevealRow').style.display = '';
   document.getElementById('saActions').style.display = 'none';
 
