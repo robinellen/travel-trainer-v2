@@ -36993,6 +36993,23 @@ function expandBuildupSequenceItems(queue) {
   }
 }
 
+// Exercises that are appended as bonus practice on top of the core
+// (listen_meaning / listen_pick_french / self_assess) learning path.
+// They must NEVER take _isFinal away from the last core touch: if a
+// bonus exercise skips silently (pool too small, gate not met, etc.)
+// the phrase would never score and would stay stuck. The queue builder
+// uses this list to mark _isFinal on the last NON-bonus touch instead
+// of the absolute last touch in the per-phrase sequence.
+const BONUS_TYPES = [
+  'emoji_exercise',
+  'audio_match',
+  'scenario_response',
+  'meaning_assembly',
+  'anticipation',
+  'buildup_sequence',
+  'buildup_chunk',
+];
+
 function buildPhraseTouches(phrase) {
   // Core exercise types that fire from this builder:
   //   listen_meaning      (Listen and Pick - English)
@@ -37052,9 +37069,10 @@ function buildPhraseTouches(phrase) {
       ? ['listen_pick_french', 'self_assess', 'self_assess']
       : ['self_assess', 'self_assess'];
   }
-  // Scenario response — final touch for phrases with a situation goal once
-  // the learner has reached Stage 2+ and score 2+. Appending it makes it
-  // the queue builder's _isFinal touch (the scoring step).
+  // Scenario response — bonus touch for phrases with a situation goal once
+  // the learner has reached Stage 2+ and score 2+. Appended after the
+  // core touches; it does NOT take _isFinal (the queue builder marks the
+  // last CORE touch instead, see BONUS_TYPES below).
   const _stage = (typeof getCurrentSubstage === 'function') ? getCurrentSubstage().stage : 1;
   if (phrase.situationText && score >= 2 && _stage >= 2) {
     touches = [...touches, 'scenario_response'];
@@ -37429,9 +37447,9 @@ function startSessionWithMode(mode) {
     }));
 
     // Round-robin interleave: take one touch from each phrase per pass,
-    // mark the LAST touch for each phrase as _isFinal so scoring fires there.
+    // mark the LAST CORE (non-BONUS) touch for each phrase as _isFinal
+    // so scoring still fires when bonus exercises skip silently.
     const queue = [];
-    const lastTouchIdxByPhrase = {};
     const maxTouches = phraseTouches.reduce((m, pt) => Math.max(m, pt.touches.length), 0);
 
     for (let pass = 0; pass < maxTouches; pass++) {
@@ -37443,13 +37461,20 @@ function startSessionWithMode(mode) {
             phraseId: pt.phrase.id,
             type: pt.touches[pass],
           });
-          lastTouchIdxByPhrase[pt.phrase.id] = queue.length - 1;
         }
       }
     }
 
-    // Mark final touches
-    Object.values(lastTouchIdxByPhrase).forEach(idx => {
+    // _isFinal goes on the last core touch per phrase, not the absolute
+    // last touch. Bonus exercises after _isFinal still fire as practice
+    // but don't gate scoring — if the pool is empty or the gate isn't met
+    // and the bonus silently skips, the phrase has already scored.
+    const lastCoreIdxByPhrase = {};
+    for (let i = 0; i < queue.length; i++) {
+      const it = queue[i];
+      if (!BONUS_TYPES.includes(it.type)) lastCoreIdxByPhrase[it.phraseId] = i;
+    }
+    Object.values(lastCoreIdxByPhrase).forEach(idx => {
       queue[idx]._isFinal = true;
     });
 
@@ -40245,7 +40270,6 @@ function startStageReview(stageIdx) {
   }));
 
   const queue = [];
-  const lastTouchIdxByPhrase = {};
   const maxTouches = phraseTouches.reduce((m, pt) => Math.max(m, pt.touches.length), 0);
 
   for (let pass = 0; pass < maxTouches; pass++) {
@@ -40253,12 +40277,18 @@ function startStageReview(stageIdx) {
     for (const pt of order) {
       if (pass < pt.touches.length) {
         queue.push({ phraseId: pt.phrase.id, type: pt.touches[pass] });
-        lastTouchIdxByPhrase[pt.phrase.id] = queue.length - 1;
       }
     }
   }
 
-  Object.values(lastTouchIdxByPhrase).forEach(idx => { queue[idx]._isFinal = true; });
+  // _isFinal goes on the last CORE touch (not the absolute last) so bonus
+  // exercises after it can skip silently without losing the scoring event.
+  const lastCoreIdxByPhrase = {};
+  for (let i = 0; i < queue.length; i++) {
+    const it = queue[i];
+    if (!BONUS_TYPES.includes(it.type)) lastCoreIdxByPhrase[it.phraseId] = i;
+  }
+  Object.values(lastCoreIdxByPhrase).forEach(idx => { queue[idx]._isFinal = true; });
 
   // Mark score 0 listen_meaning items for vocab card follow-up
   const score0Ids = new Set(selected.filter(p => getScore(p.id) === 0 && p.tier !== 'Recovery').map(p => p.id));
