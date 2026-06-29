@@ -37073,17 +37073,19 @@ function buildPhraseTouches(phrase) {
     const threshold = tierNum >= 4 ? 4 : tierNum >= 3 ? 3 : 2;
     if (score >= threshold) touches = [...touches, 'meaning_assembly'];
   }
-  // Anticipation Method — desirable-difficulty retrieval before encoding.
-  // Fires at score 0 only, and only once per phrase lifetime (gated by
-  // seenAnticipation[id]). Capped per-session by _anticipationCapThisSession
-  // so it doesn't cluster at the front of the queue: with a cap of 3 and
-  // up to 5 new phrases per session, the round-robin interleaver naturally
-  // spaces the survivors among the non-anticipation touches. Prepending
-  // onto `touches` (instead of pushing into the legacy `head` array) means
-  // anticipation becomes position 0 of the phrase's per-phrase touch list,
-  // which is what the round-robin needs to interleave it.
+  // Anticipation Method — desirable-difficulty retrieval AFTER the phrase
+  // has a memory trace worth retrieving. Fires at score >= 2 (learner has
+  // recognised the meaning by ear AND successfully self-assessed), and
+  // only once per phrase lifetime (gated by seenAnticipation[id]). Capped
+  // per-session by _anticipationCapThisSession so it doesn't cluster at
+  // the front of the queue: with the cap and up to a handful of eligible
+  // phrases per session, the round-robin interleaver naturally spaces the
+  // survivors among the non-anticipation touches. Prepending onto
+  // `touches` (instead of the legacy `head` array) makes anticipation
+  // position 0 of the phrase's per-phrase touch list, which is what the
+  // round-robin needs to interleave it.
   const needsAnticipation = !(state.seenAnticipation && state.seenAnticipation[phrase.id])
-    && score === 0
+    && score >= 2
     && _anticipationCountThisSession < _anticipationCapThisSession;
   if (needsAnticipation) {
     _anticipationCountThisSession++;
