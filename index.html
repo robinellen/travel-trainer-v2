@@ -2060,10 +2060,10 @@ body {
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55; margin-top:0.5rem;">
       <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-bottom:0.4rem;">EXERCISE PROGRESSION BY SCORE</div>
       <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 0</span> listen_pick_english (vocab card chains as follow-up)</div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_meaning, listen_pick_french, self_assess</div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> listen_pick_french, self_assess ×2 <span style="color:var(--text-mid);">(single self_assess for bonne journée, bon appétit)</span></div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 3+</span> self_assess ×2 <span style="color:var(--text-mid);">(25% chance listen_pick_french as warm-up)</span></div>
-      <div><span style="color:var(--text);">Score 4+</span> self_assess ×2 cold <span style="color:var(--text-mid);">(recognition Tier 3: not built)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_pick_french, self_assess</div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> listen_pick_french, self_assess <span style="color:var(--text-mid);">(+ anticipation bonus)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 3</span> self_assess <span style="color:var(--text-mid);">(30% chance listen_pick_french warm-up)</span></div>
+      <div><span style="color:var(--text);">Score 4+</span> self_assess <span style="color:var(--text-mid);">(15% chance listen_pick_french warm-up)</span></div>
     </div>
 
     <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-top:0.25rem;">SHORTCUTS</div>
@@ -36972,15 +36972,6 @@ function checkUnlocks() {
 // Build a within-session arc for a phrase based on its current score and tier.
 // Build the touch sequence for a phrase based on its current score.
 // Returns an array of exercise types to serve in order within the session.
-function isEligibleForSpeakFromEnglish(phrase) {
-  if (!phrase) return false;
-  const dir = (phrase.direction || '').toLowerCase();
-  if (dir === 'they initiate you respond') return false;
-  // Fallback for phrases without direction tagged: use the old exclusion list
-  if (!dir) return !['bonne journée', 'bon appétit'].includes((phrase.native || '').toLowerCase());
-  return true;
-}
-
 // Session-scoped flag: limit buildup sequences to one per session so
 // multiple back-to-back auto-advancing chunk plays don't blur into one
 // continuous stream of audio. Reset in startSessionWithMode().
@@ -37070,31 +37061,30 @@ function buildPhraseTouches(phrase) {
   }
 
   const score = getScore(phrase.id);
-  const eligibleSFE = isEligibleForSpeakFromEnglish(phrase);
 
-  // Score 0: one scored touch (listen + pick meaning), vocab card chains after.
+  // Touch sequences scale DOWN as score increases: introduction is heavy,
+  // maintenance is light. Score 2 is the peak (single production challenge
+  // after a warm-up + the anticipation bonus); score 3+ drops to a single
+  // self_assess with an occasional listen warm-up to keep the retrieval
+  // path fresh without grinding the phrase.
   let touches;
+  // Score 0: introduction — listen + pick meaning (vocab card chains after).
   if (score === 0) touches = ['listen_meaning'];
-  // Score 1: listen + pick French as the bridge to production, then
-  // self-assessment. listen_meaning is intentionally absent — it's the
-  // same exercise that fired at score 0, so repeating it as a warm-up
-  // would mean every score-1 session starts with the same English-pick
-  // the learner just saw on the prior encounter.
+  // Score 1: consolidation — pick the French phrase, then self-assess.
+  // listen_meaning is intentionally absent (same exercise as score 0).
   else if (score === 1) touches = ['listen_pick_french', 'self_assess'];
-  // Score 2: listen + pick French as a written-form warm-up, then two
-  // self-assess passes (one for each direction in the old SFE/SFF split).
-  // The eligibleSFE flag now controls only depth, not exercise type.
-  else if (score === 2) {
-    touches = eligibleSFE
-      ? ['listen_pick_french', 'self_assess', 'self_assess']
-      : ['listen_pick_french', 'self_assess'];
+  // Score 2: production building — listen warm-up + one self-assess.
+  // Anticipation fires here as the "graduation" bonus (gated separately).
+  else if (score === 2) touches = ['listen_pick_french', 'self_assess'];
+  // Score 3: maintenance — one self-assess, occasional listen warm-up.
+  else if (score === 3) {
+    const warmUp = Math.random() < 0.3;
+    touches = warmUp ? ['listen_pick_french', 'self_assess'] : ['self_assess'];
   } else {
-    // Score 3+: self-assessment is the primary production exercise. Listen
-    // + pick French still appears occasionally as a low-frequency warm-up.
-    const occasionalLPF = Math.random() < 0.25;
-    touches = occasionalLPF
-      ? ['listen_pick_french', 'self_assess', 'self_assess']
-      : ['self_assess', 'self_assess'];
+    // Score 4+: light retention check — phrase is known; single self-assess
+    // with a rare listen warm-up just to keep it fresh.
+    const warmUp = Math.random() < 0.15;
+    touches = warmUp ? ['listen_pick_french', 'self_assess'] : ['self_assess'];
   }
   // Scenario response — bonus touch for phrases with a situation goal once
   // the learner has reached Stage 2+ and score 2+. Appended after the
