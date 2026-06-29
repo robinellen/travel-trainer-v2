@@ -36957,6 +36957,16 @@ function isEligibleForSpeakFromEnglish(phrase) {
 // continuous stream of audio. Reset in startSessionWithMode().
 let _buildupFiredThisSession = false;
 
+// Anticipation Method clustering control. Each phrase only ever gets one
+// anticipation exercise lifetime (gated by seenAnticipation[id]), but
+// without a per-session cap, the round-robin interleaver lands every
+// new phrase's anticipation in pass 0 of the queue — producing a wall
+// of "How would you say..." cards at the front of the session. We cap
+// the count per session and let the round-robin spread the survivors.
+// Both globals reset + recomputed in startSessionWithMode().
+let _anticipationCountThisSession = 0;
+let _anticipationCapThisSession = 0;
+
 // Expand each buildup_sequence queue item into N buildup_chunk items —
 // one per scaffold chunk, each a learner-paced step (audio plays,
 // learner can replay, then taps Continue). The final chunk carries
@@ -37063,12 +37073,23 @@ function buildPhraseTouches(phrase) {
     const threshold = tierNum >= 4 ? 4 : tierNum >= 3 ? 3 : 2;
     if (score >= threshold) touches = [...touches, 'meaning_assembly'];
   }
-  // Anticipation is a retrieval exercise, not an introduction — gate on
-  // score >= 2 so the learner has something to retrieve. Fires once then
-  // seenAnticipation[id] suppresses it forever.
-  const needsAnticipation = !(state.seenAnticipation && state.seenAnticipation[phrase.id]) && score === 0;
+  // Anticipation Method — desirable-difficulty retrieval before encoding.
+  // Fires at score 0 only, and only once per phrase lifetime (gated by
+  // seenAnticipation[id]). Capped per-session by _anticipationCapThisSession
+  // so it doesn't cluster at the front of the queue: with a cap of 3 and
+  // up to 5 new phrases per session, the round-robin interleaver naturally
+  // spaces the survivors among the non-anticipation touches. Prepending
+  // onto `touches` (instead of pushing into the legacy `head` array) means
+  // anticipation becomes position 0 of the phrase's per-phrase touch list,
+  // which is what the round-robin needs to interleave it.
+  const needsAnticipation = !(state.seenAnticipation && state.seenAnticipation[phrase.id])
+    && score === 0
+    && _anticipationCountThisSession < _anticipationCapThisSession;
+  if (needsAnticipation) {
+    _anticipationCountThisSession++;
+    touches = ['anticipation', ...touches];
+  }
   const head = [];
-  if (needsAnticipation) head.push('anticipation');
   if (needsBuildup) {
     _buildupFiredThisSession = true;
     head.push('buildup_sequence');
@@ -37299,6 +37320,8 @@ function startSessionWithMode(mode) {
   state.session._startScores = {};       // phraseId → score at session start
   state.session._sessionPhrases = [];    // phrase ids in this session for win screen
   _buildupFiredThisSession = false;      // one buildup_sequence per session, max
+  _anticipationCountThisSession = 0;     // recounted per session, see global
+  _anticipationCapThisSession = 0;       // overridden below for 'lesson' mode
   resetSessionVoicePicks();
 
   let activePhrases = getActivePhrases();
@@ -37370,6 +37393,12 @@ function startSessionWithMode(mode) {
     }
 
     const selected = [...newPicks, ...reviewPicks];
+
+    // Anticipation cap: at most half the new phrases, hard-ceiling of 3.
+    // Computed here (after newPicks is known) so the cap scales with the
+    // session shape — first-ever session (5 new) gets up to 3; later
+    // sessions (3 new + 3 review) get up to 2; small pools cap themselves.
+    _anticipationCapThisSession = Math.min(Math.ceil(newPicks.length / 2), 3);
 
     // Preference gate: fire once before the first preference-tagged phrase
     if (!localStorage.getItem('tt_prefGateSeen') &&
