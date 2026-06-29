@@ -36987,6 +36987,15 @@ let _buildupFiredThisSession = false;
 let _anticipationCountThisSession = 0;
 let _anticipationCapThisSession = 0;
 
+// Meaning Assembly cap: long phrases (3+ words) repeat assembly every
+// session at score 2+ — without a cap they'd flood a session once the
+// learner has a handful of eligible phrases. Short phrases (1-2 words)
+// still retire after one fire via seenMeaningAssembly[id]; only the
+// long-phrase repeating fires count toward this cap. Reset in
+// startSessionWithMode().
+let _meaningAssemblyCountThisSession = 0;
+const MEANING_ASSEMBLY_CAP = 2;
+
 // Expand each buildup_sequence queue item into N buildup_chunk items —
 // one per scaffold chunk, each a learner-paced step (audio plays,
 // learner can replay, then taps Continue). The final chunk carries
@@ -37102,13 +37111,23 @@ function buildPhraseTouches(phrase) {
   if (phrase.emojiExercise && score < 2) {
     touches = [...touches, 'emoji_exercise'];
   }
-  // Meaning Assembly — Stage 2+, tier-based score gate (T1/T2: score 2+,
-  // T3: 3+, T4: 4+). Fires once per phrase then retires via
-  // seenMeaningAssembly so a learner never re-sees the same assembly.
-  if (_stage >= 2 && !(state.seenMeaningAssembly && state.seenMeaningAssembly[phrase.id])) {
-    const tierNum = parseInt(phrase.tier || '1', 10);
-    const threshold = tierNum >= 4 ? 4 : tierNum >= 3 ? 3 : 2;
-    if (score >= threshold) touches = [...touches, 'meaning_assembly'];
+  // Meaning Assembly — fires at score 2+ from Stage 1 onward. Long
+  // phrases (3+ words) repeat every session: re-assembling
+  // "L'addition, s'il vous plaît" is genuinely useful production
+  // practice. Short phrases (1-2 words) fire once then retire via
+  // seenMeaningAssembly[id] — there's nothing to assemble for "oui"
+  // or "merci". Per-session cap prevents long-phrase eligibility from
+  // flooding the queue.
+  const wordCount = (phrase.native || '').trim().split(/\s+/).filter(Boolean).length;
+  const isLongPhrase = wordCount >= 3;
+  const alreadySeenAssembly = !!(state.seenMeaningAssembly && state.seenMeaningAssembly[phrase.id]);
+  const assemblyEligible = _stage >= 1
+    && score >= 2
+    && (isLongPhrase || !alreadySeenAssembly)
+    && _meaningAssemblyCountThisSession < MEANING_ASSEMBLY_CAP;
+  if (assemblyEligible) {
+    _meaningAssemblyCountThisSession++;
+    touches = [...touches, 'meaning_assembly'];
   }
   // Anticipation Method — desirable-difficulty retrieval AFTER the phrase
   // has a memory trace worth retrieving. Fires at score >= 2 (learner has
@@ -37361,6 +37380,7 @@ function startSessionWithMode(mode) {
   _buildupFiredThisSession = false;      // one buildup_sequence per session, max
   _anticipationCountThisSession = 0;     // recounted per session, see global
   _anticipationCapThisSession = 0;       // overridden below for 'lesson' mode
+  _meaningAssemblyCountThisSession = 0;  // capped at MEANING_ASSEMBLY_CAP / session
   resetSessionVoicePicks();
 
   let activePhrases = getActivePhrases();
