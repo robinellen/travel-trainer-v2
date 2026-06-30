@@ -861,6 +861,29 @@ body {
   opacity: 1;
   visibility: visible;
 }
+.self-assess-hint-link {
+  display: inline-block;
+  background: none;
+  border: 0;
+  color: var(--text-dim);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: underline;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  cursor: pointer;
+}
+.self-assess-meaning-reveal {
+  display: none;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-top: 0.5rem;
+  line-height: 1.4;
+}
+.self-assess-meaning-reveal.shown { display: block; }
 
 /* Anticipation Method countdown bar — drains over the 3.5s pause between
    showing the English meaning and playing the foreign audio. Makes the
@@ -1475,6 +1498,12 @@ body {
         <div class="self-assess-meaning" id="saMeaning"></div>
         <div class="self-assess-reveal" id="saReveal" style="margin-top:18px;">
           <div class="prompt-italic" id="saNative" style="font-size:26px;"></div>
+          <!-- Show-meaning toggle: phrase prompt rotates via getMeaning,
+               so a learner who taps Not yet may want the canonical full
+               set. The button swaps to the meanings text on tap so the
+               retrieval attempt isn't shortcut by an always-visible hint. -->
+          <button id="saShowMeaning" class="self-assess-hint-link" onclick="selfAssessShowMeaning()">Show meaning</button>
+          <div id="saMeaningReveal" class="self-assess-meaning-reveal"></div>
         </div>
       </div>
       <div class="exercise-spacer"></div>
@@ -37322,11 +37351,23 @@ function startSessionWithMode(mode) {
     );
     const unseenFoundation = [...unseenTier1, ...unseenTier2Plus];
 
-    // Already-seen phrases split by spaced repetition due status
+    // Already-seen phrases split by spaced repetition due status.
+    // Due phrases are shuffled — they're equally urgent. The not-due
+    // filler is sorted by confidence (low score first, then short
+    // Leitner interval) so when the gap is filled, the least-known
+    // phrases get the slot rather than well-known long-interval ones.
     const seenPhrases = activePhrases.filter(p => getScore(p.id) >= 1);
     const due = shuffle(seenPhrases.filter(p => isPhrasedue(p.id)));
-    const notDue = shuffle(seenPhrases.filter(p => !isPhrasedue(p.id)));
-    const reviewPool = [...due, ...notDue];
+    const notDueSorted = seenPhrases
+      .filter(p => !isPhrasedue(p.id))
+      .sort((a, b) => {
+        const scoreA = getScore(a.id), scoreB = getScore(b.id);
+        if (scoreA !== scoreB) return scoreA - scoreB;
+        const intervalA = (state.leitner[a.id]?.interval) || 1;
+        const intervalB = (state.leitner[b.id]?.interval) || 1;
+        return intervalA - intervalB;
+      });
+    const reviewPool = [...due, ...notDueSorted];
 
     // Session 1 special case: first ever session has no review phrases.
     // Introduce exactly 5 new phrases and end after their touches complete.
@@ -39452,6 +39493,21 @@ function selfAssessReveal() {
   document.getElementById('saActions').style.display = 'flex';
 }
 
+function selfAssessShowMeaning() {
+  const s = _selfAssessState;
+  if (!s || !s.phrase) return;
+  const phrase = s.phrase;
+  const all = (typeof getAllMeanings === 'function') ? getAllMeanings(phrase) : [phrase.meaning || ''];
+  const text = all.filter(Boolean).join(' • ');
+  const btn = document.getElementById('saShowMeaning');
+  const reveal = document.getElementById('saMeaningReveal');
+  if (btn) btn.style.display = 'none';
+  if (reveal) {
+    reveal.textContent = text;
+    reveal.classList.add('shown');
+  }
+}
+
 function selfAssessAnswer(correct) {
   const s = _selfAssessState;
   if (!s || s.answered) return;
@@ -39495,6 +39551,12 @@ function renderSelfAssessPanel(phrase) {
   requestAnimationFrame(() => { reveal.style.transition = ''; });
   document.getElementById('saRevealRow').style.display = '';
   document.getElementById('saActions').style.display = 'none';
+
+  // Reset the Show-meaning toggle for the new phrase.
+  const showMeaningBtn = document.getElementById('saShowMeaning');
+  const meaningReveal = document.getElementById('saMeaningReveal');
+  if (showMeaningBtn) showMeaningBtn.style.display = '';
+  if (meaningReveal) { meaningReveal.classList.remove('shown'); meaningReveal.textContent = ''; }
 
   const circle = document.getElementById('saCircle');
   circle?.classList.remove('playing');
