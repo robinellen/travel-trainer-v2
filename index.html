@@ -1559,6 +1559,15 @@ body {
       <div class="anticipation-timer-bar">
         <div class="anticipation-timer-fill" id="anticipationTimerFill"></div>
       </div>
+      <!-- Tap-to-hear fallback for when the browser blocks the autoplay
+           that the 3.5s timer would otherwise trigger. Hidden by default;
+           shown only if audio.play() rejects. -->
+      <button class="self-assess-reveal-hint" id="anticipationTapHearBtn" style="display:none; margin-top:18px;">Tap to hear</button>
+      <!-- Continue is the user-gesture exit. It appears once the audio has
+           played (or been manually played via the fallback). Tapping it
+           advances and provides a fresh gesture for the next exercise's
+           audio, preventing the autoplay chain-break. -->
+      <button class="self-assess-yes" id="anticipationContinueBtn" style="display:none; margin-top:22px; max-width:340px; width:100%;">Continue</button>
     </div>
 
     <!-- ── AUDIO MATCHING panel (replaces match_pairs) ── -->
@@ -38498,22 +38507,61 @@ function renderAnticipationPanel(phrase) {
     });
   }
 
+  // Reset the tap-to-hear fallback + Continue button to hidden state.
+  const tapHear = document.getElementById('anticipationTapHearBtn');
+  const continueBtn = document.getElementById('anticipationContinueBtn');
+  if (tapHear) { tapHear.style.display = 'none'; tapHear.onclick = null; }
+  if (continueBtn) { continueBtn.style.display = 'none'; continueBtn.onclick = null; }
+
+  // Pre-create the Audio object NOW, inside the call stack of the user
+  // tap that advanced to this exercise. Some browsers (Chrome, Firefox)
+  // extend autoplay permission to audio objects created during a user-
+  // gesture call stack. iOS Safari is stricter and may still block —
+  // hence the tap-to-hear fallback below.
+  const url = (typeof getAudio === 'function') ? getAudio(phrase) : null;
+  const audio = url ? new Audio(url) : null;
+  if (audio) { try { audio.load(); } catch (e) {} }
+
+  // Finish = mark seen + save. Advance happens on the Continue tap so
+  // the next exercise's audio inherits a fresh user gesture (otherwise
+  // the autoplay chain-break recurs on every subsequent panel).
+  const markSeen = () => {
+    if (!state.seenAnticipation) state.seenAnticipation = {};
+    state.seenAnticipation[phrase.id] = true;
+    if (typeof saveState === 'function') saveState();
+  };
+  const advance = () => {
+    state.session.index++;
+    if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
+  };
+  const showContinue = () => {
+    if (!continueBtn) { markSeen(); advance(); return; }
+    continueBtn.style.display = '';
+    continueBtn.onclick = () => { markSeen(); advance(); };
+  };
+  const showTapToHear = () => {
+    if (!tapHear) { markSeen(); advance(); return; }
+    tapHear.style.display = '';
+    tapHear.onclick = () => {
+      tapHear.style.display = 'none';
+      if (!audio) { showContinue(); return; }
+      audio.onended = showContinue;
+      audio.onerror = showContinue;
+      // This play() is inside the click handler — fresh user gesture,
+      // guaranteed to pass autoplay policy.
+      audio.play().catch(() => showContinue());
+    };
+  };
+
   clearTimeout(_anticipationTimer);
   _anticipationTimer = setTimeout(() => {
-    // Play the phrase audio, then mark seen and auto-advance.
-    const url = (typeof getAudio === 'function') ? getAudio(phrase) : null;
-    const finish = () => {
-      if (!state.seenAnticipation) state.seenAnticipation = {};
-      state.seenAnticipation[phrase.id] = true;
-      if (typeof saveState === 'function') saveState();
-      state.session.index++;
-      if (typeof renderCurrentExercise === 'function') renderCurrentExercise();
-    };
-    if (!url) return finish();
-    const audio = new Audio(url);
-    audio.onended = finish;
-    audio.onerror = finish;
-    audio.play().catch(finish);
+    if (!audio) { showContinue(); return; }
+    audio.onended = showContinue;
+    audio.onerror = showContinue;
+    audio.play().catch((err) => {
+      console.warn('[anticipation] audio.play() rejected, falling back to tap:', err);
+      showTapToHear();
+    });
   }, 3500);
 }
 
