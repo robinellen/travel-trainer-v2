@@ -1236,15 +1236,12 @@ body {
 
 /* ── SMALL-SCREEN FIT ─────────────────────────────────────────── */
 /* Lock exercise screens to exactly the viewport height            */
-#screenExercise,
-#screenBuildupIntro,
-#screenBuildupChunk {
+#screenExercise {
   min-height: 0;
   overflow: hidden;
 }
 /* Flex children must be able to shrink below their content size   */
-#screenExercise .p-screen,
-#screenBuildupChunk .p-screen {
+#screenExercise .p-screen {
   min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -1620,8 +1617,6 @@ body {
 
     <!-- ── RECOGNITION panel ── -->
     <!-- ── BUILDUP CHUNK panel (one step per chunk, learner-paced) ── -->
-    <!-- IDs prefixed `bc` to avoid colliding with the legacy
-         screenBuildupChunk recovery screen further down. -->
     <div id="panelBuildup" class="hidden exercise-canvas">
       <div class="play-block-slot">
         <button class="play-circle-v2" id="bcCircle" onclick="replayBuildupChunk()" aria-label="Play chunk">
@@ -1705,62 +1700,6 @@ body {
   </div>
 </div>
 
-  <!-- ═══════════════════════════════════════════════════
-       BUILDUP INTRO SCREEN
-  ═══════════════════════════════════════════════════ -->
-  <div class="screen" id="screenBuildupIntro">
-    <div class="p-screen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:0;">
-      <div style="font-size:2.5rem; margin-bottom:1rem;">🧩</div>
-      <h2 class="serif" style="font-size:1.75rem; margin-bottom:0.75rem;">This one takes a moment.</h2>
-      <p style="font-size:15px; color:var(--text-dim); line-height:1.65; max-width:300px; margin-bottom:1.25rem;">
-        Your recovery phrase is a mouthful — but the most important one in the app.
-        We're going to build it piece by piece, starting from the end and working forward.
-      </p>
-      <div class="card" style="margin-bottom:1.5rem; text-align:left; width:100%;">
-        <div class="eyebrow" style="margin-bottom:0.6rem;">You're building toward</div>
-        <div class="phrase-native" style="font-size:22px;" id="buildupTargetPhrase"></div>
-      </div>
-      <p style="font-size:15px; color:var(--text-dim); line-height:1.65; max-width:280px; margin-bottom:1.5rem;">
-        By the time you hear the whole phrase, you'll already own every part of it.
-      </p>
-      <button class="btn-primary" onclick="startBuildup()">Let's build it →</button>
-    </div>
-  </div>
-
-  <!-- ═══════════════════════════════════════════════════
-       BUILDUP CHUNK SCREEN
-  ═══════════════════════════════════════════════════ -->
-  <div class="screen" id="screenBuildupChunk">
-    <div class="exercise-header">
-      <button class="btn-back" onclick="goHome()" aria-label="Back">←</button>
-      <div class="progress-bar"><div class="progress-bar-fill" id="buildupProgressFill" style="width:0%"></div></div>
-      <div style="font-size:13px; color:var(--text-dim); min-width:40px; text-align:right;" id="buildupProgressCount"></div>
-    </div>
-    <div class="p-screen" style="flex:1; display:flex; flex-direction:column;">
-      <div style="margin-bottom:1rem;">
-        <span class="exercise-type-badge">Building up</span>
-        <span class="lang-pill fr" style="margin-left:0.4rem;">🇫🇷 French</span>
-      </div>
-      <div class="card" style="margin-bottom:1rem;">
-        <div class="eyebrow" style="margin-bottom:0.4rem;">You're building toward</div>
-        <div style="font-family:'Cormorant Garamond',serif; font-size:20px; line-height:1.5;" id="buildupFullPhrase"></div>
-      </div>
-      <div style="display:flex; flex-direction:column; align-items:center; flex:1; justify-content:center; gap:0;">
-        <div class="play-circle" id="buildupCircle" onclick="playBuildupChunk()" style="margin-bottom:1rem;">
-          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <div style="font-size:13px; color:var(--text-dim); margin-bottom:1.25rem;" id="buildupPlayHint">Tap to hear</div>
-        <div class="phrase-reveal" style="width:100%; display:none;" id="buildupChunkCard">
-          <div class="phrase-native" id="buildupChunkText" style="font-size:28px; margin-bottom:0.5rem;"></div>
-          <div style="font-size:15px; color:var(--text-dim); line-height:1.6;" id="buildupChunkHint"></div>
-          <button onclick="playBuildupChunk()" class="btn-text" style="margin-top:0.75rem">↺ Hear again</button>
-        </div>
-      </div>
-      <div class="mt-auto">
-        <button class="btn-primary hidden" id="buildupNextBtn" onclick="nextBuildupStep()">Continue →</button>
-      </div>
-    </div>
-  </div>
 
 <!-- ═══════════════════════════════════════════════════
      EXPERIENCE: WATCH IT
@@ -36273,8 +36212,6 @@ let state = {
     queue: [],
     index: 0,
     pendingUnlock: null,
-    buildupStep: 0,
-    inBuildup: false,
   },
 };
 
@@ -36553,8 +36490,12 @@ if (window.speechSynthesis) {
 // ═══════════════════════════════════════════════════════════════════
 // BUILDUP SYSTEM
 // ═══════════════════════════════════════════════════════════════════
-
-let _buildupPhrase = null;
+// Each Recovery / long-phrase intro is queued as a sequence of
+// buildup_chunk items expanded from buildupChunks on the phrase
+// record (synced from Airtable). The learner taps Continue between
+// chunks; the last chunk plays the full phrase and presents a
+// self-assess pair. The legacy PHRASE_BUILDUPS hardcoded fallback
+// was removed once all Recovery phrases gained buildupChunks data.
 
 // Generic backward-chain chunk playback. Plays each chunk's audio in order,
 // optionally calling onChunkStart/onChunkEnd hooks so callers can display
@@ -36811,131 +36752,6 @@ function buildupSelfAssess(correct) {
   nextExercise();
 }
 
-function checkAndStartBuildup(phrase) {
-  // Only trigger if this phrase has a buildup defined and score is 0 (first encounter)
-  if (!PHRASE_BUILDUPS[phrase.native]) return false;
-  if (state.seenBuildupIntro[phrase.native]) return false; // already completed buildup
-
-  _buildupPhrase = phrase;
-  state.session.buildupStep = 0;
-  state.session.inBuildup = true;
-
-  if (!state.seenBuildupIntro[phrase.native]) {
-    // Show intro screen first
-    document.getElementById('buildupTargetPhrase').textContent = displayNative(phrase, 'card');
-    showScreen('screenBuildupIntro');
-  } else {
-    // Already seen intro, go straight to chunks
-    startBuildup();
-  }
-  return true;
-}
-
-function startBuildup() {
-  state.seenBuildupIntro[_buildupPhrase.native] = true;
-  saveState();
-  showScreen('screenBuildupChunk');
-  renderBuildupStep();
-}
-
-function renderBuildupStep() {
-  const phrase = _buildupPhrase;
-  const buildup = PHRASE_BUILDUPS[phrase.native];
-  const step = state.session.buildupStep;
-  const total = buildup.length;
-  const chunk = buildup[step];
-
-  // Progress
-  document.getElementById('buildupProgressFill').style.width = (step / total * 100) + '%';
-  document.getElementById('buildupProgressCount').textContent = (step + 1) + ' / ' + total;
-
-  // Full phrase with highlight
-  const fullPhrase = phrase.native;
-  const highlight = chunk.highlight;
-  let phraseHtml;
-  if (highlight && fullPhrase.includes(highlight)) {
-    const before = fullPhrase.substring(0, fullPhrase.indexOf(highlight));
-    const after = fullPhrase.substring(fullPhrase.indexOf(highlight) + highlight.length);
-    phraseHtml = `<span style="color:var(--text-dim)">${before}</span><span style="color:var(--text); font-weight:500;">${highlight}</span><span style="color:var(--text-dim)">${after}</span>`;
-  } else {
-    phraseHtml = `<span style="color:var(--text);">${fullPhrase}</span>`;
-  }
-  document.getElementById('buildupFullPhrase').innerHTML = phraseHtml;
-
-  // Reset chunk card
-  document.getElementById('buildupCircle').classList.remove('playing');
-  document.getElementById('buildupPlayHint').textContent = 'Tap to hear';
-  document.getElementById('buildupChunkCard').style.display = 'none';
-  document.getElementById('buildupNextBtn').classList.add('hidden');
-  document.getElementById('buildupChunkText').textContent = chunk.text;
-  document.getElementById('buildupChunkHint').textContent = chunk.hint;
-
-  // Auto-play
-  setTimeout(() => playBuildupChunkAudio(chunk.text), 400);
-}
-
-function playBuildupChunk() {
-  const chunk = PHRASE_BUILDUPS[_buildupPhrase.native][state.session.buildupStep];
-  playBuildupChunkAudio(chunk.text);
-}
-
-function playBuildupChunkAudio(text) {
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  window.speechSynthesis?.cancel();
-
-  const circle = document.getElementById('buildupCircle');
-  const setPlay = () => circle.classList.add('playing');
-  const setStop = () => {
-    circle.classList.remove('playing');
-    document.getElementById('buildupPlayHint').textContent = 'Tap to hear again';
-    document.getElementById('buildupChunkCard').style.display = 'block';
-    document.getElementById('buildupNextBtn').classList.remove('hidden');
-  };
-
-  const _a1 = getAudio(text);
-  if (_a1) {
-    const audio = new Audio(_a1);
-    audio.playbackRate = 1.0;
-    currentAudio = audio;
-    setPlay();
-    audio.onended = () => { currentAudio = null; setStop(); };
-    audio.onerror = () => { currentAudio = null; buildupTTS(text, setPlay, setStop); };
-    audio.play().catch(() => buildupTTS(text, setPlay, setStop));
-  } else {
-    buildupTTS(text, setPlay, setStop);
-  }
-}
-
-function buildupTTS(text, setPlay, setStop) {
-  if (!window.speechSynthesis) return;
-  const lang = _buildupPhrase ? (LANG_CODES[_buildupPhrase.lang] || 'fr-FR') : 'fr-FR';
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = lang;
-  u.rate = 1.0;
-  const voices = speechSynthesis.getVoices();
-  const v = voices.find(v => v.lang === lang) || voices.find(v => v.lang.startsWith(lang.slice(0, 2)));
-  if (v) u.voice = v;
-  setPlay();
-  u.onend = setStop;
-  speechSynthesis.speak(u);
-}
-
-function nextBuildupStep() {
-  const buildup = PHRASE_BUILDUPS[_buildupPhrase.native];
-  state.session.buildupStep++;
-
-  if (state.session.buildupStep >= buildup.length) {
-    // Buildup complete — show phrase reveal card before continuing
-    const phrase = _buildupPhrase;
-    if (phrase.tier === 'Recovery') state.session._completedRecovery = true;
-    bumpScore(phrase.id, 1);
-    state.session.inBuildup = false;
-    _buildupPhrase = null;
-    showPhraseRevealScreen(phrase);
-  } else {
-    renderBuildupStep();
-  }
-}
 // ═══════════════════════════════════════════════════════════════════
 // SCREENS
 // ═══════════════════════════════════════════════════════════════════
@@ -37131,9 +36947,9 @@ function buildPhraseTouches(phrase) {
     && !(state.seenBuildupIntro && state.seenBuildupIntro[phrase.id])
     && !_buildupFiredThisSession;
 
-  // Recovery phrase: buildup runs on first encounter via checkAndStartBuildup
-  // (the legacy hardcoded path) unless the new buildupChunks pipeline already
-  // handles it, in which case we prepend buildup_sequence here instead.
+  // Recovery phrase: when first encountered (score 0), prepend the
+  // buildup_sequence touch so the chunk pipeline introduces the phrase
+  // piece by piece before the listen_meaning scoring touch fires.
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
     const base = score === 0 ? ['listen_meaning'] : ['self_assess'];
@@ -38405,35 +38221,6 @@ const FRAME_NOTES = {
   "Ça, s'il vous plaît": "Point at anything and this phrase works. The gesture does the rest.",
 };
 
-const PHRASE_BUILDUPS = {
-  'Désolé, mon français est très limité — parlez-vous anglais?': [
-    {
-      text: 'anglais?',
-      highlight: 'anglais?',
-      hint: 'Just this one word — the anchor.',
-    },
-    {
-      text: 'parlez-vous anglais?',
-      highlight: 'parlez-vous anglais?',
-      hint: 'Do you speak English? The whole question.',
-    },
-    {
-      text: 'très limité',
-      highlight: 'très limité',
-      hint: 'Very limited — how you describe your French.',
-    },
-    {
-      text: 'mon français est très limité',
-      highlight: 'mon français est très limité',
-      hint: 'My French is very limited.',
-    },
-    {
-      text: 'Désolé, mon français est très limité — parlez-vous anglais?',
-      highlight: null,
-      hint: "The complete phrase. You've already said every part of it.",
-    },
-  ],
-};
 // ── LISTEN / LEARN ───────────────────────────────────────────────
 
 let audioEndedCallback = null;
@@ -38442,12 +38229,6 @@ function onAudioEnded() {
 }
 
 function renderListenPanel(phrase, type, forcedSubType) {
-  // Legacy hardcoded buildup (PHRASE_BUILDUPS). The new buildupChunks
-  // pipeline runs as its own queue item before this exercise, so the
-  // legacy path is bypassed for any phrase that has buildupChunks.
-  const newBuildupHandled = phrase && phrase.buildupChunks && phrase.buildupChunks.length > 0;
-  if (type === 'listen' && !newBuildupHandled && checkAndStartBuildup(phrase)) return;
-
   // First-time gate: repeat coach mark fires the first time a previously-seen
   // phrase comes back in a session. Full-screen interstitial so audio doesn't
   // start playing behind it.
@@ -39908,19 +39689,10 @@ function onTierUnlockCard(card) {
 }
 
 function onTierUnlockContinue() {
-  const type = state.session._pendingUnlockType;
-  if (type === 'recovery') {
-    // Start the buildup sequence for the recovery phrase
-    const recovery = PHRASES.find(p => p.tier === 'Recovery');
-    if (recovery && PHRASE_BUILDUPS[recovery.native]) {
-      _buildupPhrase = recovery;
-      state.session.buildupStep = 0;
-      state.session.inBuildup = true;
-      document.getElementById('buildupTargetPhrase').textContent = displayNative(recovery, 'card');
-      showScreen('screenBuildupIntro');
-      return;
-    }
-  }
+  // Recovery's buildup is no longer kicked off from this screen — the
+  // phrase enters the next session through the normal pipeline and its
+  // buildupChunks are queued ahead of the listen_meaning touch on first
+  // encounter. The unlock screen just hands control back to the session.
   advanceSession();
 }
 
