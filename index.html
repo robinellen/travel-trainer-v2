@@ -2072,8 +2072,9 @@ body {
       <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-bottom:0.4rem;">EXERCISE PROGRESSION BY SCORE</div>
       <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 0</span> listen_meaning_scaffolded <span style="color:var(--text-mid);">(text visible, 4 English options; vocab card chains)</span></div>
       <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_meaning_scaffolded, self_assess <span style="color:var(--text-mid);">(text still visible)</span></div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> listen_meaning_audio_only, self_assess <span style="color:var(--text-mid);">(text hidden; + anticipation bonus)</span></div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 3+</span> 35% meaning_assembly+self_assess · 30% timed_recognition+self_assess · 35% self_assess only</div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> listen_meaning_audio_only, self_assess <span style="color:var(--text-mid);">(text hidden; T1/T2: 30% +timed_recognition; + anticipation bonus)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 3+</span> 35% meaning_assembly+self_assess · 30% timed_recognition+self_assess (tier-gated) · 35% self_assess only</div>
+      <div><span style="color:var(--text-mid);">Bonus</span> scenario_response fires at score 1+ (Stage 2+, situationText &gt; 4 chars); anticipation fires at score 2+</div>
     </div>
 
     <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-top:0.25rem;">SHORTCUTS</div>
@@ -37063,26 +37064,43 @@ function buildPhraseTouches(phrase) {
   } else if (score === 2) {
     // Now audio-only: text hidden, learner must recognise the phrase by
     // ear. On wrong answer the native text is revealed alongside the
-    // correct option.
-    touches = ['listen_meaning_audio_only', 'self_assess'];
+    // correct option. For T1/T2 phrases at score 2 (the timed threshold
+    // for those tiers), a 30% chance of adding a timed_recognition
+    // check before self_assess as an early comprehension pressure test.
+    const _tier = parseInt(phrase.tier || '1', 10);
+    if (_tier <= 2 && Math.random() < 0.3) {
+      touches = ['listen_meaning_audio_only', 'timed_recognition', 'self_assess'];
+    } else {
+      touches = ['listen_meaning_audio_only', 'self_assess'];
+    }
   } else {
     // Score 3+: mix of assembly, timed recognition, and pure self-assess.
-    // All three appear across sessions; not necessarily in the same one.
+    // Timed threshold rises with tier: T1/T2 already qualify at score 2
+    // (handled above); T3 needs score 3; T4+ needs score 4. The
+    // eligibility check gates the 30% timed slot — falls through to a
+    // pure self_assess when the phrase hasn't earned the pressure test.
+    const _tierNum = parseInt(phrase.tier || '1', 10);
+    const timedThreshold = _tierNum >= 4 ? 4 : _tierNum >= 3 ? 3 : 2;
+    const timedEligible = score >= timedThreshold;
     const roll = Math.random();
     if (roll < 0.35) {
       touches = ['meaning_assembly', 'self_assess'];
-    } else if (roll < 0.65) {
+    } else if (roll < 0.65 && timedEligible) {
       touches = ['timed_recognition', 'self_assess'];
     } else {
       touches = ['self_assess'];
     }
   }
-  // Scenario response — bonus touch for phrases with a situation goal once
-  // the learner has reached Stage 2+ and score 2+. Appended after the
-  // core touches; it does NOT take _isFinal (the queue builder marks the
-  // last CORE touch instead, see BONUS_TYPES below).
+  // Scenario response — bonus touch for phrases with a real situation
+  // goal once the learner has reached Stage 2+ and score 1+. The
+  // situationText.length > 4 guard skips single-word phrases (numbers,
+  // modifiers) that either have no situationText or a stub too short
+  // to prompt a meaningful scenario answer. Bonus, so it does NOT take
+  // _isFinal (the queue builder marks the last CORE touch instead —
+  // see BONUS_TYPES below).
   const _stage = (typeof getCurrentSubstage === 'function') ? getCurrentSubstage().stage : 1;
-  if (phrase.situationText && score >= 2 && _stage >= 2) {
+  const _situText = phrase.situationText || '';
+  if (_situText.length > 4 && score >= 1 && _stage >= 2) {
     touches = [...touches, 'scenario_response'];
   }
   // Stage 1 quickies — only at score ≥ 1 (audio_match needs prior exposure),
