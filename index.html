@@ -2056,8 +2056,8 @@ body {
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55; margin-top:0.5rem;">
       <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-bottom:0.4rem;">EXERCISE PROGRESSION BY SCORE</div>
       <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 0</span> listen_meaning_scaffolded <span style="color:var(--text-mid);">(text visible, 4 English options; vocab card chains)</span></div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_meaning_audio_only, self_assess</div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> listen_meaning_audio_only, self_assess <span style="color:var(--text-mid);">(+ anticipation bonus)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_meaning_scaffolded, self_assess <span style="color:var(--text-mid);">(text still visible)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> listen_meaning_audio_only, self_assess <span style="color:var(--text-mid);">(text hidden; + anticipation bonus)</span></div>
       <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 3+</span> 35% meaning_assembly+self_assess · 30% timed_recognition+self_assess · 35% self_assess only</div>
     </div>
 
@@ -36303,7 +36303,6 @@ function loadState() {
       state.seenTierUnlock = parsed.seenTierUnlock || {};
       state.sessionLength = parsed.sessionLength || 'long';
     }
-    console.log('[state] loaded scores:', Object.keys(state.scores).length, 'phrases');
   } catch(e) { console.warn('Failed to load state:', e); }
 }
 
@@ -36318,7 +36317,6 @@ function saveState() {
       seenTierUnlock: state.seenTierUnlock,
       sessionLength: state.sessionLength,
     }));
-    console.log('[state] saved scores:', Object.keys(state.scores).length, 'phrases');
   } catch(e) { console.warn('Failed to save state:', e); }
 }
 
@@ -37033,18 +37031,24 @@ function buildPhraseTouches(phrase) {
 
   // Recognition progression per LLR "Comprehension at Every Stage":
   // options are ALWAYS English at every score. What changes is the
-  // question — foreign text visible (score 0), audio only (score 1-2),
-  // audio only + timer OR assembly (score 3+). The old
-  // listen_pick_french exercise tested phonetic matching for Latin-
-  // alphabet learners — it was removed.
+  // question — foreign text visible (score 0-1), audio only (score 2),
+  // assembly / timed / production (score 3+). The old listen_pick_french
+  // exercise tested phonetic matching for Latin-alphabet learners — it
+  // was removed.
   let touches;
   if (score === 0) {
     // Full scaffolding: audio + native text visible + emoji + 4 English options.
     touches = ['listen_meaning_scaffolded'];
-  } else if (score === 1 || score === 2) {
-    // Remove scaffolding: audio only, native text HIDDEN, same 4 English
-    // options. self_assess is the scored gate; listen exercise is core
-    // but self_assess is later so it gets _isFinal via BONUS_TYPES logic.
+  } else if (score === 1) {
+    // Still scaffolded — the learner has only seen the phrase once and
+    // needs the text to consolidate. self_assess is the production gate
+    // that advances to score 2. Listen touch is core but self_assess is
+    // later so it takes _isFinal via BONUS_TYPES logic.
+    touches = ['listen_meaning_scaffolded', 'self_assess'];
+  } else if (score === 2) {
+    // Now audio-only: text hidden, learner must recognise the phrase by
+    // ear. On wrong answer the native text is revealed alongside the
+    // correct option.
     touches = ['listen_meaning_audio_only', 'self_assess'];
   } else {
     // Score 3+: mix of assembly, timed recognition, and pure self-assess.
@@ -37624,7 +37628,6 @@ function bumpIfFinal(phraseId, _ignoredTo, correct = true) {
   if (!item._isFinal && !item._isRetry) return;
   const newScore = (getScore(phraseId) || 0) + 1;
   bumpScore(phraseId, newScore, true);
-  console.log('[score] bumped', phraseId, 'to', getScore(phraseId), '_isFinal:', item._isFinal, '_isRetry:', item._isRetry);
 }
 
 // Resurface a failed exercise once per phrase per session, 2+ positions later.
