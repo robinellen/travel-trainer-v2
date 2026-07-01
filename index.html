@@ -37529,6 +37529,34 @@ function startSessionWithMode(mode) {
       });
     }
 
+    // Stage 2+ recognition injection: without this, the S2-A → S2-B gate
+    // (getCurrentSubstage requires getRecognitionScore(intent) >= 1 for
+    // six intents) can only clear via Trip Prep Recognition mode.
+    // Learners who only use the Learn tab would stall in S2-A forever.
+    // Inject one trigger-phrase recognition per lesson session at ~40%
+    // of the queue, drawn preferentially from the unscored required
+    // intents so the gate actually closes.
+    {
+      const _stg = getCurrentSubstage().stage;
+      if (_stg >= 2 && !_tripPrepActive) {
+        const recogPool = (typeof getRecognitionPool === 'function') ? getRecognitionPool() : [];
+        const REQUIRED_S2A_INTENTS = ['Order Taking', 'Greeting', 'Reservation Check', 'Party Size', 'Follow Me', 'Water Preference'];
+        const unscoredRequired = REQUIRED_S2A_INTENTS.filter(i => getRecognitionScore(i) < 1);
+        let candidates = recogPool.filter(t => unscoredRequired.includes(t.intent));
+        // All required intents scored — fall back to any eligible trigger
+        // so recognition stays in the mix through S2-B / S2-C.
+        if (!candidates.length) candidates = recogPool;
+        // Skip if the Composting Reminder was already unshifted this
+        // session — one recognition per session is enough friction.
+        const alreadyHasRecognition = queue.some(it => it.type === 'recognition');
+        if (candidates.length && !alreadyHasRecognition) {
+          const trigger = candidates[Math.floor(Math.random() * candidates.length)];
+          const insertAt = Math.max(1, Math.floor(queue.length * 0.4));
+          queue.splice(insertAt, 0, { type: 'recognition', triggerId: trigger.id });
+        }
+      }
+    }
+
     // Audio Matching: one exercise per session draws its own 5-phrase pool,
     // so dedupe any per-phrase 'audio_match' touches down to a single item
     // and reposition to ~60% of the queue (round-robin tail-draining would
