@@ -36934,7 +36934,7 @@ let _anticipationCapThisSession = 0;
 // long-phrase repeating fires count toward this cap. Reset in
 // startSessionWithMode().
 let _meaningAssemblyCountThisSession = 0;
-const MEANING_ASSEMBLY_CAP = 2;
+const MEANING_ASSEMBLY_CAP = 4;
 
 // Buildup expansion is disabled — see buildPhraseTouches for the flag-
 // set no-op that replaces the firing logic. Function kept as a no-op
@@ -37057,14 +37057,14 @@ function buildPhraseTouches(phrase) {
     touches = [...touches, 'emoji_exercise'];
   }
   // Meaning Assembly — fires at score 2+ from Stage 1 onward. Long
-  // phrases (3+ words) repeat every session: re-assembling
-  // "L'addition, s'il vous plaît" is genuinely useful production
-  // practice. Short phrases (1-2 words) fire once then retire via
-  // seenMeaningAssembly[id] — there's nothing to assemble for "oui"
-  // or "merci". Per-session cap prevents long-phrase eligibility from
-  // flooding the queue.
+  // Multi-word phrases (2+ words) repeat every session: re-assembling
+  // "Guten Abend", "merci beaucoup", "L'addition s'il vous plaît" is
+  // genuinely useful production practice. Single-word phrases retire
+  // after one fire via seenMeaningAssembly[id] — plus the renderer
+  // itself skips answers under 2 tokens. Per-session cap prevents
+  // long-phrase eligibility from flooding the queue.
   const wordCount = (phrase.native || '').trim().split(/\s+/).filter(Boolean).length;
-  const isLongPhrase = wordCount >= 3;
+  const isLongPhrase = wordCount >= 2;
   const alreadySeenAssembly = !!(state.seenMeaningAssembly && state.seenMeaningAssembly[phrase.id]);
   const assemblyEligible = _stage >= 1
     && score >= 2
@@ -39028,7 +39028,10 @@ function renderMeaningAssemblyPanel(phrase) {
 
   // Pool: answer words + ~answer.length distractors (capped at 3 so the
   // bank stays surveyable at 6-7 chips per spec).
-  const distractorTarget = Math.min(3, Math.max(1, Math.floor(answer.length * 0.5)));
+  // Pool sizing per LLR spec: distractors ≈ answer length so the total
+  // chip count is roughly 2× the answer (answer words + equal distractors).
+  // Capped at answer.length + 2 so very long phrases don't get 10+ chips.
+  const distractorTarget = Math.min(answer.length + 2, Math.max(2, answer.length));
   const distractors = getMeaningAssemblyDistractors(phrase, answer, distractorTarget);
   // Stable shuffle seeded by phrase id length so a refresh = same layout.
   const seed = (phrase.id || '').split('').reduce((s, c) => s + c.charCodeAt(0), 0) || 7;
