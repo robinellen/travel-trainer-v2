@@ -36183,14 +36183,32 @@ function checkWaveTriggers() {
   }
 }
 
+// Numbers 5-10 (6 phrases per language × 3 languages) are all the same
+// tier and context — they compete equally for session slots and can flood
+// a session with digits. Gated behind a preference toggle so learners
+// opt in explicitly. Numbers 1-4 stay in the regular rotation. Meanings
+// are unique across the phrase pool, so meaning-string matching is safe.
+const NUMBER_WORDS_5_10 = new Set(['five','six','seven','eight','nine','ten']);
+
 function getActivePhrases() {
-  // Trip Prep override: bypass all gates and serve the explicit pool directly.
+  // Trip Prep override: bypass all gates and serve the explicit pool
+  // directly — Trip Prep is opt-in context, so numbers 5-10 should
+  // still be available regardless of the preference toggle.
   if (_tripPrepPool) return _tripPrepPool;
   const lang = langToCode(localStorage.getItem('tt_language') || 'French');
   const prefGateSeen = !!localStorage.getItem('tt_prefGateSeen');
+  const numberDrillsOn = !!localStorage.getItem('tt_prefNumberDrills');
   return PHRASES.filter(p => {
     if (p.lang !== lang) return false;
     if (!(p.meaning || (p.meanings && p.meanings.length)) || !getAudio(p)) return false;
+
+    // Numbers 5-10 gated behind tt_prefNumberDrills. The meaning strings
+    // "five" through "ten" only appear on the numeral phrases — no false
+    // positives against verb "ten" (Dutch) or "sein" (German) etc.
+    if (!numberDrillsOn) {
+      const _mLow = (getMeaning(p) || '').toLowerCase().trim();
+      if (NUMBER_WORDS_5_10.has(_mLow)) return false;
+    }
 
     // Substage-tagged phrases are part of the curated progression path
     // (S1-A / S1-B / S2-A/B/C / S3+ / S4+ / S5). They bypass the tier/wave
@@ -40986,6 +41004,19 @@ function renderSettingsTab() {
   container.appendChild(makeRow('Trip date', tripDisplay, () => showScreen('screenTripDate')));
   container.appendChild(makeRow('Language', 'French', null));
   container.appendChild(makeRow('Destination', 'France', null));
+
+  // Number drills (5-10): opt-in. Adds the number phrases 5, 6, 7, 8, 9, 10
+  // to the active pool. Without this, only 1-4 appear in the regular
+  // rotation so they don't crowd out other Tier-2 content.
+  const numberDrillsOn = !!localStorage.getItem('tt_prefNumberDrills');
+  container.appendChild(makeRow('Number drills (5–10)', numberDrillsOn ? 'On' : 'Off', () => {
+    if (localStorage.getItem('tt_prefNumberDrills')) {
+      localStorage.removeItem('tt_prefNumberDrills');
+    } else {
+      localStorage.setItem('tt_prefNumberDrills', 'true');
+    }
+    renderSettingsTab();
+  }));
 }
 
 function selectLanguage(code) {
