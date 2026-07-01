@@ -36936,14 +36936,15 @@ let _anticipationCapThisSession = 0;
 let _meaningAssemblyCountThisSession = 0;
 const MEANING_ASSEMBLY_CAP = 2;
 
-// Expand each buildup_sequence queue item into N buildup_chunk items —
-// one per scaffold chunk, each a learner-paced step (audio plays,
-// learner can replay, then taps Continue). The final chunk carries
-// _isLastChunk so its renderer plays the full phrase + sets
-// seenBuildupIntro before advancing. Must run AFTER any anti-clustering
-// pass — the chunks all share phraseId and must stay consecutive + in
-// order. Mutates the queue in place.
-function expandBuildupSequenceItems(queue) {
+// Buildup expansion is disabled — see buildPhraseTouches for the flag-
+// set no-op that replaces the firing logic. Function kept as a no-op
+// so any stale buildup_sequence items persisted in mid-session queues
+// (from before this deploy) are ignored cleanly. Restoring buildup is
+// a matter of reinstating the original body below.
+function expandBuildupSequenceItems(_queue) {
+  return;
+  /* eslint-disable */
+  const queue = _queue;
   for (let i = queue.length - 1; i >= 0; i--) {
     if (queue[i].type !== 'buildup_sequence') continue;
     const phrase = PHRASES.find(p => p.id === queue[i].phraseId);
@@ -36993,26 +36994,21 @@ function buildPhraseTouches(phrase) {
   // The vocab card transition screen is chained as a follow-up of the
   // listen_meaning_scaffolded touch on first encounter, not a queue item.
 
-  // Backward-chaining buildup: prepend a buildup_sequence touch if the
-  // phrase has buildupChunks and the learner has not seen them yet. This
-  // fires once per phrase per learner (seenBuildupIntro persists in state)
-  // AND at most once per session (_buildupFiredThisSession).
-  const needsBuildup = phrase.hasBuildup
-    && phrase.buildupChunks && phrase.buildupChunks.length > 0
-    && !(state.seenBuildupIntro && state.seenBuildupIntro[phrase.id])
-    && !_buildupFiredThisSession;
+  // Buildup sequences are disabled — phrases with hasBuildup are now
+  // introduced through the normal listen_meaning_scaffolded / self_assess
+  // ladder like anything else. Mark seenBuildupIntro immediately so if
+  // buildup is re-enabled later, already-introduced phrases don't get
+  // the chunk sequence retroactively. Panel + renderer + chunk data
+  // stay intact so this is a one-line uncomment to restore.
+  if (phrase.hasBuildup && !(state.seenBuildupIntro && state.seenBuildupIntro[phrase.id])) {
+    if (!state.seenBuildupIntro) state.seenBuildupIntro = {};
+    state.seenBuildupIntro[phrase.id] = true;
+  }
 
-  // Recovery phrase: when first encountered (score 0), prepend the
-  // buildup_sequence touch so the chunk pipeline introduces the phrase
-  // piece by piece before the listen_meaning scoring touch fires.
+  // Recovery phrase: same core ladder, no buildup prefix.
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
-    const base = score === 0 ? ['listen_meaning_scaffolded'] : ['self_assess'];
-    if (needsBuildup) {
-      _buildupFiredThisSession = true;
-      return ['buildup_sequence', ...base];
-    }
-    return base;
+    return score === 0 ? ['listen_meaning_scaffolded'] : ['self_assess'];
   }
 
   const score = getScore(phrase.id);
@@ -37099,12 +37095,7 @@ function buildPhraseTouches(phrase) {
     _anticipationCountThisSession++;
     touches = ['anticipation', ...touches];
   }
-  const head = [];
-  if (needsBuildup) {
-    _buildupFiredThisSession = true;
-    head.push('buildup_sequence');
-  }
-  return [...head, ...touches];
+  return touches;
 }
 
 function startLesson() {
@@ -38217,8 +38208,12 @@ function renderCurrentExercise() {
   const type = item.type;
 
   // Route to correct panel
-  if (type === 'buildup_chunk') {
-    if (phrase) renderBuildupChunkPanel(phrase, item.chunkIndex || 0, !!item._isLastChunk);
+  if (type === 'buildup_sequence' || type === 'buildup_chunk') {
+    // Buildup is disabled — skip any stale items persisted in mid-session
+    // queues from before this deploy. Panel + renderer stay intact so
+    // re-enabling is a one-line change in buildPhraseTouches.
+    nextExercise();
+    return;
   }
   else if (type === 'vocab_card') {
     if (phrase) showPhraseRevealScreen(phrase);
@@ -42990,18 +42985,14 @@ function startTripPrepSpeaking() {
   state.session._resurfaced = {};
   state.session._startScores = {};
   state.session._sessionPhrases = phrases.map(p => p.id);
-  // Prepend buildup_sequence items for phrases the learner hasn't
-  // scaffolded yet. expandBuildupSequenceItems() explodes each into
-  // N learner-paced buildup_chunk steps below.
-  state.session.queue = phrases.flatMap(p => {
-    const needsBuildup = p.hasBuildup
-      && p.buildupChunks && p.buildupChunks.length > 0
-      && !(state.seenBuildupIntro && state.seenBuildupIntro[p.id]);
-    const speak = { phraseId: p.id, type: 'self_assess', _isFinal: true };
-    return needsBuildup
-      ? [{ phraseId: p.id, type: 'buildup_sequence' }, speak]
-      : [speak];
-  });
+  // Buildup disabled: every phrase gets a plain self_assess touch.
+  // Re-enabling the buildup prefix is a one-line change here plus the
+  // no-op guard in buildPhraseTouches.
+  state.session.queue = phrases.map(p => ({
+    phraseId: p.id,
+    type: 'self_assess',
+    _isFinal: true,
+  }));
   expandBuildupSequenceItems(state.session.queue);
 
   showScreen('screenExercise');
