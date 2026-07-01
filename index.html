@@ -1690,6 +1690,14 @@ body {
     </div>
 
     <div id="panelRecognition" class="hidden exercise-canvas">
+      <!-- Scene prompt: situational context shown immediately on render,
+           before the learner taps play. Recognising context is the core
+           listening skill — you don't need every word if you know the
+           situation. Hidden if the trigger has no scenePrompt. -->
+      <div id="recogScenePrompt"
+        style="font:400 14px/1.45 Inter; color:var(--text-dim); text-align:center;
+               max-width:280px; margin:0 auto 1rem; font-style:italic; display:none;">
+      </div>
       <!-- Play block: fixed 160px slot, 76px button centered inside. -->
       <div class="play-block-slot">
         <button class="play-circle-v2" id="recogCircle" onclick="replayRecognitionAudio()" aria-label="Play audio">
@@ -1839,6 +1847,13 @@ body {
     <div style="flex:1; font-size:17px; color:var(--text); padding-left:0.5rem;">Recognition</div>
   </div>
   <div class="p-screen exercise-canvas">
+    <!-- Scene prompt: shown immediately before the learner taps play so
+         the situational context primes recognition. Same treatment as
+         the in-session panel. Hidden when the trigger has no scenePrompt. -->
+    <div id="recogStdScenePrompt"
+      style="font:400 14px/1.45 Inter; color:var(--text-dim); text-align:center;
+             max-width:280px; margin:0 auto 1rem; font-style:italic; display:none;">
+    </div>
     <div class="play-block-slot">
       <button class="play-circle-v2" id="recogStdCircle" onclick="replayRecognitionStdAudio()" aria-label="Play audio">
         <span class="pulse-overlay"></span>
@@ -37857,6 +37872,19 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       anchorEl.style.display = '';
     } else {
       anchorEl.style.display = 'none';
+    }
+  }
+
+  // Scene prompt: the situational framing ("You asked about a dish. The
+  // server is explaining what's in it.") shown BEFORE the learner taps
+  // play. Priming with context is the core listening skill.
+  const sceneEl = document.getElementById(prefix + 'ScenePrompt');
+  if (sceneEl) {
+    if (trigger.scenePrompt) {
+      sceneEl.textContent = trigger.scenePrompt;
+      sceneEl.style.display = '';
+    } else {
+      sceneEl.style.display = 'none';
     }
   }
 
