@@ -1464,6 +1464,10 @@ body {
 
 
     <!-- ── LISTEN / LEARN panel ── -->
+    <!-- Serves three exercise types:
+         listen_meaning_scaffolded  (score 0)   — audio + native text + emoji + 4 English options
+         listen_meaning_audio_only  (score 1-2) — audio only + 4 English options; native text revealed on wrong answer
+         timed_recognition          (score 3+)  — audio_only + 8s countdown; timeout = incorrect -->
     <div id="panelListen" class="hidden exercise-canvas">
       <div class="play-block-slot">
         <button class="play-circle-v2" id="listenCircle" onclick="playCurrentAudio()" aria-label="Play audio">
@@ -1475,6 +1479,14 @@ body {
       <div class="prompt-block fade-target delay-80">
         <div id="listenPromptLabel" style="font-family:system-ui,-apple-system,sans-serif; font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:var(--text-faint); font-weight:600;"></div>
         <div class="prompt-emoji-hint" id="listenEmoji" style="display:none;"></div>
+        <!-- Foreign phrase text — visible for listen_meaning_scaffolded,
+             hidden for audio_only / timed_recognition (revealed on wrong). -->
+        <div class="prompt-italic" id="listenNativeText" style="font-size:24px; display:none; margin-top:6px;"></div>
+      </div>
+      <!-- Countdown bar for timed_recognition (hidden otherwise). Reuses
+           the anticipation-timer-bar CSS. -->
+      <div id="listenTimerBar" class="anticipation-timer-bar" style="display:none; max-width:340px;">
+        <div class="anticipation-timer-fill" id="listenTimerFill"></div>
       </div>
       <div class="answer-choices fade-target delay-160" id="listenOptions"></div>
       <div class="exercise-spacer"></div>
@@ -2043,11 +2055,10 @@ body {
 
     <div style="background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.75rem 0.9rem; font-size:13px; color:var(--text-dim); line-height:1.55; margin-top:0.5rem;">
       <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-bottom:0.4rem;">EXERCISE PROGRESSION BY SCORE</div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 0</span> listen_pick_english (vocab card chains as follow-up)</div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_pick_french, self_assess</div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> listen_pick_french, self_assess <span style="color:var(--text-mid);">(+ anticipation bonus)</span></div>
-      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 3</span> self_assess <span style="color:var(--text-mid);">(30% chance listen_pick_french warm-up)</span></div>
-      <div><span style="color:var(--text);">Score 4+</span> self_assess <span style="color:var(--text-mid);">(15% chance listen_pick_french warm-up)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 0</span> listen_meaning_scaffolded <span style="color:var(--text-mid);">(text visible, 4 English options; vocab card chains)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 1</span> listen_meaning_audio_only, self_assess</div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 2</span> listen_meaning_audio_only, self_assess <span style="color:var(--text-mid);">(+ anticipation bonus)</span></div>
+      <div style="margin-bottom:0.35rem;"><span style="color:var(--text);">Score 3+</span> 35% meaning_assembly+self_assess · 30% timed_recognition+self_assess · 35% self_assess only</div>
     </div>
 
     <div style="font-size:11px; letter-spacing:0.12em; color:var(--text-mid); margin-top:0.25rem;">SHORTCUTS</div>
@@ -36950,31 +36961,37 @@ function expandBuildupSequenceItems(queue) {
 }
 
 // Exercises that are appended as bonus practice on top of the core
-// (listen_meaning / listen_pick_french / self_assess) learning path.
-// They must NEVER take _isFinal away from the last core touch: if a
-// bonus exercise skips silently (pool too small, gate not met, etc.)
-// the phrase would never score and would stay stuck. The queue builder
-// uses this list to mark _isFinal on the last NON-bonus touch instead
-// of the absolute last touch in the per-phrase sequence.
+// (listen_meaning_scaffolded / listen_meaning_audio_only / self_assess)
+// learning path. They must NEVER take _isFinal away from the last core
+// touch: if a bonus exercise skips silently (pool too small, gate not
+// met, etc.) the phrase would never score and would stay stuck. The
+// queue builder uses this list to mark _isFinal on the last NON-bonus
+// touch instead of the absolute last touch in the per-phrase sequence.
+//
+// timed_recognition is BONUS at score 3+: the spec places self_assess
+// as the scored gate in ['timed_recognition', 'self_assess'], so
+// timed_recognition must not take _isFinal.
 const BONUS_TYPES = [
   'emoji_exercise',
   'audio_match',
   'scenario_response',
   'meaning_assembly',
+  'timed_recognition',
   'anticipation',
   'buildup_sequence',
   'buildup_chunk',
 ];
 
 function buildPhraseTouches(phrase) {
-  // Core exercise types that fire from this builder:
-  //   listen_meaning      (Listen and Pick - English)
-  //   listen_pick_french  (Listen and Pick - French, bridge to production)
-  //   self_assess         (read the meaning, say it out loud, tap to reveal
-  //                        + judge yourself — replaces all old speak_* mic
-  //                        exercises; no microphone, no speech recognition)
+  // Core exercise types that fire from this builder (see LLR "Recognition
+  // Progression — Comprehension at Every Stage"):
+  //   listen_meaning_scaffolded  audio + native text + emoji + 4 English options (score 0)
+  //   listen_meaning_audio_only  audio only, native hidden + 4 English options (score 1-2)
+  //   timed_recognition          audio_only + 8s countdown (score 3+, bonus)
+  //   meaning_assembly           build the English meaning from word bank (score 3+, bonus)
+  //   self_assess                read meaning, say aloud, tap to reveal, judge yourself
   // The vocab card transition screen is chained as a follow-up of the
-  // listen_meaning touch on first encounter, not a separate queue item.
+  // listen_meaning_scaffolded touch on first encounter, not a queue item.
 
   // Backward-chaining buildup: prepend a buildup_sequence touch if the
   // phrase has buildupChunks and the learner has not seen them yet. This
@@ -36990,7 +37007,7 @@ function buildPhraseTouches(phrase) {
   // piece by piece before the listen_meaning scoring touch fires.
   if (phrase.tier === 'Recovery') {
     const score = getScore(phrase.id);
-    const base = score === 0 ? ['listen_meaning'] : ['self_assess'];
+    const base = score === 0 ? ['listen_meaning_scaffolded'] : ['self_assess'];
     if (needsBuildup) {
       _buildupFiredThisSession = true;
       return ['buildup_sequence', ...base];
@@ -37000,29 +37017,32 @@ function buildPhraseTouches(phrase) {
 
   const score = getScore(phrase.id);
 
-  // Touch sequences scale DOWN as score increases: introduction is heavy,
-  // maintenance is light. Score 2 is the peak (single production challenge
-  // after a warm-up + the anticipation bonus); score 3+ drops to a single
-  // self_assess with an occasional listen warm-up to keep the retrieval
-  // path fresh without grinding the phrase.
+  // Recognition progression per LLR "Comprehension at Every Stage":
+  // options are ALWAYS English at every score. What changes is the
+  // question — foreign text visible (score 0), audio only (score 1-2),
+  // audio only + timer OR assembly (score 3+). The old
+  // listen_pick_french exercise tested phonetic matching for Latin-
+  // alphabet learners — it was removed.
   let touches;
-  // Score 0: introduction — listen + pick meaning (vocab card chains after).
-  if (score === 0) touches = ['listen_meaning'];
-  // Score 1: consolidation — pick the French phrase, then self-assess.
-  // listen_meaning is intentionally absent (same exercise as score 0).
-  else if (score === 1) touches = ['listen_pick_french', 'self_assess'];
-  // Score 2: production building — listen warm-up + one self-assess.
-  // Anticipation fires here as the "graduation" bonus (gated separately).
-  else if (score === 2) touches = ['listen_pick_french', 'self_assess'];
-  // Score 3: maintenance — one self-assess, occasional listen warm-up.
-  else if (score === 3) {
-    const warmUp = Math.random() < 0.3;
-    touches = warmUp ? ['listen_pick_french', 'self_assess'] : ['self_assess'];
+  if (score === 0) {
+    // Full scaffolding: audio + native text visible + emoji + 4 English options.
+    touches = ['listen_meaning_scaffolded'];
+  } else if (score === 1 || score === 2) {
+    // Remove scaffolding: audio only, native text HIDDEN, same 4 English
+    // options. self_assess is the scored gate; listen exercise is core
+    // but self_assess is later so it gets _isFinal via BONUS_TYPES logic.
+    touches = ['listen_meaning_audio_only', 'self_assess'];
   } else {
-    // Score 4+: light retention check — phrase is known; single self-assess
-    // with a rare listen warm-up just to keep it fresh.
-    const warmUp = Math.random() < 0.15;
-    touches = warmUp ? ['listen_pick_french', 'self_assess'] : ['self_assess'];
+    // Score 3+: mix of assembly, timed recognition, and pure self-assess.
+    // All three appear across sessions; not necessarily in the same one.
+    const roll = Math.random();
+    if (roll < 0.35) {
+      touches = ['meaning_assembly', 'self_assess'];
+    } else if (roll < 0.65) {
+      touches = ['timed_recognition', 'self_assess'];
+    } else {
+      touches = ['self_assess'];
+    }
   }
   // Scenario response — bonus touch for phrases with a situation goal once
   // the learner has reached Stage 2+ and score 2+. Appended after the
@@ -37053,7 +37073,10 @@ function buildPhraseTouches(phrase) {
   const assemblyEligible = _stage >= 1
     && score >= 2
     && (isLongPhrase || !alreadySeenAssembly)
-    && _meaningAssemblyCountThisSession < MEANING_ASSEMBLY_CAP;
+    && _meaningAssemblyCountThisSession < MEANING_ASSEMBLY_CAP
+    // Score 3+ mix already places meaning_assembly in the core sequence
+    // 35% of the time. Don't append a second one.
+    && !touches.includes('meaning_assembly');
   if (assemblyEligible) {
     _meaningAssemblyCountThisSession++;
     touches = [...touches, 'meaning_assembly'];
@@ -37464,7 +37487,7 @@ function startSessionWithMode(mode) {
       selected.filter(p => getScore(p.id) === 0 && p.tier !== 'Recovery').map(p => p.id)
     );
     for (const item of queue) {
-      if (item.type === 'listen_meaning' && score0Ids.has(item.phraseId)) {
+      if (item.type === 'listen_meaning_scaffolded' && score0Ids.has(item.phraseId)) {
         item._followWithVocabCard = true;
       }
     }
@@ -38172,8 +38195,13 @@ function renderCurrentExercise() {
   else if (type === 'vocab_card') {
     if (phrase) showPhraseRevealScreen(phrase);
   }
-  else if (type === 'listen_meaning') renderListenPanel(phrase, 'listen', 'meaning');
-  else if (type === 'listen_pick_french' || type === 'listen_identify') renderListenPanel(phrase, 'listen', 'identify');
+  else if (type === 'listen_meaning_scaffolded') renderListenPanel(phrase, 'listen', 'scaffolded');
+  else if (type === 'listen_meaning_audio_only') renderListenPanel(phrase, 'listen', 'audio_only');
+  else if (type === 'timed_recognition')         renderListenPanel(phrase, 'listen', 'timed');
+  // Legacy aliases: any queued item from before the recognition redesign
+  // (persisted mid-session in localStorage) routes to the closest new mode.
+  else if (type === 'listen_meaning')     renderListenPanel(phrase, 'listen', 'scaffolded');
+  else if (type === 'listen_pick_french' || type === 'listen_identify') renderListenPanel(phrase, 'listen', 'audio_only');
   else if (type === 'listen' || type === 'learn') renderListenPanel(phrase, type);
   else if (type === 'speak' || type === 'speak_from_french' || type === 'speak_from_english' || type === 'self_assess') renderSelfAssessPanel(phrase);
   else if (type === 'situation') renderSituationPanel(phrase);
@@ -38249,15 +38277,10 @@ function getDistractors(phrase, count) {
   return result.slice(0, count);
 }
 
-function pickListenSubType(phrase) {
-  const score = getScore(phrase.id);
-  // Score 0: meaning match only (first encounter)
-  if (score <= 0) return 'meaning';
-  // Score 1: meaning match (60%) or written form identification (40%)
-  if (score === 1) return Math.random() < 0.6 ? 'meaning' : 'identify';
-  // Score 2+: written form identification only
-  return 'identify';
-}
+// The countdown for timed_recognition. 8 seconds — enough for a learner
+// who knows the phrase, tight enough to expose one who doesn't.
+const TIMED_RECOGNITION_DURATION = 8000;
+let _listenTimedTimer = null;
 
 // ═══════════════════════════════════════════════════════════════════
 // PHRASE BUILDUPS
@@ -38278,14 +38301,30 @@ function onAudioEnded() {
   if (audioEndedCallback) { audioEndedCallback(); audioEndedCallback = null; }
 }
 
-function renderListenPanel(phrase, type, forcedSubType) {
+// Modes:
+//   'scaffolded' — foreign text visible from the start (score 0)
+//   'audio_only' — foreign text hidden; revealed on wrong answer (score 1-2)
+//   'timed'      — audio_only + 8s countdown; timeout = incorrect (score 3+)
+//   'learn'      — audio-only, no task, chains into vocab card
+function renderListenPanel(phrase, type, mode) {
+  // Backward compat: earlier callers passed subType via the third arg
+  // ('meaning' | 'identify'). Both are now folded into the three-mode
+  // system — everything renders English options and the mode gates the
+  // scaffolding + timer.
+  if (type === 'learn') mode = 'learn';
+  if (!mode) mode = 'audio_only';
+
   // First-time gate: repeat coach mark fires the first time a previously-seen
   // phrase comes back in a session. Full-screen interstitial so audio doesn't
   // start playing behind it.
   if (getScore(phrase.id) >= 1 && !localStorage.getItem('tt_seenRepeatCoachMark')) {
-    showRepeatCoachMark(() => renderListenPanel(phrase, type, forcedSubType));
+    showRepeatCoachMark(() => renderListenPanel(phrase, type, mode));
     return;
   }
+
+  // Timed-recognition coach mark — fires the first time score-3+ learners
+  // encounter the countdown variant. Non-blocking; drops into the panel.
+  if (mode === 'timed') showCoachMark('tt_seenTimedRecognitionCoachMark');
 
   const panel = document.getElementById('panelListen');
   panel.classList.remove('hidden');
@@ -38299,6 +38338,20 @@ function renderListenPanel(phrase, type, forcedSubType) {
   emoji.textContent = '';
   document.getElementById('listenPromptLabel').textContent = '';
   document.getElementById('listenOptions').innerHTML = '';
+
+  // Native text: shown only in scaffolded mode; reset to hidden here so
+  // audio_only / timed panels can't leak the answer from a prior render.
+  const nativeText = document.getElementById('listenNativeText');
+  nativeText.style.display = 'none';
+  nativeText.textContent = '';
+
+  // Timer bar: hidden by default; shown + reset in timed mode below.
+  clearTimeout(_listenTimedTimer);
+  const timerBar = document.getElementById('listenTimerBar');
+  const timerFill = document.getElementById('listenTimerFill');
+  timerBar.style.display = 'none';
+  timerFill.style.transition = 'none';
+  timerFill.style.width = '100%';
 
   const nextBtn = document.getElementById('listenNextBtn');
   nextBtn.disabled = true;
@@ -38317,25 +38370,45 @@ function renderListenPanel(phrase, type, forcedSubType) {
     listenCallbackFired = true;
     circle.classList.remove('playing');
 
-    // Emoji hint at Stage <4 only (otherwise it gives away the category).
+    // Emoji hint at Stage <4 in scaffolded mode only. Audio_only / timed
+    // deliberately withhold the visual hint — the learner is proving
+    // comprehension of the audio itself.
     const _sub = getCurrentSubstage();
-    if (_sub.stage < 4 && phrase.emoji) {
+    if (mode === 'scaffolded' && _sub.stage < 4 && phrase.emoji) {
       emoji.textContent = phrase.emoji;
       emoji.style.display = '';
     }
 
-    if (type === 'learn') {
-      // Learn type: no answer task, just chain into the phrase reveal card.
+    if (mode === 'learn') {
       bumpIfFinal(phrase.id, 1);
       showPhraseRevealScreen(phrase);
       return;
     }
 
-    const subType = forcedSubType || pickListenSubType(phrase);
-    document.getElementById('listenPromptLabel').textContent =
-      subType === 'identify' ? 'Which phrase did you hear?' : 'What did that mean?';
-    renderListenTask(phrase, subType);
+    // Scaffolded: show the native text so the learner can read along.
+    if (mode === 'scaffolded') {
+      nativeText.textContent = displayNative(phrase, 'card');
+      nativeText.style.display = '';
+    }
+
+    document.getElementById('listenPromptLabel').textContent = 'What did that mean?';
+    renderListenMeaning(phrase, mode);
     fadeTargets.forEach(el => el.classList.add('revealed'));
+
+    // Kick off the countdown for timed mode once options are visible.
+    // Double-rAF so the 100% baseline paints before the linear drain.
+    if (mode === 'timed') {
+      timerBar.style.display = '';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          timerFill.style.transition = 'width ' + TIMED_RECOGNITION_DURATION + 'ms linear';
+          timerFill.style.width = '0%';
+        });
+      });
+      _listenTimedTimer = setTimeout(() => {
+        _handleTimedRecognitionTimeout(phrase);
+      }, TIMED_RECOGNITION_DURATION);
+    }
   };
 
   // Restart the .playing pulse + audio. The CSS keyframe runs once per
@@ -38353,20 +38426,30 @@ function renderListenPanel(phrase, type, forcedSubType) {
   }, 8000);
 }
 
-function renderListenTask(phrase, subType) {
-  if (subType === 'meaning') {
-    renderListenMeaning(phrase);
-  } else if (subType === 'identify') {
-    renderListenIdentify(phrase);
-  }
+// Called when the timed_recognition countdown expires with no answer.
+// Marks the correct option, reveals the foreign phrase, and lets the
+// learner tap Continue.
+function _handleTimedRecognitionTimeout(phrase) {
+  const container = document.getElementById('listenOptions');
+  const btns = Array.from(container.querySelectorAll('button.mc-option-v2'));
+  if (!btns.length) return;
+  const correctBtn = btns.find(b => b.dataset.optId === phrase.id);
+  if (!correctBtn) return;
+  // Emulate a wrong tap on nothing — reveal correct + native text.
+  _listenAnswerInPlace(btns, null, correctBtn, false, phrase, 'timed');
 }
 
-// In-place answer handler shared by both Listen subtypes. Toggles
-// correct/wrong/dim classes on the pre-rendered mc-option-v2 buttons,
-// sets the glyph textContent, enables Continue, scores, and wires the
-// vocab-card chain when applicable. No reveal card, no DOM mutation
-// beyond classes + glyph text.
-function _listenAnswerInPlace(allBtns, tappedBtn, correctBtn, correct, phrase) {
+// In-place answer handler for the Listen panel. Toggles correct/wrong/
+// dim classes on the pre-rendered mc-option-v2 buttons, sets the glyph
+// textContent, enables Continue, scores, and wires the vocab-card
+// chain when applicable. tappedBtn may be null (timed_recognition
+// timeout — no tap happened). In audio_only / timed modes, a wrong
+// answer additionally reveals the foreign phrase text so the learner
+// finally sees the phrase they got wrong.
+function _listenAnswerInPlace(allBtns, tappedBtn, correctBtn, correct, phrase, mode) {
+  // Cancel any in-flight countdown so tapping mid-timer stops the drain.
+  clearTimeout(_listenTimedTimer);
+
   allBtns.forEach(b => {
     b.disabled = true;
     if (b === tappedBtn && correct) {
@@ -38382,6 +38465,17 @@ function _listenAnswerInPlace(allBtns, tappedBtn, correctBtn, correct, phrase) {
       b.classList.add('dim');
     }
   });
+
+  // Reveal the foreign phrase on wrong answers when it was hidden — so a
+  // learner who missed audio_only or timed_recognition finally sees what
+  // they heard. Scaffolded mode already shows it; no change needed.
+  if (!correct && (mode === 'audio_only' || mode === 'timed')) {
+    const nativeText = document.getElementById('listenNativeText');
+    if (nativeText) {
+      nativeText.textContent = displayNative(phrase, 'card');
+      nativeText.style.display = '';
+    }
+  }
 
   bumpIfFinal(phrase.id, 2, correct);
 
@@ -39301,7 +39395,7 @@ function lowercaseFirst(str) {
   return str.charAt(0).toLowerCase() + str.slice(1);
 }
 
-function renderListenMeaning(phrase) {
+function renderListenMeaning(phrase, mode) {
   const distractors = getDistractors(phrase, 3);
   const options = shuffle([phrase, ...distractors]);
   const correctMeaning = lowercaseFirst(getMeaning(phrase));
@@ -39315,6 +39409,7 @@ function renderListenMeaning(phrase) {
   options.forEach(opt => {
     const btn = document.createElement('button');
     btn.className = 'mc-option-v2';
+    btn.dataset.optId = opt.id;
     const labelSpan = document.createElement('span');
     labelSpan.className = 'label';
     labelSpan.textContent = opt.id === phrase.id ? correctMeaning : lowercaseFirst(getMeaning(opt));
@@ -39328,70 +39423,7 @@ function renderListenMeaning(phrase) {
     btn.onclick = () => {
       if (answered) return;
       answered = true;
-      _listenAnswerInPlace(allBtns, btn, correctBtn, opt.id === phrase.id, phrase);
-    };
-    container.appendChild(btn);
-  });
-}
-
-// ── Identify written form task ──
-// Pick distractors for Listen and Pick - French. Prefers other Foundation
-// phrases with similar written length or matching first letter so the
-// exercise demands genuine reading attention rather than a guess from shape.
-function getListenPickFrenchDistractors(phrase, count) {
-  let all = getActivePhrases().filter(p =>
-    p.id !== phrase.id &&
-    p.tier !== 'Recovery' &&
-    (p.tier || '1') === '1' &&
-    p.native
-  );
-  const isQuestion = _endsWithQuestion(getMeaning(phrase));
-  const formMatched = all.filter(p => _endsWithQuestion(getMeaning(p)) === isQuestion);
-  if (formMatched.length >= count) all = formMatched;
-  all = _applyLengthFilter(all, phrase.native, count, p => p.native);
-  const targetLen = phrase.native.length;
-  const targetFirst = phrase.native.charAt(0).toLowerCase();
-  const scored = all.map(p => {
-    const lenDiff = Math.abs(p.native.length - targetLen);
-    const firstMatch = p.native.charAt(0).toLowerCase() === targetFirst ? 0 : 1;
-    return { phrase: p, score: lenDiff + firstMatch * 4 };
-  });
-  scored.sort((a, b) => a.score - b.score);
-  // Take the top similarity bucket then shuffle within it for variety
-  const bucket = scored.slice(0, Math.max(count * 3, 6));
-  return shuffle(bucket).slice(0, count).map(s => s.phrase);
-}
-
-function renderListenIdentify(phrase) {
-  const distractors = getListenPickFrenchDistractors(phrase, 3);
-  const options = shuffle([phrase, ...distractors]);
-  const container = document.getElementById('listenOptions');
-  container.innerHTML = '';
-
-  let answered = false;
-  let correctBtn = null;
-  const allBtns = [];
-
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'mc-option-v2';
-    const labelSpan = document.createElement('span');
-    labelSpan.className = 'label';
-    labelSpan.textContent = displayNative(opt, 'card');
-    labelSpan.style.fontFamily = "'Playfair Display', serif";
-    labelSpan.style.fontStyle = 'italic';
-    labelSpan.style.color = 'var(--text)';
-    const glyphSpan = document.createElement('span');
-    glyphSpan.className = 'glyph';
-    btn.appendChild(labelSpan);
-    btn.appendChild(glyphSpan);
-    if (opt.id === phrase.id) correctBtn = btn;
-    allBtns.push(btn);
-
-    btn.onclick = () => {
-      if (answered) return;
-      answered = true;
-      _listenAnswerInPlace(allBtns, btn, correctBtn, opt.id === phrase.id, phrase);
+      _listenAnswerInPlace(allBtns, btn, correctBtn, opt.id === phrase.id, phrase, mode);
     };
     container.appendChild(btn);
   });
@@ -39717,7 +39749,10 @@ function advanceSession() {
   // Each interstitial's dismiss callback re-enters advanceSession to proceed.
   const item = state.session.queue[state.session.index];
   const phrase = item && item.phraseId ? PHRASES.find(p => p.id === item.phraseId) : null;
-  const isListen = item && ['listen_meaning', 'listen_pick_french', 'listen_identify', 'listen', 'learn'].includes(item.type);
+  const isListen = item && [
+    'listen_meaning_scaffolded', 'listen_meaning_audio_only', 'timed_recognition',
+    'listen_meaning', 'listen_pick_french', 'listen_identify', 'listen', 'learn',
+  ].includes(item.type);
   const isRecognition = item && item.type === 'recognition';
 
   if (isRecognition && !localStorage.getItem('tt_seenRecogCoachMark')) {
@@ -40310,10 +40345,10 @@ function startStageReview(stageIdx) {
   }
   Object.values(lastCoreIdxByPhrase).forEach(idx => { queue[idx]._isFinal = true; });
 
-  // Mark score 0 listen_meaning items for vocab card follow-up
+  // Mark score 0 listen_meaning_scaffolded items for vocab card follow-up
   const score0Ids = new Set(selected.filter(p => getScore(p.id) === 0 && p.tier !== 'Recovery').map(p => p.id));
   for (const item of queue) {
-    if (item.type === 'listen_meaning' && score0Ids.has(item.phraseId)) {
+    if (item.type === 'listen_meaning_scaffolded' && score0Ids.has(item.phraseId)) {
       item._followWithVocabCard = true;
     }
   }
@@ -42055,6 +42090,7 @@ function onListenModeComplete() {
 const COACH_MARK_COPY = {
   'tt_seenVocabCoachMark':    'This card shows you everything about the phrase. Tap the play button to hear it, then continue when you\'re ready.',
   'tt_seenSelfAssessCoachMark': "Say the phrase out loud, then reveal it. Be honest — only tap 'I know this' if you actually said it.",
+  'tt_seenTimedRecognitionCoachMark': 'Same question, less time. Tap the meaning before the bar runs out.',
   'tt_seenSignalWordCoachMark': 'The highlighted word is your signal. It\'s what to listen for when a native speaker says this phrase quickly.',
   'tt_seenExperiencePass1CoachMark': 'Watch how this interaction plays out. You\'ll hear both sides before you practice anything.',
   'tt_seenExperiencePass2CoachMark': 'Now follow along. You\'ll see each phrase as it comes up.',
