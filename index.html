@@ -40010,12 +40010,16 @@ function onTierUnlockContinue() {
   advanceSession();
 }
 
-function showMilestoneInterstitial(contextKey, onDismiss) {
+function showMilestoneInterstitial(contextKey, stageNum, onDismiss) {
   const meta = MILESTONE_META[contextKey];
   if (!meta) { if (onDismiss) onDismiss(); return; }
+  const name = stageNum === 3 ? meta.s3name : meta.s2name;
+  const copyKey = stageNum === 3 ? meta.s3copy : meta.s2copy;
   document.getElementById('milestoneEmoji').textContent = meta.emoji;
-  document.getElementById('milestoneName').textContent = meta.name;
-  document.getElementById('milestoneBody').textContent = MILESTONE_COPY[meta.copyKey] || '';
+  document.getElementById('milestoneName').textContent = name;
+  // Stage 3 copy is deliberately empty per spec — C&V hasn't written it
+  // yet. The interstitial still fires; body just renders empty.
+  document.getElementById('milestoneBody').textContent = MILESTONE_COPY[copyKey] || '';
   const cta = document.getElementById('milestoneCta');
   cta.textContent = MILESTONE_COPY.milestone_cta || 'Keep going';
   cta.onclick = () => { if (onDismiss) onDismiss(); };
@@ -40035,15 +40039,15 @@ function showCompletion() {
     return;
   }
 
-  // Context milestone check — fires when a Stage 2 context reaches
-  // full mastery. When one triggers, show the interstitial first;
-  // dismissing it re-enters showCompletion which then hands off to
-  // the normal session-complete screen. checkContextMilestones
+  // Context milestone check — fires when a Stage 2 or Stage 3 context
+  // reaches full mastery. When one triggers, show the interstitial
+  // first; dismissing it re-enters showCompletion which then hands off
+  // to the normal session-complete screen. checkContextMilestones
   // already stamps the flag so the loop exits on the next call.
   const milestone = checkContextMilestones();
   if (milestone) {
     saveState();
-    showMilestoneInterstitial(milestone, () => showCompletion());
+    showMilestoneInterstitial(milestone.contextKey, milestone.stageNum, () => showCompletion());
     return;
   }
 
@@ -40303,18 +40307,22 @@ const MILESTONE_CONTEXT_FALLBACKS = {
   getting_around: ['At the Station'],
 };
 
+// Milestones exist at two stages: Ready (Stage 2, T2 phrases, score ≥ 2)
+// and Fluent (Stage 3, T3 phrases, score ≥ 3). Same contextKeys, same
+// emoji, but distinct display name + copy per stage.
 const MILESTONE_META = {
-  cafe_bakery:    { name: 'Café & Bakery Ready',     emoji: '🥐', copyKey: 'milestone_cafe_bakery_ready' },
-  restaurant:     { name: 'Restaurant Ready',        emoji: '🍽️', copyKey: 'milestone_restaurant_ready' },
-  hotel:          { name: 'Hotel Ready',             emoji: '🏨', copyKey: 'milestone_hotel_ready' },
-  finding_way:    { name: 'Finding Your Way',        emoji: '🗺️', copyKey: 'milestone_finding_your_way' },
-  getting_around: { name: 'Getting Around',          emoji: '🚇', copyKey: 'milestone_getting_around' },
-  comms_toolkit:  { name: 'Communication Toolkit',   emoji: '💬', copyKey: 'milestone_communication_toolkit' },
+  cafe_bakery:    { emoji: '🥐', s2name: 'Café & Bakery Ready',     s3name: 'Café & Bakery Fluent',     s2copy: 'milestone_cafe_bakery_ready',    s3copy: 'milestone_cafe_bakery_fluent' },
+  restaurant:     { emoji: '🍽️', s2name: 'Restaurant Ready',        s3name: 'Restaurant Fluent',        s2copy: 'milestone_restaurant_ready',    s3copy: 'milestone_restaurant_fluent' },
+  hotel:          { emoji: '🏨', s2name: 'Hotel Ready',             s3name: 'Hotel Fluent',             s2copy: 'milestone_hotel_ready',         s3copy: 'milestone_hotel_fluent' },
+  finding_way:    { emoji: '🗺️', s2name: 'Finding Your Way',        s3name: 'Navigation Fluent',        s2copy: 'milestone_finding_your_way',    s3copy: 'milestone_finding_way_fluent' },
+  getting_around: { emoji: '🚇', s2name: 'Getting Around',          s3name: 'Transport Fluent',         s2copy: 'milestone_getting_around',      s3copy: 'milestone_getting_around_fluent' },
+  comms_toolkit:  { emoji: '💬', s2name: 'Communication Toolkit',   s3name: 'Communication Fluent',     s2copy: 'milestone_communication_toolkit', s3copy: 'milestone_communication_fluent' },
 };
 
 // Copy strings from the App Copy table. Fallback text lives here so the
-// interstitial and grid render sensibly even before an Airtable-driven
-// APP_COPY pipeline exists.
+// interstitial and grid render sensibly before an Airtable-driven APP_COPY
+// pipeline exists. Stage 3 fluent copy is empty per spec — C&V hasn't
+// written those strings yet; the interstitial renders with an empty body.
 const MILESTONE_COPY = {
   milestone_cafe_bakery_ready:      "You can order a pastry, ask for water, and pay for a coffee without switching to English.",
   milestone_restaurant_ready:       "You can be seated, order a meal, ask about a dish, and settle the bill in French.",
@@ -40322,74 +40330,114 @@ const MILESTONE_COPY = {
   milestone_finding_your_way:       "You can ask for directions, understand the answer, and get where you're going.",
   milestone_getting_around:         "You can buy a ticket, catch a train, and read the boards.",
   milestone_communication_toolkit:  "You can greet, thank, apologise, and recover a conversation when it slips.",
+  milestone_cafe_bakery_fluent:     '',
+  milestone_restaurant_fluent:      '',
+  milestone_hotel_fluent:           '',
+  milestone_finding_way_fluent:     '',
+  milestone_getting_around_fluent: '',
+  milestone_communication_fluent:   '',
   milestone_cta:                    "Keep going",
   stage2_progress_label:            "Progress by context",
   stage2_entry_gate:                "Complete 4 of these 6 areas to unlock Stage 3.",
+  stage4_progress_label:            "Stage 4 progress",
+  stage5_progress_label:            "Stage 5 progress",
 };
 
-function _milestonePhrasePool(contextKey) {
+function getMilestoneTier(stageNum) { return stageNum === 2 ? '2' : '3'; }
+function getMilestoneScoreThreshold(stageNum) { return stageNum === 2 ? 2 : 3; }
+
+// Returns the phrase pool that gates a milestone. Filters by (lang,
+// tier, contextLabel). Tier is the Stage-2 T2 pool or the Stage-3 T3
+// pool; context label matches the primary or any legacy fallback still
+// present in the data.
+function _milestonePhrasePool(contextKey, stageNum) {
   const lang = langToCode(localStorage.getItem('tt_language') || 'French');
+  const tier = getMilestoneTier(stageNum);
   const primary = MILESTONE_CONTEXTS[contextKey];
   const fallbacks = MILESTONE_CONTEXT_FALLBACKS[contextKey] || [];
   const labels = [primary, ...fallbacks];
   return PHRASES.filter(p =>
     p.lang === lang &&
+    p.tier === tier &&
     labels.includes(p.contextLabel) &&
     !p.isBuildupChunk &&
     getAudio(p)
   );
 }
 
-function getMilestoneThreshold(phrase) {
-  const tier = parseInt(phrase.tier || '1', 10);
-  return tier >= 3 ? 3 : 2;
-}
-
-function isMilestoneComplete(contextKey) {
-  const phrases = _milestonePhrasePool(contextKey);
+function isMilestoneComplete(contextKey, stageNum) {
+  const phrases = _milestonePhrasePool(contextKey, stageNum);
   if (!phrases.length) return false;
-  return phrases.every(p => getScore(p.id) >= getMilestoneThreshold(p));
+  const threshold = getMilestoneScoreThreshold(stageNum);
+  return phrases.every(p => getScore(p.id) >= threshold);
 }
 
-function getMilestoneProgress(contextKey) {
-  const phrases = _milestonePhrasePool(contextKey);
-  const done = phrases.filter(p => getScore(p.id) >= getMilestoneThreshold(p)).length;
+function getMilestoneProgress(contextKey, stageNum) {
+  const phrases = _milestonePhrasePool(contextKey, stageNum);
+  const threshold = getMilestoneScoreThreshold(stageNum);
+  const done = phrases.filter(p => getScore(p.id) >= threshold).length;
   return { done, total: phrases.length };
 }
 
-function getMilestoneKey(contextKey) {
+// State keys are stage-scoped so Stage 2 and Stage 3 milestones fire
+// independently. tt_milestone_{context}_s2_{lang} / _s3_{lang}.
+function getMilestoneKey(contextKey, stageNum) {
   const lang = langToCode(localStorage.getItem('tt_language') || 'French');
-  return 'tt_milestone_' + contextKey + '_' + lang;
+  return 'tt_milestone_' + contextKey + '_s' + stageNum + '_' + lang;
 }
 
-function hasMilestoneFired(contextKey) {
-  return !!localStorage.getItem(getMilestoneKey(contextKey));
+function hasMilestoneFired(contextKey, stageNum) {
+  return !!localStorage.getItem(getMilestoneKey(contextKey, stageNum));
 }
 
-function setMilestoneFired(contextKey) {
-  localStorage.setItem(getMilestoneKey(contextKey), 'true');
+function setMilestoneFired(contextKey, stageNum) {
+  localStorage.setItem(getMilestoneKey(contextKey, stageNum), 'true');
 }
 
-function getCompletedMilestoneCount() {
-  return Object.keys(MILESTONE_CONTEXTS).filter(k => hasMilestoneFired(k)).length;
+function getCompletedMilestoneCount(stageNum) {
+  return Object.keys(MILESTONE_CONTEXTS).filter(k => hasMilestoneFired(k, stageNum)).length;
 }
 
-// Returns a contextKey to celebrate if a new milestone just completed
-// this session, otherwise null. Called from showCompletion before the
-// standard completion screen renders. Only one milestone fires per call
-// — if multiple complete simultaneously the remaining ones surface on
-// subsequent session ends (rare, but explicit rather than dropping
-// celebrations).
+// Returns { contextKey, stageNum } if a new milestone just completed
+// this session, otherwise null. Called from showCompletion. Only one
+// fires per call — additional milestones (rare simultaneous completion)
+// surface on subsequent session ends. Checks the current stage's
+// milestone tier only.
 function checkContextMilestones() {
   const stage = getCurrentSubstage().stage;
-  if (stage < 2) return null;
+  if (stage < 2 || stage > 3) return null;
+  const stageNum = stage; // 2 or 3
   for (const contextKey of Object.keys(MILESTONE_CONTEXTS)) {
-    if (!hasMilestoneFired(contextKey) && isMilestoneComplete(contextKey)) {
-      setMilestoneFired(contextKey);
-      return contextKey;
+    if (!hasMilestoneFired(contextKey, stageNum) && isMilestoneComplete(contextKey, stageNum)) {
+      setMilestoneFired(contextKey, stageNum);
+      return { contextKey, stageNum };
     }
   }
   return null;
+}
+
+// Stage 4/5 mastery uses a raw score threshold on the whole tier pool,
+// not the milestone abstraction. Returns { done, total, pct } for the
+// mastery bar on the Learn tab.
+function getStageMasteryProgress(stageNum) {
+  const lang = langToCode(localStorage.getItem('tt_language') || 'French');
+  const tier = stageNum === 4 ? '4' : '5';
+  const threshold = 4;
+  const phrases = PHRASES.filter(p =>
+    p.lang === lang &&
+    p.tier === tier &&
+    !p.isBuildupChunk &&
+    getAudio(p)
+  );
+  const done = phrases.filter(p => getScore(p.id) >= threshold).length;
+  const pct = phrases.length ? Math.round((done / phrases.length) * 100) : 0;
+  return { done, total: phrases.length, pct };
+}
+
+// True when every T4 phrase has reached score 4+. Gates Stage 4 → Stage 5.
+function isStage4Complete() {
+  const { done, total } = getStageMasteryProgress(4);
+  return total > 0 && done >= total;
 }
 
 function getCurrentSubstage() {
@@ -40457,11 +40505,11 @@ function getCurrentSubstage() {
     return { stage: 2, substage: 'S2-B' };
   }
 
-  // S2-C → Stage 3 entry: 4 of 6 context milestones complete + tt_prefGateSeen.
-  // The score-based S2-A/B/C thresholds above still gate the substage
-  // internal transitions; the exit to Stage 3 is now milestone-driven
-  // per LLR spec (context mastery in 4 areas, not a flat T2 score).
-  if (getCompletedMilestoneCount() < 4 || !localStorage.getItem('tt_prefGateSeen')) {
+  // S2-C → Stage 3 entry: 4 of 6 Stage-2 context milestones complete +
+  // tt_prefGateSeen. The score-based S2-A/B/C thresholds above still
+  // gate internal substage transitions; the exit to Stage 3 is
+  // milestone-driven per LLR spec (context mastery in 4 areas).
+  if (getCompletedMilestoneCount(2) < 4 || !localStorage.getItem('tt_prefGateSeen')) {
     return { stage: 2, substage: 'S2-C' };
   }
 
@@ -40483,14 +40531,19 @@ function getCurrentSubstage() {
     return { stage: 3, substage: 'S3-A' };
   }
 
-  // S3-B → S4-A: all active at score 2+
-  if (!active.every(p => getScore(p.id) >= 2)) return { stage: 3, substage: 'S3-B' };
+  // S3-B → Stage 4 entry: 4 of 6 Stage-3 context milestones complete.
+  // Fluent mastery in 4 of 6 contexts (T3 phrases at score 3+) exits
+  // Stage 3, matching the cascade from Stage 2.
+  if (getCompletedMilestoneCount(3) < 4) return { stage: 3, substage: 'S3-B' };
 
-  // S4-A → S4-B: 80% of all active at score 3+
+  // S4-A → S4-B: 80% of all active at score 3+ (internal Stage 4 marker).
   const activeAt3 = active.filter(p => getScore(p.id) >= 3).length;
   if (activeAt3 < Math.floor(active.length * 0.8)) return { stage: 4, substage: 'S4-A' };
 
-  // S4-B → S5
+  // S4-B → S5: every T4 phrase at score 4+ per LLR spec. If no T4
+  // phrases exist yet (mid-content-build), stay in S4-B rather than
+  // false-positive to Stage 5.
+  if (!isStage4Complete()) return { stage: 4, substage: 'S4-B' };
   return { stage: 5, substage: 'S5' };
 }
 
@@ -40846,10 +40899,12 @@ function renderLearnTab() {
 
   container.appendChild(ladder);
 
-  // Stage 2 milestones — 2×3 card grid rendered between the ladder and
-  // the Continue Learning button, only during Stage 2. Disappears once
-  // Stage 3 unlocks per spec.
+  // Milestones + mastery bars — 2×3 card grid during Stage 2/3, full-
+  // width progress bar during Stage 4/5. Each function checks the
+  // current stage and no-ops when out of range so the call order here
+  // is safe regardless of stage.
   renderMilestoneGrid(container);
+  renderStageMasteryBar(container);
 
   // ── Continue Learning button ──
   const btn = document.createElement('button');
@@ -40866,7 +40921,10 @@ function renderLearnTab() {
 // a checkmark and full cobalt bar.
 function renderMilestoneGrid(container) {
   const stage = getCurrentSubstage().stage;
-  if (stage !== 2) return;
+  // Grid renders during Stage 2 and Stage 3 (each showing the active
+  // stage's milestone set). Stage 4+ uses renderStageMasteryBar instead.
+  if (stage < 2 || stage >= 4) return;
+  const stageNum = stage;
 
   const wrap = document.createElement('div');
   wrap.style.cssText = 'margin:1.5rem 0 0.5rem;';
@@ -40881,9 +40939,14 @@ function renderMilestoneGrid(container) {
 
   for (const contextKey of Object.keys(MILESTONE_CONTEXTS)) {
     const meta = MILESTONE_META[contextKey];
-    const complete = hasMilestoneFired(contextKey);
-    const { done, total } = getMilestoneProgress(contextKey);
+    const name = stageNum === 3 ? meta.s3name : meta.s2name;
+    const complete = hasMilestoneFired(contextKey, stageNum);
+    const { done, total } = getMilestoneProgress(contextKey, stageNum);
     const pct = total ? Math.round((done / total) * 100) : 0;
+    // Drill affordance appears only for contexts where the Stage 2
+    // milestone has fired (per spec — drills unlock as each milestone
+    // is earned, not before).
+    const drillUnlocked = hasMilestoneFired(contextKey, 2);
 
     const card = document.createElement('div');
     card.style.cssText = [
@@ -40892,11 +40955,11 @@ function renderMilestoneGrid(container) {
       'flex-direction:column',
       'align-items:flex-start',
       'gap:6px',
-      'padding:12px 12px 16px',
+      'padding:12px 12px 22px',
       'border-radius:12px',
       'border:1px solid ' + (complete ? 'var(--accent)' : 'var(--border)'),
       'background:' + (complete ? 'rgba(0,71,171,0.06)' : 'var(--card)'),
-      'min-height:98px',
+      'min-height:104px',
       'overflow:hidden',
     ].join(';');
 
@@ -40906,23 +40969,45 @@ function renderMilestoneGrid(container) {
     emoji.style.cssText = 'font-size:22px; line-height:1;';
     emoji.textContent = meta.emoji;
     row.appendChild(emoji);
+    // Stage 3 gets a small "S3" chip alongside the checkmark so upgraded
+    // cards read visibly different from their Stage 2 state without a
+    // separate "level indicator" component. Chat can iterate on this.
+    if (stageNum === 3) {
+      const level = document.createElement('span');
+      level.style.cssText = 'margin-left:auto; font:600 10px/1 Inter; letter-spacing:0.06em; color:var(--text-mid); padding:3px 6px; border:1px solid var(--border); border-radius:4px;';
+      level.textContent = 'S3';
+      row.appendChild(level);
+    }
     if (complete) {
       const check = document.createElement('span');
-      check.style.cssText = 'margin-left:auto; color:var(--accent); font-size:16px; line-height:1;';
+      check.style.cssText = (stageNum === 3 ? 'margin-left:6px' : 'margin-left:auto') + '; color:var(--accent); font-size:16px; line-height:1;';
       check.textContent = '✓';
       row.appendChild(check);
     }
     card.appendChild(row);
 
-    const name = document.createElement('div');
-    name.style.cssText = 'font-family:Inter,-apple-system,sans-serif; font-size:13px; font-weight:600; color:var(--text); line-height:1.3;';
-    name.textContent = meta.name;
-    card.appendChild(name);
+    const nameEl = document.createElement('div');
+    nameEl.style.cssText = 'font-family:Inter,-apple-system,sans-serif; font-size:13px; font-weight:600; color:var(--text); line-height:1.3;';
+    nameEl.textContent = name;
+    card.appendChild(nameEl);
 
     const count = document.createElement('div');
     count.style.cssText = 'font-size:11px; color:var(--text-mid); letter-spacing:0.02em;';
-    count.textContent = total > 0 ? (done + ' / ' + total) : '—';
+    count.textContent = complete ? '✓ Complete' : (total > 0 ? (done + ' / ' + total) : '—');
     card.appendChild(count);
+
+    // Drill link — sits above the progress bar. Only shown once the
+    // Stage 2 milestone has been earned; tapping opens the drill. Tap
+    // target is deliberately distinct from the card body so a general
+    // card tap doesn't accidentally launch a session.
+    if (drillUnlocked) {
+      const drill = document.createElement('button');
+      drill.type = 'button';
+      drill.style.cssText = 'position:absolute; right:8px; bottom:6px; background:transparent; border:0; padding:2px 4px; color:var(--accent); font:600 11px/1 Inter; letter-spacing:0.04em; cursor:pointer;';
+      drill.textContent = 'Drill →';
+      drill.onclick = (e) => { e.stopPropagation(); startContextDrillSession(contextKey); };
+      card.appendChild(drill);
+    }
 
     // Progress bar pinned to the bottom edge inside the card.
     const bar = document.createElement('div');
@@ -40936,6 +41021,41 @@ function renderMilestoneGrid(container) {
   }
 
   wrap.appendChild(grid);
+  container.appendChild(wrap);
+}
+
+// Stage 4/5 mastery — single full-width progress bar in place of the
+// milestone grid. Percentage only per spec (no numeric phrase count).
+function renderStageMasteryBar(container) {
+  const stage = getCurrentSubstage().stage;
+  if (stage < 4) return;
+  const { pct } = getStageMasteryProgress(stage);
+  const labelKey = stage === 4 ? 'stage4_progress_label' : 'stage5_progress_label';
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'margin:1.5rem 0 0.5rem;';
+
+  const label = document.createElement('div');
+  label.style.cssText = 'font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-mid); margin-bottom:0.6rem;';
+  label.textContent = MILESTONE_COPY[labelKey] || ('Stage ' + stage + ' progress');
+  wrap.appendChild(label);
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex; align-items:center; gap:10px;';
+
+  const bar = document.createElement('div');
+  bar.style.cssText = 'flex:1; height:8px; border-radius:4px; background:var(--border); overflow:hidden;';
+  const fill = document.createElement('div');
+  fill.style.cssText = 'height:100%; width:' + pct + '%; background:var(--accent); transition:width 300ms ease;';
+  bar.appendChild(fill);
+
+  const pctEl = document.createElement('div');
+  pctEl.style.cssText = 'font:500 13px/1 Inter; color:var(--text-mid); min-width:32px; text-align:right;';
+  pctEl.textContent = pct + '%';
+
+  row.appendChild(bar);
+  row.appendChild(pctEl);
+  wrap.appendChild(row);
   container.appendChild(wrap);
 }
 
@@ -41040,29 +41160,54 @@ function renderPracticeTab() {
   heading.textContent = 'Drill by context';
   container.appendChild(heading);
 
-  const sections = CONTEXT_DRILL_SECTIONS.filter(isContextSectionUnlocked);
+  // Practice tab is milestone-aligned per LLR spec: only contexts whose
+  // Stage 2 milestone has fired appear as drill entry points. Earning a
+  // milestone unlocks the drill; contexts still in progress stay locked.
+  const unlockedKeys = Object.keys(MILESTONE_CONTEXTS).filter(k => hasMilestoneFired(k, 2));
 
-  if (!sections.length) {
+  if (!unlockedKeys.length) {
     const empty = document.createElement('div');
     empty.style.cssText = 'font-size:15px; color:var(--text-dim); padding:2rem 0; text-align:center; line-height:1.5;';
-    empty.textContent = 'Keep going in Learn and contexts will unlock here.';
+    empty.textContent = 'Reach your first context milestone in Learn and drills will unlock here.';
     container.appendChild(empty);
     return;
   }
 
   const list = document.createElement('div');
   list.style.cssText = 'display:flex; flex-direction:column; gap:0.5rem;';
-  sections.forEach(section => {
+  unlockedKeys.forEach(contextKey => {
+    const meta = MILESTONE_META[contextKey];
+    const label = meta.s2name.replace(/ Ready$/, '');
+    const isLast = _lastDrillKey === contextKey;
     const card = document.createElement('button');
-    const isLast = _lastDrillKey === section.key;
     card.style.cssText = 'display:flex; align-items:center; gap:0.9rem; padding:1rem 1.1rem; background:var(--card); border:1px solid ' + (isLast ? 'var(--border-hi)' : 'var(--border)') + '; border-radius:var(--radius); color:var(--text); font-family:"Lexend",sans-serif; font-size:15px; text-align:left; cursor:pointer; transition:border-color 0.15s; width:100%;';
     card.onmouseover = () => { card.style.borderColor = 'var(--border-hi)'; };
     card.onmouseout = () => { card.style.borderColor = isLast ? 'var(--border-hi)' : 'var(--border)'; };
-    card.onclick = () => startContextDrill(section);
-    card.innerHTML = `<span style="font-size:1.5rem; line-height:1;">${section.emoji}</span><span style="flex:1;">${section.label}</span><span style="color:var(--text-dim); font-size:15px;">›</span>`;
+    card.onclick = () => startContextDrillSession(contextKey);
+    card.innerHTML = '<span style="font-size:1.5rem; line-height:1;">' + meta.emoji + '</span>' +
+      '<span style="flex:1;">' + label + '</span>' +
+      '<span style="color:var(--text-dim); font-size:15px;">›</span>';
     list.appendChild(card);
   });
   container.appendChild(list);
+}
+
+// Milestone-aware drill entry: builds a section-shaped object from the
+// milestone contextKey and delegates to the existing startContextDrill
+// machinery. That path already handles pool filtering, completion
+// cooldown offers, and leave-cleanup — so this stays a thin adapter.
+function startContextDrillSession(contextKey) {
+  const meta = MILESTONE_META[contextKey];
+  const contextLabel = MILESTONE_CONTEXTS[contextKey];
+  const section = {
+    key: contextKey,
+    label: meta.s2name.replace(/ Ready$/, ''),
+    emoji: meta.emoji,
+    contextLabel,
+    experience: contextLabel,
+    clipContext: contextLabel,
+  };
+  startContextDrill(section);
 }
 
 function startContextDrill(section) {
