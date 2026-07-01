@@ -1711,6 +1711,14 @@ body {
         <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
         <span id="recogAnchorWord" style="font-size:15px; color:var(--text);"></span>
       </div>
+      <!-- Signal word definition — revealed post-answer only. -->
+      <div id="recogSignalWordDef"
+        style="display:none; font:500 13px/1.4 Inter; color:var(--text); text-align:center; margin-top:0.25rem;">
+      </div>
+      <!-- Signal word note — contextual why-it-matters, post-answer only. -->
+      <div id="recogSignalWordNote"
+        style="display:none; font:400 12px/1.45 Inter; color:var(--text-dim); text-align:center; margin:0.25rem auto 0; font-style:italic; max-width:280px;">
+      </div>
       <!-- Prompt block: trigger phrase + emoji hint. -->
       <div class="prompt-block fade-target delay-80">
         <div class="prompt-italic" id="recogPrompt"></div>
@@ -1864,6 +1872,14 @@ body {
     <div id="recogStdSignalAnchor" class="fade-target delay-80" style="display:none; text-align:center; margin-top:8px;">
       <span style="font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim);">Listen for: </span>
       <span id="recogStdAnchorWord" style="font-size:15px; color:var(--text);"></span>
+    </div>
+    <!-- Signal word definition — revealed post-answer only. -->
+    <div id="recogStdSignalWordDef"
+      style="display:none; font:500 13px/1.4 Inter; color:var(--text); text-align:center; margin-top:0.25rem;">
+    </div>
+    <!-- Signal word note — contextual why-it-matters, post-answer only. -->
+    <div id="recogStdSignalWordNote"
+      style="display:none; font:400 12px/1.45 Inter; color:var(--text-dim); text-align:center; margin:0.25rem auto 0; font-style:italic; max-width:280px;">
     </div>
     <div class="prompt-block fade-target delay-80">
       <div class="prompt-italic" id="recogStdPrompt"></div>
@@ -37893,6 +37909,14 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
     }
   }
 
+  // Signal word definition + note stay hidden until the learner answers
+  // — revealed inside the onclick handler below alongside the correct
+  // option highlight. Reset here so a prior render can't leak state.
+  const sigDefEl = document.getElementById(prefix + 'SignalWordDef');
+  const sigNoteEl = document.getElementById(prefix + 'SignalWordNote');
+  if (sigDefEl) { sigDefEl.style.display = 'none'; sigDefEl.textContent = ''; }
+  if (sigNoteEl) { sigNoteEl.style.display = 'none'; sigNoteEl.textContent = ''; }
+
   // Scene prompt: the situational framing ("You asked about a dish. The
   // server is explaining what's in it.") shown BEFORE the learner taps
   // play. Priming with context is the core listening skill.
@@ -37985,6 +38009,19 @@ function renderRecognitionInto(prefix, trigger, onAnswer, onContinue) {
       nextBtn.disabled = false;
       nextBtn.classList.add('enabled');
       nextBtn.textContent = c.correct ? 'Continue' : 'Got it';
+
+      // Reveal signal word definition + why-it-matters note. Only show
+      // when the field has content; empty strings on the trigger record
+      // leave the element hidden so we don't reserve empty vertical
+      // space below the "Listen for:" line.
+      if (sigDefEl && trigger.signalWordDefinition) {
+        sigDefEl.textContent = trigger.signalWordDefinition;
+        sigDefEl.style.display = '';
+      }
+      if (sigNoteEl && trigger.signalWordNote) {
+        sigNoteEl.textContent = trigger.signalWordNote;
+        sigNoteEl.style.display = '';
+      }
 
       const seen = JSON.parse(localStorage.getItem('tt_seenTriggers') || '[]');
       if (!seen.includes(trigger.id)) {
