@@ -39636,6 +39636,12 @@ function selfAssessReveal() {
   document.getElementById('saReveal').classList.add('shown');
   document.getElementById('saRevealRow').style.display = 'none';
   document.getElementById('saActions').style.display = 'flex';
+  // Play the phrase at the moment of reveal so the learner hears the
+  // correct pronunciation while their eye lands on the text. The tap
+  // itself is a live user gesture so autoplay policy is satisfied.
+  // Reuse replaySelfAssessAudio for pulse + currentAudio bookkeeping;
+  // the standalone play circle above still works independently.
+  replaySelfAssessAudio();
 }
 
 function selfAssessShowMeaning() {
