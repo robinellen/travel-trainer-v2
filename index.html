@@ -39028,10 +39028,13 @@ function renderMeaningAssemblyPanel(phrase) {
 
   // Pool: answer words + ~answer.length distractors (capped at 3 so the
   // bank stays surveyable at 6-7 chips per spec).
-  // Pool sizing per LLR spec: distractors ≈ answer length so the total
-  // chip count is roughly 2× the answer (answer words + equal distractors).
-  // Capped at answer.length + 2 so very long phrases don't get 10+ chips.
-  const distractorTarget = Math.min(answer.length + 2, Math.max(2, answer.length));
+  // Distractor pool: answer.length + 4, hard-capped at 8 so Recovery-
+  // style long phrases don't produce an unmanageable chip grid.
+  //   2-word → 6 distractors (8 chips total)
+  //   3-word → 7 distractors (10 chips)
+  //   4-word → 8 distractors (12 chips)
+  //   5+ word → 8 distractors (13+ chips)
+  const distractorTarget = Math.min(answer.length + 4, 8);
   const distractors = getMeaningAssemblyDistractors(phrase, answer, distractorTarget);
   // Stable shuffle seeded by phrase id length so a refresh = same layout.
   const seed = (phrase.id || '').split('').reduce((s, c) => s + c.charCodeAt(0), 0) || 7;
