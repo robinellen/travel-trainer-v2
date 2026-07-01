@@ -38957,7 +38957,21 @@ function getEmojiDistractors(phrase, count) {
 // distractors are meant to be left behind.
 // ═══════════════════════════════════════════════════════════════════
 
-const _MA_STOPWORDS = new Set(['a','an','the','to','of','in','on','at','for','with','my','your','is','it','i','and','or']);
+const _MA_STOPWORDS = new Set([
+  // Articles / prepositions / pronouns / conjunctions
+  'a','an','the','to','of','in','on','at','for','with','my','your','is','it','i','and','or',
+  // Numbers (word + digit form) — spurious in most translation prompts
+  'one','two','three','four','five','six','seven','eight','nine','ten',
+  'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen',
+  'twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety','hundred','thousand',
+  '1','2','3','4','5','6','7','8','9','10','11','12',
+  // Time filler
+  'am','pm',"o'clock",
+  // Formulaic phrase parts that show up in almost every meaning — as
+  // distractors they read as jarring near-duplicates of the answer.
+  'please','thank','thanks','sorry','excuse','yes','no','ok','okay',
+  'very','much','more','less','little','bit',
+]);
 let _meaningAssemblyState = null;
 
 // Seeded shuffle so a refresh of the same phrase keeps the same bank order.
@@ -38998,6 +39012,9 @@ function getMeaningAssemblyDistractors(phrase, answerTokens, maxCount) {
   const out = [];
   for (const p of ranked) {
     for (const tok of _maTokenize(getMeaning(p))) {
+      // Very short tokens (1-2 chars) are almost never useful distractors —
+      // they either match a stopword or read as noise in the chip grid.
+      if (tok.length < 3) continue;
       const k = tok.toLowerCase();
       if (answerWordSet.has(k)) continue;
       if (_MA_STOPWORDS.has(k)) continue;
